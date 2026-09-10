@@ -31,6 +31,14 @@ pip install -e .
 
 Python 3.11 or newer. No runtime dependencies.
 
+Install editable, or run from a checkout. The rate card (`pricing/`) and the CSV
+schema profiles (`schemas/`) deliberately live at the repo root rather than
+inside the package, because both are meant to be read and edited — that is the
+whole point of the rates being traceable. The trade-off is that a plain
+`pip install .` leaves them behind; if you need that, pass `--pricing` and
+`--usage-profile` explicitly. Either way the tool refuses to run rather than
+falling back on rates it cannot show you.
+
 ## Use
 
 ```bash

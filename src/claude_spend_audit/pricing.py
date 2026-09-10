@@ -178,11 +178,23 @@ class PricingTable:
 
     @classmethod
     def load_default(cls, directory: str | Path | None = None) -> PricingTable:
-        """Load the newest pricing file by filename (they sort chronologically)."""
+        """Load the newest pricing file by filename (they sort chronologically).
+
+        Rates live at the repo root rather than inside the package so they stay
+        visible and editable -- §3 requires the user be able to inspect and
+        correct them. The cost is that a non-editable ``pip install .`` leaves
+        them behind, so say what to do about it rather than just failing.
+        """
         d = Path(directory) if directory else DEFAULT_PRICING_DIR
         candidates = sorted(d.glob("*.json"))
         if not candidates:
-            raise PricingError(f"no pricing files in {d}")
+            raise PricingError(
+                f"no pricing files in {d}\n"
+                "  Rates are kept in a top-level pricing/ directory so you can "
+                "read and correct them.\n"
+                "  Run from a checkout (pip install -e .), or point at the file "
+                "directly with --pricing."
+            )
         return cls.load(candidates[-1])
 
     def __repr__(self) -> str:  # pragma: no cover - diagnostics

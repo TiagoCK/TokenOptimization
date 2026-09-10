@@ -169,7 +169,18 @@ class Profile:
     @classmethod
     def load_named(cls, name: str, directory: str | Path | None = None) -> Profile:
         d = Path(directory) if directory else DEFAULT_SCHEMA_DIR
-        return cls.load(d / f"{name}.json")
+        path = d / f"{name}.json"
+        if not path.exists():
+            # Profiles live at the repo root for the same reason rates do: they
+            # are meant to be edited when an export does not match.
+            raise SchemaError(
+                f"schema profile not found: {path}\n"
+                "  Profiles are kept in a top-level schemas/ directory so you "
+                "can correct them.\n"
+                "  Run from a checkout (pip install -e .), or pass "
+                "--usage-profile / --cost-profile."
+            )
+        return cls.load(path)
 
     @classmethod
     def from_dict(cls, data: Mapping[str, object], *, path: Path | None = None) -> Profile:

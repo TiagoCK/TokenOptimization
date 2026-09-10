@@ -194,3 +194,24 @@ def test_a_bom_does_not_break_the_first_column(tmp_path, usage_profile):
     frame, mapping = load_usage_csv(path, usage_profile)
     assert "start" in mapping.fields
     assert len(frame.usage) == 1
+
+
+def test_missing_profile_directory_explains_the_fix(tmp_path):
+    """Rates and profiles live at the repo root so they stay editable, which
+    means a non-editable `pip install .` cannot find them. Fail with the
+    remedy attached rather than a bare path."""
+    with pytest.raises(SchemaError) as excinfo:
+        Profile.load_named("console_usage_csv", tmp_path)
+    message = str(excinfo.value)
+    assert "pip install -e ." in message
+    assert "--usage-profile" in message
+
+
+def test_missing_pricing_directory_explains_the_fix(tmp_path):
+    from claude_spend_audit.pricing import PricingError, PricingTable
+
+    with pytest.raises(PricingError) as excinfo:
+        PricingTable.load_default(tmp_path)
+    message = str(excinfo.value)
+    assert "pip install -e ." in message
+    assert "--pricing" in message
