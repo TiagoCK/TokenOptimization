@@ -19,7 +19,14 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Iterable, Mapping
 
-from .frame import TOKEN_FIELDS, Frame, Segment, TokenBuckets
+from .frame import (
+    ALL_TOKEN_FIELDS,
+    TOKEN_FIELDS,
+    UNSPLIT_CACHE_WRITE,
+    Frame,
+    Segment,
+    TokenBuckets,
+)
 from . import gaps as gapmod
 from .gaps import Gap
 
@@ -240,7 +247,13 @@ class PricingTable:
         speed: str | None = None,
     ) -> Rate:
         """The per-MTok rate for one token bucket under one set of dimensions."""
-        if bucket not in TOKEN_FIELDS:
+        if bucket == UNSPLIT_CACHE_WRITE:
+            # No rate exists for "a cache write of unknown TTL". Price at the
+            # 5-minute rate, the cheaper of the two, so the figure is an
+            # explicit floor rather than a guess in an unknown direction. The
+            # CACHE_TTL_NOT_SPLIT gap says so and quantifies the exposure.
+            bucket = "cache_write_5m"
+        elif bucket not in TOKEN_FIELDS:
             raise KeyError(f"unknown token bucket {bucket!r}")
 
         # A tier we cannot price poisons the whole row, regardless of model.
@@ -307,6 +320,31 @@ class PricingTable:
 
         return Priced(usd_per_mtok=rate, basis=" ".join(basis_parts))
 
+    def alias_collisions(self, frame: Frame) -> list[Gap]:
+        """Distinct model strings in the data that mean the same model.
+
+        The cookbook exporter does no normalisation, and its own published
+        sample output lists the same model twice -- so identical-looking keys
+        that do not collide are a real hazard. Left undetected, one model's
+        spend is split across two rows and every downstream percentage is
+        computed on a fraction of it.
+        """
+        by_canonical: dict[str, set[str]] = {}
+        for row in frame.usage:
+            raw = row.segment.model
+            if not raw:
+                continue
+            canonical = self.resolve_model(raw)
+            if canonical is None:
+                continue
+            by_canonical.setdefault(canonical, set()).add(raw)
+
+        return [
+            gapmod.model_alias_split(canonical, tuple(sorted(spellings)))
+            for canonical, spellings in sorted(by_canonical.items())
+            if len(spellings) > 1
+        ]
+
     def web_search_rate(self) -> Decimal:
         entry = self._server_tools.get("web_search") or {}
         return _dec(entry.get("usd_per_1000_requests"), "server_tools.web_search")
@@ -320,7 +358,7 @@ class PricingTable:
         unpriced = 0
         collected: dict[tuple[str, str], Gap] = {}
 
-        for bucket in TOKEN_FIELDS:
+        for bucket in ALL_TOKEN_FIELDS:
             count = getattr(tokens, bucket)
             if count == 0:
                 continue

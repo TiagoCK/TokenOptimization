@@ -42,6 +42,10 @@ class GapCode(StrEnum):
     NO_COST_DATA = "no_cost_data"
     NO_USAGE_DATA = "no_usage_data"
 
+    # The source threw away detail the API provides
+    CACHE_TTL_NOT_SPLIT = "cache_ttl_not_split"
+    MODEL_ALIAS_SPLIT = "model_alias_split"
+
     # Findings about the data itself
     UNATTRIBUTED_SPEND = "unattributed_spend"
     PROVISIONAL_CSV_SCHEMA = "provisional_csv_schema"
@@ -236,6 +240,65 @@ def unattributed_spend(dimension: str, share: str) -> Gap:
             f"{share} of spend has no {dimension!r} attached. For workspaces "
             "this is the default workspace; for API keys it is Console "
             "playground traffic."
+        ),
+    )
+
+
+def cache_ttl_not_split(tokens: int) -> Gap:
+    """The source summed the two cache-creation TTLs.
+
+    Anthropic's own cookbook exporter does this. It is unrecoverable, and it
+    is the one distinction C1 depends on: a 5m write costs 1.25x base input
+    and a 1h write 2x, so break-even differs fourfold between them.
+
+    The tokens are still counted and still priced -- at the 5m rate, which is
+    the lower of the two -- so the estimate is a floor rather than a guess.
+    """
+    return Gap(
+        code=GapCode.CACHE_TTL_NOT_SPLIT,
+        severity=Severity.WARNING,
+        scope=f"{tokens:,} tokens",
+        message=(
+            f"{tokens:,} cache-write tokens arrived with their TTL summed away. "
+            "The two cache TTLs are priced differently (1.25x base input for "
+            "5 minutes, 2x for 1 hour), so these are priced at the cheaper 5m "
+            "rate and the spend figure is a floor -- up to 60% more if they "
+            "were all 1-hour writes. Cache write amortization (C1) cannot run "
+            "on them at all, because the whole check is the difference between "
+            "the two."
+        ),
+        invalidates_total=True,
+        remedy=(
+            "Export from the Usage & Cost API rather than a tool that sums "
+            "cache_creation. The API reports ephemeral_5m_input_tokens and "
+            "ephemeral_1h_input_tokens separately; Anthropic's cookbook "
+            "exporter adds them together before writing its CSV."
+        ),
+    )
+
+
+def model_alias_split(canonical: str, spellings: tuple[str, ...]) -> Gap:
+    """Two spellings of one model, splitting its spend across segments.
+
+    Reported rather than silently merged: merging would rewrite the user's
+    data on an inference. Reporting keeps every downstream percentage
+    checkable.
+    """
+    listed = ", ".join(repr(s) for s in spellings)
+    return Gap(
+        code=GapCode.MODEL_ALIAS_SPLIT,
+        severity=Severity.WARNING,
+        scope=canonical,
+        message=(
+            f"{len(spellings)} different spellings of {canonical!r} appear in "
+            f"this data ({listed}), so its spend is split across separate rows "
+            "and every share and ranking that involves it is computed on the "
+            "parts rather than the whole."
+        ),
+        remedy=(
+            "Check the export for trailing whitespace or mixed identifier "
+            "styles. Re-exporting with consistent model identifiers merges "
+            "these rows."
         ),
     )
 

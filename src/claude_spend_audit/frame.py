@@ -33,6 +33,19 @@ TOKEN_TYPE_TO_FIELD: Mapping[str, str] = {
 
 TOKEN_FIELDS: tuple[str, ...] = tuple(TOKEN_TYPE_TO_FIELD.values())
 
+#: A sixth bucket with no API counterpart. Some exporters -- notably the
+#: official cookbook's `export_usage_to_csv` -- sum the two cache-creation TTLs
+#: into one `cache_creation_tokens` column, destroying a distinction that
+#: cannot be recovered afterwards. Tokens landing here are real spend, but C1
+#: cannot run on them: its whole value is the 4x difference between the TTLs.
+#:
+#: Kept out of TOKEN_FIELDS so that tuple keeps meaning "the five the API
+#: reports", and so no code paths it through a token_type lookup.
+UNSPLIT_CACHE_WRITE = "cache_write_unsplit"
+
+#: Every bucket, including the lossy one. Used for arithmetic and display.
+ALL_TOKEN_FIELDS: tuple[str, ...] = TOKEN_FIELDS + (UNSPLIT_CACHE_WRITE,)
+
 #: Human labels for report headers (§5 wants tokens broken out by category).
 TOKEN_FIELD_LABELS: Mapping[str, str] = {
     "uncached_input": "uncached input",
@@ -40,6 +53,7 @@ TOKEN_FIELD_LABELS: Mapping[str, str] = {
     "cache_write_5m": "cache write (5m)",
     "cache_write_1h": "cache write (1h)",
     "output": "output",
+    UNSPLIT_CACHE_WRITE: "cache write (TTL unknown)",
 }
 
 #: Every dimension the usage endpoint can group by. Order is stable for output.
@@ -86,10 +100,17 @@ class TokenBuckets:
     cache_write_5m: int = 0
     cache_write_1h: int = 0
     output: int = 0
+    #: Cache writes from a source that summed the TTLs. See UNSPLIT_CACHE_WRITE.
+    cache_write_unsplit: int = 0
 
     @property
     def cache_write_total(self) -> int:
-        return self.cache_write_5m + self.cache_write_1h
+        return self.cache_write_5m + self.cache_write_1h + self.cache_write_unsplit
+
+    @property
+    def has_unsplit_cache_writes(self) -> bool:
+        """True when this data cannot support C1."""
+        return self.cache_write_unsplit > 0
 
     @property
     def input_total(self) -> int:
@@ -104,11 +125,11 @@ class TokenBuckets:
         if not isinstance(other, TokenBuckets):
             return NotImplemented
         return TokenBuckets(
-            *(getattr(self, f) + getattr(other, f) for f in TOKEN_FIELDS)
+            **{f: getattr(self, f) + getattr(other, f) for f in ALL_TOKEN_FIELDS}
         )
 
     def as_dict(self) -> dict[str, int]:
-        return {f: getattr(self, f) for f in TOKEN_FIELDS}
+        return {f: getattr(self, f) for f in ALL_TOKEN_FIELDS}
 
 
 @dataclass(frozen=True, slots=True)

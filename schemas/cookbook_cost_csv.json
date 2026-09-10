@@ -1,0 +1,88 @@
+{
+  "profile": "cookbook_cost",
+  "kind": "cost",
+  "status": "verified",
+  "verified_against": "anthropics/claude-cookbooks observability/usage_cost_api.ipynb, export_costs_to_csv, read 2026-09-10",
+
+  "amount_units": "dollars",
+
+  "_readme": [
+    "The CSV written by Anthropic's own published cookbook exporter.",
+    "",
+    "Header, verbatim from export_costs_to_csv:",
+    "",
+    "  date, workspace_id, description, currency, amount_usd",
+    "",
+    "THE 100x TRAP, and the entire reason this cannot be folded into the Console",
+    "cost profile. The API reports `amount` in MINOR UNITS -- \"123.45\" in USD",
+    "means $1.23. This exporter has already done that conversion:",
+    "",
+    "  amount = result.get('amount', 0)",
+    "  if isinstance(amount, str):",
+    "      amount = float(amount)",
+    "  ...",
+    "  amount / 100",
+    "",
+    "So its `amount_usd` column is in DOLLARS, not cents. Treating it as cents",
+    "-- which is what the Console profile correctly does for its own `amount`",
+    "column -- would divide by 100 a second time and understate the entire bill",
+    "by two orders of magnitude.",
+    "",
+    "Two producers, two conventions, two profiles. That is why `amount_units`",
+    "is an explicit per-profile field rather than a constant in the parser.",
+    "",
+    "(Note also that the exporter uses float() for the conversion. This tool",
+    "does not: money is Decimal throughout, enforced by a test.)"
+  ],
+
+  "matching": {
+    "case_sensitive": false,
+    "normalize": "lowercase, strip whitespace, collapse spaces/underscores/hyphens",
+    "on_ambiguous_match": "error",
+    "on_unmapped_column": "report",
+    "on_missing_required": "error"
+  },
+
+  "columns": {
+    "start": {
+      "type": "datetime",
+      "required": true,
+      "aliases": ["date", "starting at", "start"]
+    },
+    "amount": {
+      "type": "decimal",
+      "required": true,
+      "_note": "Already in dollars -- see amount_units above.",
+      "aliases": ["amount usd", "amount"]
+    },
+    "currency": {
+      "type": "nullable_string",
+      "required": false,
+      "aliases": ["currency"]
+    },
+    "description": {
+      "type": "nullable_string",
+      "required": false,
+      "aliases": ["description"]
+    },
+    "workspace_id": {
+      "type": "nullable_string",
+      "required": false,
+      "dimension": true,
+      "aliases": ["workspace id"]
+    },
+    "model": {
+      "type": "nullable_string",
+      "required": false,
+      "dimension": true,
+      "aliases": ["model"]
+    },
+    "cost_type": {
+      "type": "nullable_string",
+      "required": false,
+      "aliases": ["cost type"]
+    }
+  },
+
+  "null_tokens": ["", "-", "n/a", "na", "null", "none", "(none)", "default"]
+}

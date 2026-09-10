@@ -1,0 +1,126 @@
+{
+  "profile": "cookbook_usage",
+  "kind": "usage",
+  "status": "verified",
+  "verified_against": "anthropics/claude-cookbooks observability/usage_cost_api.ipynb, export_usage_to_csv, read 2026-09-10",
+
+  "_readme": [
+    "The CSV written by Anthropic's own published cookbook exporter. Unlike the",
+    "Console export, this schema IS verifiable -- the notebook's source is public",
+    "-- so this profile is marked verified and its column names are copied from",
+    "the exporter's fieldnames list rather than guessed.",
+    "",
+    "Header, verbatim from export_usage_to_csv:",
+    "",
+    "  date, model, service_tier, workspace_id, uncached_input_tokens,",
+    "  output_tokens, cache_creation_tokens, cache_read_tokens,",
+    "  web_search_requests",
+    "",
+    "IMPORTANT -- this exporter is lossy in one specific way. It writes:",
+    "",
+    "  result.get('cache_creation', {}).get('ephemeral_1h_input_tokens', 0)",
+    "  + result.get('cache_creation', {}).get('ephemeral_5m_input_tokens', 0)",
+    "",
+    "summing the two cache TTLs into a single cache_creation_tokens column. That",
+    "sum cannot be undone. The two TTLs are priced differently -- 1.25x base",
+    "input for 5 minutes, 2x for 1 hour -- so C1 (cache write amortization)",
+    "cannot run on this data at all, and the tool blocks it rather than",
+    "assuming a TTL.",
+    "",
+    "Those tokens are still counted and still priced, at the cheaper 5m rate, so",
+    "the spend figure is an explicit floor rather than a guess in an unknown",
+    "direction. The CACHE_TTL_NOT_SPLIT caveat says so in every report.",
+    "",
+    "To keep C1, export from the Usage & Cost API directly -- it reports the two",
+    "TTLs separately -- or amend the exporter to write two columns."
+  ],
+
+  "matching": {
+    "case_sensitive": false,
+    "normalize": "lowercase, strip whitespace, collapse spaces/underscores/hyphens",
+    "on_ambiguous_match": "error",
+    "on_unmapped_column": "report",
+    "on_missing_required": "error"
+  },
+
+  "columns": {
+    "start": {
+      "type": "datetime",
+      "required": true,
+      "aliases": ["date", "starting at", "start"]
+    },
+    "uncached_input": {
+      "type": "int",
+      "required": true,
+      "token_type": "uncached_input_tokens",
+      "aliases": ["uncached input tokens"]
+    },
+    "output": {
+      "type": "int",
+      "required": true,
+      "token_type": "output_tokens",
+      "aliases": ["output tokens"]
+    },
+    "cache_read": {
+      "type": "int",
+      "required": false,
+      "token_type": "cache_read_input_tokens",
+      "aliases": ["cache read tokens", "cache read input tokens"]
+    },
+    "cache_write_unsplit": {
+      "type": "int",
+      "required": false,
+      "_note": [
+        "The lossy column. Maps to a bucket with no API counterpart, which is",
+        "what makes the loss visible downstream instead of silently folding",
+        "into one of the two real TTL buckets."
+      ],
+      "aliases": ["cache creation tokens"]
+    },
+    "cache_write_5m": {
+      "type": "int",
+      "required": false,
+      "token_type": "cache_creation.ephemeral_5m_input_tokens",
+      "_note": "Present only if the exporter was amended to split the TTLs.",
+      "aliases": ["cache creation 5m tokens", "cache creation 5m input tokens"]
+    },
+    "cache_write_1h": {
+      "type": "int",
+      "required": false,
+      "token_type": "cache_creation.ephemeral_1h_input_tokens",
+      "_note": "Present only if the exporter was amended to split the TTLs.",
+      "aliases": ["cache creation 1h tokens", "cache creation 1h input tokens"]
+    },
+    "web_search_requests": {
+      "type": "int",
+      "required": false,
+      "aliases": ["web search requests"]
+    },
+    "model": {
+      "type": "nullable_string",
+      "required": false,
+      "dimension": true,
+      "aliases": ["model"]
+    },
+    "service_tier": {
+      "type": "nullable_string",
+      "required": false,
+      "dimension": true,
+      "aliases": ["service tier"]
+    },
+    "workspace_id": {
+      "type": "nullable_string",
+      "required": false,
+      "dimension": true,
+      "aliases": ["workspace id"]
+    },
+    "api_key_id": {
+      "type": "nullable_string",
+      "required": false,
+      "dimension": true,
+      "aliases": ["api key id"]
+    }
+  },
+
+  "null_tokens": ["", "-", "n/a", "na", "null", "none", "(none)", "default"]
+}

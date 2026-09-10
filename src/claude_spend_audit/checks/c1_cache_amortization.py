@@ -42,7 +42,7 @@ from __future__ import annotations
 from decimal import Decimal
 from typing import Iterable
 
-from ..frame import Frame, Segment, TokenBuckets
+from ..frame import UNSPLIT_CACHE_WRITE, Frame, Segment, TokenBuckets
 from ..findings import Confidence, Evidence, Finding, Recoverable
 from ..pricing import PricingTable, Priced
 
@@ -307,4 +307,10 @@ CHECK = Check(
     # Deliberately no dimension requirement. C1 is arithmetic on token buckets
     # and stays correct on an ungrouped export -- it just reports one blended
     # segment instead of many.
+    #
+    # But it cannot run at all on a source that summed the cache TTLs. The
+    # entire check is the difference between a 1.25x write and a 2x one; given
+    # only their sum it would have to assume a TTL, and would understate waste
+    # on 1h-heavy workloads with no visible sign that it had guessed.
+    blocked_by_tokens=frozenset({UNSPLIT_CACHE_WRITE}),
 )

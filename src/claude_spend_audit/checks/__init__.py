@@ -102,6 +102,12 @@ class Check:
     needs_bucket_width: frozenset[str] | None = None
     #: The narrowest acceptable width, named in the gap when unmet.
     prefers_bucket_width: str | None = None
+    #: Token buckets whose presence makes this check unsound. Unlike the two
+    #: above, this is a precondition on the data's *content* rather than its
+    #: shape: a source that summed the cache TTLs still has every dimension
+    #: and every bucket width, it has just destroyed the one distinction C1
+    #: is about.
+    blocked_by_tokens: frozenset[str] = frozenset()
 
     @property
     def label(self) -> str:
@@ -114,6 +120,11 @@ class Check:
         for dimension in sorted(self.needs_dimensions):
             if not frame.has_dimension(dimension):
                 blocking.append(gapmod.dimension_not_grouped(dimension, self.label))
+
+        for field_name in sorted(self.blocked_by_tokens):
+            total = sum(getattr(r.tokens, field_name, 0) for r in frame.usage)
+            if total > 0:
+                blocking.append(gapmod.cache_ttl_not_split(total))
 
         if self.needs_bucket_width is not None:
             width = frame.bucket_width
