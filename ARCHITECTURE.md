@@ -1,0 +1,229 @@
+# Architecture
+
+This document is for the engineer deciding whether to trust this tool's output,
+or wanting to extend it.
+
+The tool prints dollar figures that someone may take to their finance team. That
+single constraint explains nearly every design decision below: where the data
+model is more complicated than it looks, where a function returns a union type
+instead of a number, and why several things that could be estimated are
+deliberately left unestimated.
+
+## Contents
+
+- [Data flow](#data-flow)
+- [The five invariants](#the-five-invariants)
+- [The confidence model](#the-confidence-model)
+- [Verifying a figure by hand](#verifying-a-figure-by-hand)
+- [Adding a check](#adding-a-check)
+- [Known limitations](#known-limitations)
+
+## Data flow
+
+```
+Console CSV export ─┐
+                    │   ingest/csv_ingest.py     (column mapping driven by
+                    │                             schemas/*.json profiles)
+                    ├──→  Frame  ──→  checks/  ──→  Finding[]  ──→  render/
+                    │   frame.py      registry     findings.py    terminal.py
+Usage & Cost API ───┘                                             markdown.py
+  JSON                  ingest/api_json.py
+
+Alongside, at every stage:  Gap (gaps.py) -- what this data cannot show
+Alongside, at pricing:      PricingTable  <-- pricing/<version>.json
+```
+
+Two ingest paths normalise into one `Frame`. Checks are pure functions of
+`(Frame, PricingTable, CheckConfig)`. Renderers consume `Finding[]` and know
+nothing about which checks exist. `cli.py` wires it together and owns exit
+codes; nothing else imports it.
+
+The CSV path is the one that matters in practice — it needs no admin key and no
+security review — but the API path is what the data model is built around,
+because that is the surface Anthropic documents. A test asserts both paths
+produce an identical `Frame` from the same data.
+
+## The five invariants
+
+These are correctness rules, not style preferences. Each is enforced somewhere
+you can go and read.
+
+### 1. Money is `Decimal`, never `float`
+
+Binary floating point cannot represent $0.10, and the error compounds over a
+month of buckets. The pricing loader rejects a JSON float outright rather than
+accepting one and rounding. `tests/test_no_float_money.py` walks the AST of
+every module in the package looking for a `float()` call, so this cannot regress
+quietly.
+
+JSON output serialises money as strings for the same reason.
+
+### 2. An unavailable rate returns `Unpriced`, never `0`
+
+Anthropic publishes rates for the `standard` and `batch` service tiers only.
+`priority`, `priority_on_demand`, `flex` and `flex_discount` have no published
+price, and Priority Tier costs are absent from the cost endpoint entirely.
+
+`PricingTable.rate_for()` returns `Priced | Unpriced`. `Unpriced.cost_of()`
+returns `None`. There is no code path that silently treats an unknown rate as
+zero, because a silent zero produces a confidently wrong total — the single most
+damaging thing this tool could do.
+
+Unpriced tokens are reported alongside every estimate rather than folded into
+it, so a partial estimate can never be mistaken for a complete one.
+
+Model lookup is exact-match only: canonical ID, then an explicit alias table for
+dated snapshots, then display name. Never fuzzy. Pricing the wrong model is
+worse than refusing to price.
+
+### 3. A null dimension is not the same as an absent one
+
+This is the subtlest and most important one.
+
+The Usage API returns `null` for `workspace_id` in two completely different
+situations: the traffic belonged to the **default workspace**, or the caller
+**did not group by workspace**. Same value, opposite meanings. The same is true
+of `api_key_id`, where null means Console playground traffic.
+
+`Frame.grouped_by` records which dimensions the source actually carried.
+`Frame.value_of()` returns a `NOT_GROUPED` sentinel — not `None` — when a
+dimension was never broken out.
+
+Without this, an export that simply was not grouped by workspace would report as
+100% unattributed spend. That would be a fabricated finding, on precisely the
+check where a fabrication is most damaging.
+
+### 4. A `candidate` never carries a point estimate
+
+Any finding whose savings the data cannot confirm must present a **range**, with
+the assumptions that produce it printed next to the number rather than in a
+footnote.
+
+This is enforced in `Finding.__post_init__`, which raises on: a candidate with a
+point estimate, a candidate range with no assumptions, an observation claiming
+any savings, an inverted range, or a dollar figure with no stated basis. A
+finding that would break the rule cannot be constructed, so the failure lands in
+a check's own tests rather than in a report that has already been forwarded.
+
+### 5. "What was spent" and "what could be saved" are different claims
+
+`Finding` carries both, separately:
+
+- `measured_usd` — arithmetic on the data, with a required `measured_basis`
+  saying what the number is.
+- `recoverable` — an estimate of what could actually be saved. Frequently
+  `None`, because aggregate data often cannot support one.
+
+C6 can measure that a given amount was spent outside business hours — that is
+arithmetic — while claiming nothing about whether any of it was avoidable,
+because a token count cannot distinguish a runaway agent from a nightly batch
+job. It reports the first and prints `not claimed` for the second.
+
+Collapsing these into one "impact" number is how audit tools end up overstating
+their case.
+
+## The confidence model
+
+Every finding carries one of three levels, and the report is ranked by
+confidence first, dollars second.
+
+| level | meaning | savings claim |
+|---|---|---|
+| `measured` | computed directly from the data; the arithmetic is the finding | may be a point estimate, when the arithmetic supports one |
+| `candidate` | a pattern consistent with waste that the data cannot confirm | always a range, always with assumptions attached |
+| `observation` | context, with no savings claim at all | none, structurally |
+
+Ranking within tier rather than purely by size is deliberate. An un-sizeable
+exposure can be numerically larger than a recoverable waste, and sorting them
+into one list would imply a priority the data does not support.
+
+## Verifying a figure by hand
+
+Every rate comes from a versioned file — `pricing/<version>.json` — that records
+its own fetch date and source URL. Each entry carries a `provenance` marker:
+either `published` (transcribed from Anthropic's pricing page) or a stated
+derivation such as `derived: 1.25 x uncached_input`. A test re-derives every
+derived entry and fails if the arithmetic drifts, and a second test
+independently cross-checks the transcribed per-model cache rates against the
+published multipliers.
+
+So any figure in a report can be traced:
+
+1. The report header names the pricing file and its fetch date.
+2. Each finding states its `measured_basis` — what the number actually measures.
+3. Each finding's evidence table shows the token counts behind it.
+4. The rates are in the pricing file, with their provenance.
+
+If a rate is wrong for your organisation — negotiated pricing, volume discounts
+— edit that file and re-run. Every figure moves with it. **No rate is ever
+hardcoded in check logic.**
+
+## Adding a check
+
+Checks are pure functions registered in a list. Adding one never requires
+touching a renderer; there is a test asserting that a check the renderer has
+never heard of still renders correctly.
+
+```python
+# src/claude_spend_audit/checks/c9_example.py
+
+def run(frame, pricing, config):
+    ...
+    return [Finding(check_id="C9", ..., confidence=Confidence.MEASURED)]
+
+from . import Check
+
+CHECK = Check(
+    id="C9",
+    name="Example",
+    run=run,
+    needs_dimensions=frozenset({"model"}),   # optional
+    needs_bucket_width=frozenset({"1h"}),    # optional
+)
+```
+
+Then add it to `CHECKS` in `checks/__init__.py`, and add any thresholds to
+`CheckConfig` so they are settable from the command line.
+
+`needs_dimensions` and `needs_bucket_width` are the important part. A check that
+declares what it needs will be *skipped* on data that cannot support it, and the
+report will say which check was skipped and why. A check that does not declare
+its needs will silently compute something meaningless.
+
+## Known limitations
+
+Two are worth knowing before you rely on the output.
+
+**The CSV column mapping is unverified.** Anthropic publishes the Usage & Cost
+API's field names but not the Console CSV export's column headers — they are
+absent from the API documentation, both endpoint references, and the support
+article on Console reporting. The canonical field names used internally come
+from the documented API schema and are authoritative; the mapping from CSV
+headers onto them lives in `schemas/*.json`, marked `provisional`, and is a set
+of educated guesses.
+
+The parser does not paper over this. An unrecognised export fails with the
+actual header row printed and a pointer to the file to edit; an ambiguous match
+is a hard error rather than a coin flip; and unmatched columns are reported
+rather than silently dropped. `--explain-schema` prints the mapping that was
+applied. Correcting it is a JSON edit, not a code change.
+
+**Some spend cannot be priced or even seen.** Beyond the unpriceable service
+tiers above: code execution and Managed Agents session runtime appear only in
+cost data and never in usage, so they cannot be attributed to a model. Claude
+Platform on AWS has no programmatic Usage/Cost API at all, so Bedrock-routed
+traffic is invisible here — and no signal in aggregate data would reveal its
+absence, so the tool states this as a standing caveat rather than pretending to
+detect it.
+
+Every limitation that applies to a given dataset is listed in that report's
+caveats section, with what to re-export to remove it where that is possible.
+
+## Dependencies
+
+There are none at runtime. `pytest` is the only development dependency.
+
+This is a deliberate constraint rather than minimalism for its own sake: the
+tool is meant to be run by people on their own billing data, and an empty
+dependency list is something a security-conscious reader can verify in a few
+minutes.

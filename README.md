@@ -11,19 +11,26 @@ going, with dollar estimates you can trace to a file you control.
 
 ---
 
-## Status: M2 (the first two checks)
+See [`examples/sample-report.md`](examples/sample-report.md) for what the output
+looks like, generated from synthetic data.
 
-- **C1, cache write amortization.** Finds prompt-cache traffic that costs more
-  than it saves, and says by how much. Arithmetic, not an estimate.
-- **C6a/C6b, spikes and off-hours volume.** Finds days that cost several times a
-  typical one, and spend that lands outside business hours.
-- Console CSV exports (Usage and Cost pages) parsed into one internal shape
-- The same shape produced from Usage & Cost API JSON, so checks never need to
-  know which path the data came from
-- A pricing table loaded from a versioned, inspectable file
-- `inspect`, which prints what the data covers and what it cannot show
+## What it checks
 
-C2, C3 and C7, plus the shareable Markdown report, arrive in M3.
+| | check | confidence |
+|---|---|---|
+| **C1** | Cache writes not read back often enough to pay for themselves | `measured` |
+| **C2** | High uncached input with almost no cache reads | `candidate` |
+| **C3** | Standard-tier spend that could take the 50% batch discount | `candidate` |
+| **C6a** | Daily spend spikes above the recent baseline | `measured` |
+| **C6b** | Spend falling outside business hours | `measured` |
+| **C7** | Spend that cannot be allocated to a named workspace or key | `observation` |
+
+A `measured` finding is arithmetic on your data. A `candidate` is a pattern the
+data cannot confirm, and always carries a range with its assumptions attached
+rather than a single number. An `observation` makes no savings claim at all.
+
+The remaining checks (C4, C5, C8) and the Admin API ingest path are not built
+yet.
 
 ## Install
 
@@ -47,6 +54,12 @@ falling back on rates it cannot show you.
 claude-spend-audit audit usage.csv --cost cost.csv
 ```
 
+For the shareable version:
+
+```bash
+claude-spend-audit audit usage.csv --cost cost.csv --format markdown -o report.md
+```
+
 `audit` runs the checks and prints ranked findings. `inspect` does the same
 loading but runs nothing, reporting only what the data covers and which checks
 it can support.
@@ -59,6 +72,9 @@ Useful flags:
 - `--utc-offset -5` — set your local business day for the off-hours check
 - `--business-hours 08:00-17:00` — set the window it measures against
 - `--min-impact 50` — drop findings below a dollar threshold
+- `--cache-prefix-share`, `--batch-eligible-share` — narrow C2's and C3's
+  savings ranges from your own knowledge of the workload. Both default to a
+  floor of $0, because guessing them would put an invented number in the report.
 
 Exit code is `1` when something in the data means the headline total understates
 the real bill, so a script wrapping this cannot mistake a caveated number for a
@@ -66,19 +82,16 @@ clean one.
 
 ## How findings are ranked, and what a dollar figure means
 
-Every finding carries a confidence level, and the ranked table is ordered by
-confidence first, dollars second. A `measured` finding is arithmetic on your
-data. A `candidate` is a pattern consistent with waste that the data cannot
-confirm, and it never carries a point estimate — only a range with the
-assumption stated beside it. An `observation` makes no savings claim at all.
-
-Two different numbers are also kept apart. **Measured** is what was spent, and
-is arithmetic. **Recoverable** is what could actually be saved, and is often
+Findings are ranked by confidence first, dollars second, and two different
+numbers are kept apart throughout: **measured** is what was spent and is
+arithmetic; **recoverable** is what could actually be saved and is often
 unknowable from aggregate data. C6 can measure that $40,000 was spent overnight
-without being able to say whether any of it was avoidable — so it reports the
-first and prints `not claimed` for the second. Only C1 carries a point
-recoverable, because switching caching off recovers exactly the waste it
-measures.
+without being able to say whether any of it was avoidable, so it reports the
+first and prints `not claimed` for the second.
+
+[`ARCHITECTURE.md`](ARCHITECTURE.md) explains the confidence model in full,
+along with the invariants that keep the numbers honest and how to verify any
+figure by hand.
 
 ## Two things worth knowing before you trust a number
 
@@ -108,6 +121,14 @@ volume discounts — edit that file and the numbers change accordingly.
 
 ```bash
 python -m pytest -q
+```
+
+Adding a check is described in [`ARCHITECTURE.md`](ARCHITECTURE.md); it never
+requires touching a renderer. After changing anything that affects output,
+regenerate the committed sample:
+
+```bash
+python -m tests.generate_sample
 ```
 
 Every check is a pure function of the normalized data, and every dollar figure
