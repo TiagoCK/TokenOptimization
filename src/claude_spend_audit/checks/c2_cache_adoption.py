@@ -132,10 +132,14 @@ def run(frame: Frame, pricing: PricingTable, config) -> Iterable[Finding]:
     share = getattr(config, "cache_prefix_share", None)
     low = total_ceiling * share if share is not None else Decimal("0")
 
+    floor_clause = (
+        " -- hence the floor of $0."
+        if share is None
+        else ", which is why the floor is an estimate rather than a measurement."
+    )
     assumptions = [
         "Requires a stable prompt prefix. What fraction of these prompts repeats "
-        "is a property of the prompt, which usage data never sees -- hence the "
-        "floor of $0.",
+        "is a property of the prompt, which usage data never sees" + floor_clause,
         "Requires enough reuse to amortise the cache write, which costs 1.25x "
         "(5m TTL) or 2x (1h) base input. Check the C1 finding before acting: it "
         "measures workloads where that amortisation failed.",

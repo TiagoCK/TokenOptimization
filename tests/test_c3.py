@@ -196,3 +196,24 @@ def test_against_the_fixture(pricing, usage_profile, usage_csv):
     # Both segments share a model/workspace label, so they roll into one row.
     assert len(finding.evidence.rows) == 1
     assert finding.evidence.rows[0][1] == "$22.75"
+
+
+def test_the_floor_clause_matches_the_actual_floor(pricing):
+    """As with C2: once a share is supplied the floor is not $0, and the
+    assumption text must not keep claiming it is."""
+    tokens = TokenBuckets(uncached_input=10_000_000)
+
+    default = only(list(C3.run(frame_of((seg(), tokens)), pricing, CheckConfig())))
+    assert any("floor of $0" in a for a in default.recoverable.assumptions)
+
+    narrowed = only(
+        list(
+            C3.run(
+                frame_of((seg(), tokens)),
+                pricing,
+                CheckConfig(batch_eligible_share=Decimal("0.5")),
+            )
+        )
+    )
+    assert narrowed.recoverable.low == Decimal("12.50")
+    assert not any("floor of $0" in a for a in narrowed.recoverable.assumptions)

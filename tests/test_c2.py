@@ -206,3 +206,24 @@ def test_evidence_rolls_up_by_display_label(pricing):
     assert finding.measured_usd == Decimal("94.50")
     assert len(finding.evidence.rows) == 1
     assert finding.evidence.rows[0][1] == "20.0M"  # both segments' uncached input
+
+
+def test_the_floor_clause_matches_the_actual_floor(pricing):
+    """With a share set, the range no longer starts at $0 -- so the assumption
+    must stop saying it does. Two contradictory statements in one block is
+    exactly what a sceptical reader seizes on."""
+    tokens = TokenBuckets(uncached_input=10_000_000)
+
+    default = only(list(C2.run(frame_of(tokens), pricing, CheckConfig())))
+    assert default.recoverable.low == Decimal("0")
+    assert any("floor of $0" in a for a in default.recoverable.assumptions)
+
+    narrowed = only(
+        list(
+            C2.run(
+                frame_of(tokens), pricing, CheckConfig(cache_prefix_share=Decimal("0.4"))
+            )
+        )
+    )
+    assert narrowed.recoverable.low == Decimal("18.00")
+    assert not any("floor of $0" in a for a in narrowed.recoverable.assumptions)

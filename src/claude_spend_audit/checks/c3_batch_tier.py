@@ -75,10 +75,15 @@ def run(frame: Frame, pricing: PricingTable, config) -> Iterable[Finding]:
     share = getattr(config, "batch_eligible_share", None)
     low = ceiling * share if share is not None else Decimal("0")
 
+    floor_clause = (
+        " hence the floor of $0."
+        if share is None
+        else " which is why the floor is an estimate rather than a measurement."
+    )
     assumptions = [
         "Applies only to work that tolerates asynchronous processing (batches "
         "return within 24 hours). Aggregate data cannot distinguish a nightly "
-        "pipeline from a user-facing request, hence the floor of $0.",
+        "pipeline from a user-facing request," + floor_clause,
         "Assumes the whole workload could move. In practice only some routes "
         "can, and the batch queue is not instantaneous.",
     ]
