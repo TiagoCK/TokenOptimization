@@ -24,7 +24,7 @@ from .frame import Frame, merge
 from .ingest import load_cost_csv, load_usage_csv
 from .ingest.schema import Profile, SchemaError, SchemaMismatch
 from .pricing import PricingError, PricingTable
-from .render import terminal
+from .render import markdown, terminal
 
 _SEVERITY_ORDER = {"critical": 0, "warning": 1, "info": 2}
 
@@ -81,6 +81,22 @@ def _decimal(text: str) -> Decimal:
         raise argparse.ArgumentTypeError(f"{text!r} is not a number") from exc
 
 
+def _share(text: str) -> Decimal:
+    """A fraction in [0, 1]. Accepts "0.25" or "25%"."""
+    cleaned = text.strip().rstrip("%")
+    try:
+        value = Decimal(cleaned)
+    except InvalidOperation as exc:
+        raise argparse.ArgumentTypeError(f"{text!r} is not a number") from exc
+    if text.strip().endswith("%"):
+        value /= 100
+    if not (0 <= value <= 1):
+        raise argparse.ArgumentTypeError(
+            f"{text!r} is not a share between 0 and 1 (or 0% and 100%)"
+        )
+    return value
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="claude-spend-audit",
@@ -132,6 +148,40 @@ def build_parser() -> argparse.ArgumentParser:
         default=(9, 18),
         metavar="HH:MM-HH:MM",
         help="local business-hours window (default: 09:00-18:00)",
+    )
+    audit.add_argument(
+        "--format",
+        choices=("terminal", "markdown"),
+        default="terminal",
+        help="output format (default: terminal). markdown is the shareable one",
+    )
+    audit.add_argument(
+        "-o",
+        "--output",
+        type=Path,
+        default=None,
+        metavar="PATH",
+        help="write the report to a file instead of stdout",
+    )
+    audit.add_argument(
+        "--cache-prefix-share",
+        type=_share,
+        default=None,
+        metavar="0-1",
+        help=(
+            "what share of uncached input is a cacheable prefix. Raises C2's "
+            "savings floor above $0 -- your estimate, not a measurement"
+        ),
+    )
+    audit.add_argument(
+        "--batch-eligible-share",
+        type=_share,
+        default=None,
+        metavar="0-1",
+        help=(
+            "what share of standard-tier spend tolerates async processing. "
+            "Raises C3's savings floor above $0 -- your estimate"
+        ),
     )
     return parser
 
@@ -277,6 +327,8 @@ def _audit(args) -> int:
         utc_offset_hours=args.utc_offset,
         business_hour_start=start,
         business_hour_end=end,
+        cache_prefix_share=args.cache_prefix_share,
+        batch_eligible_share=args.batch_eligible_share,
     )
 
     run = run_checks(frame, pricing, config)
@@ -290,19 +342,38 @@ def _audit(args) -> int:
         print(json.dumps(payload, indent=2))
         return _exit_code(frame)
 
-    out = terminal.render_header(frame, pricing, estimate, title="audit")
-    out.extend(terminal.render_findings(run.findings))
-    out.extend(terminal.render_skipped(run.skipped))
-    out.extend(terminal.render_gaps(frame.gaps))
-    out.extend(
-        terminal.footer(
-            [
-                f"{len(run.findings)} finding(s) from "
-                f"{len(CHECKS) - len(run.skipped)} of {len(CHECKS)} checks.",
-            ]
+    if args.format == "markdown":
+        # The shareable artifact. It carries its own provenance because it gets
+        # forwarded away from the terminal that produced it (§5).
+        report = markdown.render(
+            frame,
+            pricing,
+            estimate,
+            run.findings,
+            skipped=run.skipped,
+            version=__version__,
         )
-    )
-    print("\n".join(out))
+    else:
+        out = terminal.render_header(frame, pricing, estimate, title="audit")
+        out.extend(terminal.render_findings(run.findings))
+        out.extend(terminal.render_skipped(run.skipped))
+        out.extend(terminal.render_gaps(frame.gaps))
+        out.extend(
+            terminal.footer(
+                [
+                    f"{len(run.findings)} finding(s) from "
+                    f"{len(CHECKS) - len(run.skipped)} of {len(CHECKS)} checks.",
+                ]
+            )
+        )
+        report = "\n".join(out)
+
+    if args.output:
+        args.output.write_text(report + "\n", encoding="utf-8")
+        # To stderr, so `-o` plus a pipe stays clean.
+        print(f"wrote {args.output}", file=sys.stderr)
+    else:
+        print(report)
     return _exit_code(frame)
 
 

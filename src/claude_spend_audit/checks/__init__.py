@@ -65,6 +65,24 @@ class CheckConfig:
     #: Off-hours spend must be at least this share of total to be flagged.
     off_hours_min_share: Decimal = Decimal("0.25")
 
+    # -- C2, cache adoption ----------------------------------------------
+    #: A segment reading less than this share from cache is a candidate.
+    cache_adoption_max_hit_rate: Decimal = Decimal("0.20")
+    #: What share of uncached input is a cacheable prefix. None means the
+    #: savings range floors at $0 -- the honest default, since this is a
+    #: property of the prompt that usage data never sees. Set it only from
+    #: your own knowledge of the workload.
+    cache_prefix_share: Decimal | None = None
+
+    # -- C3, batch tier --------------------------------------------------
+    #: What share of standard-tier spend could tolerate async processing.
+    #: None floors the range at $0, for the same reason.
+    batch_eligible_share: Decimal | None = None
+
+    # -- C7, attribution -------------------------------------------------
+    #: Unattributed spend must be at least this share of total to be flagged.
+    attribution_min_share: Decimal = Decimal("0.10")
+
 
 CheckFn = Callable[[Frame, PricingTable, CheckConfig], Iterable[Finding]]
 
@@ -169,11 +187,14 @@ def with_findings(frame: Frame, run: CheckRun) -> Frame:
 
 # Registered last, so the check modules can import the types above.
 from .c1_cache_amortization import CHECK as C1  # noqa: E402
+from .c2_cache_adoption import CHECK as C2  # noqa: E402
+from .c3_batch_tier import CHECK as C3  # noqa: E402
 from .c6_anomalies import SPIKES as C6A, OFF_HOURS as C6B  # noqa: E402
+from .c7_attribution import CHECK as C7  # noqa: E402
 
 #: §4 orders these by strength of inference. The registry order is the
 #: tie-breaker only -- actual report order comes from findings.rank().
-CHECKS: tuple[Check, ...] = (C1, C6A, C6B)
+CHECKS: tuple[Check, ...] = (C1, C2, C3, C6A, C6B, C7)
 
 __all__ = [
     "CHECKS",

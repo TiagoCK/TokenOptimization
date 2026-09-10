@@ -207,7 +207,8 @@ def test_audit_shows_confidence_on_every_row(capsys):
     rows = [
         ln for ln in out.splitlines() if re.match(r"^\s+\d+\s+C\w+\s+\w+\s", ln)
     ]
-    assert len(rows) == 2, rows
+    assert len(rows) >= 2, rows
+    # The requirement is that EVERY row carries one, not that there are N rows.
     for row in rows:
         assert any(c in row for c in ("measured", "candidate", "observation")), row
 

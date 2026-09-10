@@ -203,8 +203,14 @@ def test_a_quiet_share_is_not_reported(pricing, usage_profile):
 
 
 def test_both_c6_checks_run_on_hourly_data(pricing, usage_profile):
+    """Hourly data satisfies every precondition, so nothing is skipped.
+
+    Asserts C6a and C6b are among the findings rather than the only ones --
+    other checks legitimately fire on this fixture too, and pinning the exact
+    set would make this test fail every time a check is added.
+    """
     run = run_checks(hourly_frame(usage_profile), pricing, CheckConfig())
-    assert {f.check_id for f in run.findings} == {"C6a", "C6b"}
+    assert {"C6a", "C6b"} <= {f.check_id for f in run.findings}
     assert run.skipped == ()
 
 
