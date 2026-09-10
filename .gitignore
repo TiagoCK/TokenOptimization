@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+build/
+dist/
+
+# Never commit a real customer export. The whole premise of this tool is that
+# the data stays on the machine that produced it.
+*.csv
+!tests/fixtures/**/*.csv

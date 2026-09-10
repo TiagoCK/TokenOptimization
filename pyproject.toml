@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "claude-spend-audit"
+version = "0.1.0"
+description = "Find cost inefficiencies in Anthropic Usage & Cost data, locally."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+
+# Intentionally empty. A security-conscious prospect should be able to audit
+# this project's entire dependency tree in five minutes; that is a feature, not
+# an aesthetic preference (PROJECT_BRIEF.md §7). `rich` arrives with the
+# terminal renderer in M2, `httpx` with the API path in M4. Nothing else.
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+claude-spend-audit = "claude_spend_audit.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
