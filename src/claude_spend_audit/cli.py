@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
@@ -22,6 +23,15 @@ from . import gaps as gapmod
 from .checks import CHECKS, CheckConfig, run_checks
 from .frame import Frame, merge
 from .ingest import load_cost_csv, load_usage_csv
+from .ingest.api_client import (
+    ApiClient,
+    ApiError,
+    AuthError,
+    Credential,
+    envelope,
+    is_envelope,
+)
+from .ingest.api_json import load_cost_json, load_usage_json
 from .ingest.schema import Profile, SchemaError, SchemaMismatch
 from .pricing import PricingError, PricingTable
 from .render import markdown, terminal
@@ -79,6 +89,22 @@ def _decimal(text: str) -> Decimal:
         return Decimal(text)
     except InvalidOperation as exc:
         raise argparse.ArgumentTypeError(f"{text!r} is not a number") from exc
+
+
+def _utc_date(text: str) -> "datetime":
+    """A UTC date or timestamp. Never naive -- see api_client._rfc3339."""
+    from datetime import datetime as _dt
+    from datetime import timezone as _tz
+
+    raw = text.strip()
+    for fmt in ("%Y-%m-%d", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M:%SZ"):
+        try:
+            return _dt.strptime(raw, fmt).replace(tzinfo=_tz.utc)
+        except ValueError:
+            continue
+    raise argparse.ArgumentTypeError(
+        f"expected YYYY-MM-DD (UTC), got {text!r}"
+    )
 
 
 def _share(text: str) -> Decimal:
@@ -173,6 +199,98 @@ def build_parser() -> argparse.ArgumentParser:
             "savings floor above $0 -- your estimate, not a measurement"
         ),
     )
+    fetch = sub.add_parser(
+        "fetch",
+        # allow_abbrev=False is load-bearing here, not tidiness. With argparse's
+        # default prefix matching, `--api-key sk-ant-...` silently resolves to
+        # `--api-key-env` and the secret becomes the *variable name* -- which
+        # then gets echoed into the "not found in $..." error on stderr. The
+        # one flag family on this command is the one that must never do that.
+        allow_abbrev=False,
+        help="download Usage & Cost data from the Admin API to a local file",
+        description=(
+            "Fetches once and saves the raw API responses, so analysis can be "
+            "re-run offline at any thresholds without hitting the API again. "
+            "The saved file is yours: nothing is uploaded anywhere."
+        ),
+    )
+    fetch.add_argument(
+        "--from",
+        dest="start",
+        type=_utc_date,
+        required=True,
+        metavar="YYYY-MM-DD",
+        help="start of the range, inclusive (UTC)",
+    )
+    fetch.add_argument(
+        "--to",
+        dest="end",
+        type=_utc_date,
+        required=True,
+        metavar="YYYY-MM-DD",
+        help="end of the range, exclusive (UTC)",
+    )
+    fetch.add_argument(
+        "-o",
+        "--output",
+        type=Path,
+        required=True,
+        metavar="PATH",
+        help="where to write the fetched data",
+    )
+    fetch.add_argument(
+        "--what",
+        choices=("usage", "cost"),
+        default="usage",
+        help="which report to fetch (default: usage)",
+    )
+    fetch.add_argument(
+        "--bucket-width",
+        choices=("1m", "1h", "1d"),
+        default="1d",
+        help="time granularity for usage (default: 1d). C6b needs 1h",
+    )
+    fetch.add_argument(
+        "--group-by",
+        default="model,workspace_id,api_key_id,service_tier",
+        metavar="A,B,C",
+        help=(
+            "dimensions to break out, comma separated. The default covers the "
+            "checks that need grouping; pass an empty string for none"
+        ),
+    )
+    fetch.add_argument(
+        "--api-key-env",
+        default="ANTHROPIC_ADMIN_KEY",
+        metavar="NAME",
+        help=(
+            "environment variable holding the Admin API key "
+            "(default: ANTHROPIC_ADMIN_KEY). The key itself is never accepted "
+            "on the command line"
+        ),
+    )
+    fetch.add_argument(
+        "--window",
+        action="store_true",
+        help=(
+            "split the range into windows so a failure loses one window rather "
+            "than the whole pull. Pagination alone already handles long ranges"
+        ),
+    )
+    fetch.add_argument(
+        "--max-retries",
+        type=int,
+        default=4,
+        metavar="N",
+        help="retries for 429 and 5xx responses (default: 4)",
+    )
+    # Declared only so it can be refused with an explanation. Without it,
+    # `--api-key ...` is an "unrecognized argument", which tells the user what
+    # is wrong but not why the option does not exist.
+    fetch.add_argument(
+        "--api-key", dest="rejected_api_key", default=None, help=argparse.SUPPRESS
+    )
+
     audit.add_argument(
         "--batch-eligible-share",
         type=_share,
@@ -192,6 +310,8 @@ def main(argv: list[str] | None = None) -> int:
         return _inspect(args)
     if args.command == "audit":
         return _audit(args)
+    if args.command == "fetch":
+        return _fetch(args)
     return 2  # pragma: no cover - argparse rejects unknown commands first
 
 
@@ -206,6 +326,44 @@ def _profile_of(frame: Frame, explicit: Profile | None) -> Profile:
         return explicit
     name = frame.sources[0].profile
     return Profile.load_named(f"{name}_csv")
+
+
+def _read_saved(path) -> dict | None:
+    """Return a `fetch` envelope if this file is one, else None.
+
+    Detected by content, not by extension: a file named .json that is not one
+    of ours should fall through to the CSV path and get that path's errors.
+    """
+    if path is None:
+        return None
+    try:
+        payload = json.loads(Path(path).read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        return None
+    return payload if is_envelope(payload) else None
+
+
+def _frame_from_saved(saved: dict, expected: str) -> Frame:
+    """Rebuild a Frame from a saved fetch.
+
+    `group_by` comes from the envelope rather than being inferred, which is
+    what keeps Frame.grouped_by honest: a response cannot report which
+    dimensions were requested, since an ungrouped dimension and a genuinely
+    null one both come back as null.
+    """
+    endpoint = saved.get("endpoint")
+    if endpoint != expected:
+        raise _LoadFailed(
+            f"this file holds {endpoint!r} data but was given as the "
+            f"{expected!r} argument",
+            2,
+        )
+    request = saved.get("request") or {}
+    pages = saved.get("pages") or []
+    source = f"fetch {request.get('starting_at')}..{request.get('ending_at')}"
+    if expected == "cost":
+        return load_cost_json(pages, source=source)
+    return load_usage_json(pages, group_by=request.get("group_by") or (), source=source)
 
 
 class _LoadFailed(Exception):
@@ -223,6 +381,22 @@ def _load(args) -> tuple[Frame, PricingTable, object]:
         )
     except PricingError as exc:
         raise _LoadFailed(str(exc), 2) from exc
+
+    # A file saved by `fetch` is JSON, not CSV. Routing on content rather than
+    # on a flag means `audit raw.json` just works.
+    saved = _read_saved(args.usage)
+    if saved is not None:
+        usage_frame = _frame_from_saved(saved, "usage")
+        cost_frame = _read_saved(args.cost) if args.cost else None
+        if cost_frame is not None:
+            cost_frame = _frame_from_saved(cost_frame, "cost")
+        frame = merge(usage_frame, cost_frame) if cost_frame else usage_frame
+        if not frame.cost:
+            frame = frame.with_gaps([gapmod.no_cost_data()])
+        frame, merged = pricing.merge_model_aliases(frame)
+        frame = frame.with_gaps(merged)
+        estimate = pricing.estimate_frame(frame)
+        return frame.with_gaps(estimate.gaps), pricing, estimate
 
     try:
         # None means "auto-select": more than one producer writes these CSVs
@@ -389,6 +563,109 @@ def _audit(args) -> int:
     else:
         print(report)
     return _exit_code(frame)
+
+
+# --------------------------------------------------------------------------
+# fetch
+# --------------------------------------------------------------------------
+
+
+def _fetch(args) -> int:
+    if getattr(args, "rejected_api_key", None) is not None:
+        # Deliberately does not echo the value back.
+        print(
+            "\n".join(
+                [
+                    "error: there is no --api-key flag, on purpose.",
+                    "  A key passed as an argument lands in shell history and is",
+                    "  visible to every user on the machine via `ps`.",
+                    f"  Use an environment variable:  export "
+                    f"{args.api_key_env}=sk-ant-admin01-...",
+                ]
+            ),
+            file=sys.stderr,
+        )
+        return 2
+
+    if args.api_key_env.startswith("sk-ant-"):
+        # The key has been passed where the variable NAME belongs. Say so
+        # without repeating it back into the terminal, a log, or CI output.
+        print(
+            "\n".join(
+                [
+                    "error: --api-key-env takes the NAME of an environment "
+                    "variable, not the key itself.",
+                    "  The value given looks like an API key, so it has not been "
+                    "echoed here.",
+                    "  Try:  export ANTHROPIC_ADMIN_KEY=<your key>   "
+                    "# then run without --api-key-env",
+                ]
+            ),
+            file=sys.stderr,
+        )
+        return 2
+
+    key = os.environ.get(args.api_key_env, "").strip()
+    if not key:
+        lines = [
+            f"error: no Admin API key found in ${args.api_key_env}.",
+            f"  Set it first:  export {args.api_key_env}=sk-ant-admin01-...",
+            "",
+            "  The key is deliberately not accepted as a command-line flag:",
+            "  arguments land in shell history and are visible to every user",
+            "  on the machine via `ps`.",
+        ]
+        print("\n".join(lines), file=sys.stderr)
+        return 2
+
+    group_by = [g.strip() for g in (args.group_by or "").split(",") if g.strip()]
+    client = ApiClient(Credential(key), max_retries=args.max_retries)
+
+    try:
+        if args.what == "cost":
+            pages = client.cost(
+                args.start,
+                args.end,
+                group_by=[g for g in group_by if g in ("description", "workspace_id")]
+                or ["workspace_id", "description"],
+                window=args.window,
+            )
+            bucket_width = "1d"
+        else:
+            pages = client.usage(
+                args.start,
+                args.end,
+                bucket_width=args.bucket_width,
+                group_by=group_by,
+                window=args.window,
+            )
+            bucket_width = args.bucket_width
+    except AuthError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    except ApiError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+
+    payload = envelope(
+        endpoint=args.what,
+        starting_at=args.start,
+        ending_at=args.end,
+        bucket_width=bucket_width,
+        group_by=group_by,
+        pages=pages,
+        version=__version__,
+    )
+    args.output.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+
+    buckets = sum(len(p.get("data", ())) for p in pages)
+    # To stderr, so `fetch ... && audit ...` in a pipeline stays clean.
+    print(
+        f"wrote {args.output} -- {len(pages)} page(s), {buckets} time bucket(s).\n"
+        f"Analyse it offline with:  claude-spend-audit audit {args.output}",
+        file=sys.stderr,
+    )
+    return 0
 
 
 # --------------------------------------------------------------------------

@@ -1,10 +1,16 @@
 # claude-spend-audit
 
 **Everything runs on your machine. No data leaves it.** There is no hosted
-service, no telemetry, no uploads, and no network access of any kind in the CSV
-path. You export a CSV from the Claude Console, run this against it, and read
-the output. Nothing is sent anywhere. The dependency list is empty so you can
-verify that claim yourself in about five minutes.
+service, no telemetry, and no uploads. All analysis is local: your usage data
+is read, priced and reported without ever being sent anywhere.
+
+The tool makes exactly one kind of network request, and only if you ask for it:
+`fetch` calls Anthropic's own Usage & Cost API to *download* your data. It
+sends nothing but the request. Everything else — including the whole CSV path —
+touches no network at all.
+
+The dependency list is empty, so you can verify all of that yourself in about
+five minutes rather than taking it on trust.
 
 A CLI that reads Anthropic Usage & Cost data and reports where the money is
 going, with dollar estimates you can trace to a file you control.
@@ -29,8 +35,29 @@ A `measured` finding is arithmetic on your data. A `candidate` is a pattern the
 data cannot confirm, and always carries a range with its assumptions attached
 rather than a single number. An `observation` makes no savings claim at all.
 
-The remaining checks (C4, C5, C8) and the Admin API ingest path are not built
-yet.
+The remaining checks (C4, C5, C8) are not built yet.
+
+## Two ways in
+
+**A Console CSV export** needs no credentials at all — export from the Usage and
+Cost pages and run against the files.
+
+**The Admin API**, if you have an Admin API key, fetches the same data with more
+control over grouping and granularity:
+
+```bash
+export ANTHROPIC_ADMIN_KEY=sk-ant-admin01-...
+claude-spend-audit fetch --from 2026-08-01 --to 2026-09-01 -o raw.json
+claude-spend-audit audit raw.json
+```
+
+`fetch` saves the raw responses and stops. Analysis then runs offline as many
+times as you like, at any thresholds, without touching the API again — and the
+saved file is an artifact you can read before deciding whether to share it.
+
+**The key is only ever read from an environment variable.** There is no
+`--api-key` flag, deliberately: an argument lands in shell history and is
+visible to every user on the machine through `ps`.
 
 ## Install
 

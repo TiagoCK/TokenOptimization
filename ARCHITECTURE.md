@@ -28,7 +28,8 @@ Console CSV export ─┐
                     ├──→  Frame  ──→  checks/  ──→  Finding[]  ──→  render/
                     │   frame.py      registry     findings.py    terminal.py
 Usage & Cost API ───┘                                             markdown.py
-  JSON                  ingest/api_json.py
+  ingest/api_client.py -> saved file -> ingest/api_json.py
+  (fetch: HTTP)          (raw pages)    (normalise)
 
 Alongside, at every stage:  Gap (gaps.py) -- what this data cannot show
 Alongside, at pricing:      PricingTable  <-- pricing/<version>.json
@@ -167,6 +168,35 @@ Ranking within tier rather than purely by size is deliberate. An un-sizeable
 exposure can be numerically larger than a recoverable waste, and sorting them
 into one list would imply a priority the data does not support.
 
+## Handling the admin credential
+
+The API path is the only feature that asks for a credential, and it is an
+org-wide one. Four rules govern it, each with a test that fails if it is
+removed.
+
+**It is only ever read from an environment variable.** There is no `--api-key`
+flag. An argument lands in shell history and is visible to every user on the
+machine via `ps`; that is not a trade worth making for typing convenience, and
+the error message says so rather than just failing.
+
+**It cannot be rendered.** The value lives behind a `Credential` whose `repr`
+and `str` are redacted, so it cannot reach a log or a traceback through an
+f-string — which is how secrets actually escape, not by anyone deciding to
+print one.
+
+**It is stripped from anything on its way to an exception.** An API can echo a
+bad key back in its own error body, and that body ends up in our message.
+
+**It never enters a URL.** URLs reach proxy logs, shell history and error
+messages. The credential is a header and nothing else.
+
+One defect worth recording, because it is the kind that only a test finds:
+argparse's prefix matching originally accepted `--api-key sk-ant-...` as an
+abbreviation of `--api-key-env`, which made the secret the *variable name* and
+printed it straight back to stderr. The `fetch` parser now sets
+`allow_abbrev=False` and refuses `--api-key` explicitly, without echoing what
+it was given.
+
 ## What the tool changes about your data
 
 Almost nothing — but not quite nothing, and the exceptions are listed here
@@ -196,6 +226,11 @@ what merging fixes is the shares.
 
 **Nothing else.** Rows are never dropped, tokens are never redistributed
 between buckets, and no value is invented to fill a gap.
+
+On the API path specifically, **partial data is never returned**. If a page or
+a window fails after its retries, the whole fetch raises. Half a month that
+looks like a whole one is the worst failure available to a tool that prints a
+bill, and it is the one failure a caller cannot detect for themselves.
 
 ## Verifying a figure by hand
 
