@@ -1,0 +1,166 @@
+{
+  "profile": "console_usage",
+  "kind": "usage",
+  "status": "provisional",
+  "verified_against": null,
+
+  "_readme": [
+    "Anthropic does not publish the column headers of the Console Usage page's",
+    "CSV export. They are absent from the Usage & Cost API guide, from both",
+    "endpoint references, and from the support article on Console reporting --",
+    "all three describe the export button without listing the columns.",
+    "",
+    "So this file is a mapping, not a specification. The canonical field names",
+    "on the left ARE authoritative: they come from the documented API response",
+    "schema. The 'aliases' on the right are candidate spellings the export might",
+    "use, and they are unverified.",
+    "",
+    "Nothing here is guessed at runtime. If a required column does not match,",
+    "ingest fails and prints the real header row rather than proceeding on an",
+    "assumption. Run with --explain-schema to see the mapping that was applied.",
+    "",
+    "When you have a real export: correct the aliases, set 'status' to",
+    "'verified', and record the export date in 'verified_against'. No code",
+    "change is needed."
+  ],
+
+  "matching": {
+    "case_sensitive": false,
+    "normalize": "lowercase, strip whitespace, collapse spaces/underscores/hyphens",
+    "on_ambiguous_match": "error",
+    "on_unmapped_column": "report",
+    "on_missing_required": "error"
+  },
+
+  "columns": {
+    "start": {
+      "type": "datetime",
+      "required": true,
+      "aliases": [
+        "start", "starting at", "start time", "start date",
+        "date", "day", "hour", "timestamp", "utc date", "bucket start", "period start"
+      ]
+    },
+    "end": {
+      "type": "datetime",
+      "required": false,
+      "aliases": ["end", "ending at", "end time", "end date", "bucket end", "period end"]
+    },
+
+    "uncached_input": {
+      "type": "int",
+      "required": true,
+      "token_type": "uncached_input_tokens",
+      "aliases": [
+        "uncached input tokens", "uncached input", "input tokens", "input",
+        "uncached tokens"
+      ]
+    },
+    "cache_read": {
+      "type": "int",
+      "required": false,
+      "token_type": "cache_read_input_tokens",
+      "aliases": [
+        "cache read input tokens", "cache read tokens", "cache read",
+        "cached input tokens", "cache hits", "cache hit tokens"
+      ]
+    },
+    "cache_write_5m": {
+      "type": "int",
+      "required": false,
+      "token_type": "cache_creation.ephemeral_5m_input_tokens",
+      "aliases": [
+        "cache creation ephemeral 5m input tokens",
+        "ephemeral 5m input tokens", "cache creation 5m", "cache write 5m",
+        "5m cache writes", "cache creation input tokens 5m"
+      ]
+    },
+    "cache_write_1h": {
+      "type": "int",
+      "required": false,
+      "token_type": "cache_creation.ephemeral_1h_input_tokens",
+      "aliases": [
+        "cache creation ephemeral 1h input tokens",
+        "ephemeral 1h input tokens", "cache creation 1h", "cache write 1h",
+        "1h cache writes", "cache creation input tokens 1h"
+      ]
+    },
+    "output": {
+      "type": "int",
+      "required": true,
+      "token_type": "output_tokens",
+      "aliases": ["output tokens", "output", "completion tokens"]
+    },
+
+    "web_search_requests": {
+      "type": "int",
+      "required": false,
+      "aliases": ["web search requests", "web searches", "search requests"]
+    },
+
+    "model": {
+      "type": "nullable_string",
+      "required": false,
+      "dimension": true,
+      "aliases": ["model", "model name", "model id"]
+    },
+    "workspace_id": {
+      "type": "nullable_string",
+      "required": false,
+      "dimension": true,
+      "aliases": ["workspace id", "workspace", "workspace name"]
+    },
+    "api_key_id": {
+      "type": "nullable_string",
+      "required": false,
+      "dimension": true,
+      "aliases": ["api key id", "api key", "key id", "key"]
+    },
+    "account_id": {
+      "type": "nullable_string",
+      "required": false,
+      "dimension": true,
+      "aliases": ["account id", "account", "user account id"]
+    },
+    "service_account_id": {
+      "type": "nullable_string",
+      "required": false,
+      "dimension": true,
+      "aliases": ["service account id", "service account"]
+    },
+    "service_tier": {
+      "type": "nullable_string",
+      "required": false,
+      "dimension": true,
+      "aliases": ["service tier", "tier"]
+    },
+    "context_window": {
+      "type": "nullable_string",
+      "required": false,
+      "dimension": true,
+      "aliases": ["context window", "context"]
+    },
+    "inference_geo": {
+      "type": "nullable_string",
+      "required": false,
+      "dimension": true,
+      "aliases": ["inference geo", "inference geography", "geo", "data residency"]
+    },
+    "speed": {
+      "type": "nullable_string",
+      "required": false,
+      "dimension": true,
+      "aliases": ["speed", "mode"]
+    }
+  },
+
+  "null_tokens": ["", "-", "n/a", "na", "null", "none", "(none)", "(default)", "default"],
+
+  "_null_note": [
+    "A blank workspace_id is not an error: the API uses null for the default",
+    "workspace, and null api_key_id for Console playground traffic. Whether a",
+    "blank means 'default workspace' or 'this export was never grouped by",
+    "workspace' is decided by whether the column is present at all, which is",
+    "what Frame.grouped_by records."
+  ]
+}

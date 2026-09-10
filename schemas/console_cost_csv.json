@@ -1,0 +1,108 @@
+{
+  "profile": "console_cost",
+  "kind": "cost",
+  "status": "provisional",
+  "verified_against": null,
+
+  "_readme": [
+    "As with console_usage_csv.json, the Console Cost page's CSV column headers",
+    "are not published. Canonical field names come from the documented cost",
+    "endpoint response; the aliases are unverified candidates.",
+    "",
+    "One trap worth naming: the API's 'amount' is a decimal string in the",
+    "LOWEST currency unit -- \"123.45\" in USD means $1.23, not $123.45. Whether",
+    "a Console CSV export follows the API's cents convention or writes plain",
+    "dollars is exactly the kind of thing that needs a real export to settle,",
+    "so 'amount_units' below is explicit and must be checked when one arrives.",
+    "Getting it wrong is a 100x error in the headline number."
+  ],
+
+  "matching": {
+    "case_sensitive": false,
+    "normalize": "lowercase, strip whitespace, collapse spaces/underscores/hyphens",
+    "on_ambiguous_match": "error",
+    "on_unmapped_column": "report",
+    "on_missing_required": "error"
+  },
+
+  "amount_units": "cents",
+  "_amount_units_note": [
+    "'cents' matches the documented API convention and is the assumption until",
+    "a real export proves otherwise. Set to 'dollars' if the export writes plain",
+    "USD. --explain-schema prints which convention was applied, and `inspect`",
+    "shows billed against estimated cost, where a 100x discrepancy is obvious."
+  ],
+
+  "columns": {
+    "start": {
+      "type": "datetime",
+      "required": true,
+      "aliases": [
+        "start", "starting at", "start time", "start date",
+        "date", "day", "timestamp", "utc date", "bucket start", "period start"
+      ]
+    },
+    "end": {
+      "type": "datetime",
+      "required": false,
+      "aliases": ["end", "ending at", "end time", "end date", "bucket end", "period end"]
+    },
+    "amount": {
+      "type": "decimal",
+      "required": true,
+      "aliases": ["amount", "cost", "cost usd", "usd", "spend", "total cost", "charge"]
+    },
+    "currency": {
+      "type": "nullable_string",
+      "required": false,
+      "aliases": ["currency", "currency code"]
+    },
+    "cost_type": {
+      "type": "nullable_string",
+      "required": false,
+      "aliases": ["cost type", "type", "usage type"]
+    },
+    "description": {
+      "type": "nullable_string",
+      "required": false,
+      "aliases": ["description", "line item", "item", "detail"]
+    },
+    "token_type": {
+      "type": "nullable_string",
+      "required": false,
+      "aliases": ["token type", "token category"]
+    },
+    "workspace_id": {
+      "type": "nullable_string",
+      "required": false,
+      "dimension": true,
+      "aliases": ["workspace id", "workspace", "workspace name"]
+    },
+    "model": {
+      "type": "nullable_string",
+      "required": false,
+      "dimension": true,
+      "aliases": ["model", "model name", "model id"]
+    },
+    "service_tier": {
+      "type": "nullable_string",
+      "required": false,
+      "dimension": true,
+      "aliases": ["service tier", "tier"]
+    },
+    "context_window": {
+      "type": "nullable_string",
+      "required": false,
+      "dimension": true,
+      "aliases": ["context window", "context"]
+    },
+    "inference_geo": {
+      "type": "nullable_string",
+      "required": false,
+      "dimension": true,
+      "aliases": ["inference geo", "inference geography", "geo", "data residency"]
+    }
+  },
+
+  "null_tokens": ["", "-", "n/a", "na", "null", "none", "(none)", "(default)", "default"]
+}
