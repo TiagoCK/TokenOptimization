@@ -2,7 +2,7 @@
 
 from .api_json import load_cost_json, load_usage_json
 from .csv_ingest import load_cost_csv, load_usage_csv
-from .schema import Profile, SchemaError, SchemaMismatch
+from .schema import Profile, SchemaError, SchemaMismatch, select_profile
 
 __all__ = [
     "load_cost_csv",
@@ -12,4 +12,5 @@ __all__ = [
     "Profile",
     "SchemaError",
     "SchemaMismatch",
+    "select_profile",
 ]

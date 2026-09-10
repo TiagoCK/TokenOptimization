@@ -72,6 +72,31 @@ class SchemaMismatch(Exception):
         super().__init__("\n".join(lines))
 
 
+#: Zero-width and BOM characters that make two identical-looking identifiers
+#: different strings. The cookbook's own sample output lists the same model
+#: twice, which is what this defends against.
+#:
+#: Only genuinely *zero-width* characters belong here, because they are
+#: deleted. A non-breaking space (U+00A0) is a space, not an invisible: it is
+#: handled by the split/join below, which treats every Unicode space alike.
+#: Deleting it would turn "Claude<nbsp>Opus<nbsp>5" into "ClaudeOpus5".
+_INVISIBLE = dict.fromkeys([0x200B, 0x200C, 0x200D, 0x2060, 0xFEFF], None)
+
+
+def normalize_value(raw: str) -> str:
+    """Clean a dimension value so two spellings of one thing compare equal.
+
+    Trims, collapses internal whitespace, and strips zero-width characters.
+    Deliberately conservative: it does NOT change case or punctuation, because
+    "Claude Opus 5" and "claude-opus-5" are different strings a user chose and
+    silently merging them would be rewriting their data. Genuine aliases are
+    *detected* instead -- see PricingTable.alias_collisions.
+    """
+    cleaned = raw.translate(_INVISIBLE)
+    cleaned = "".join(ch for ch in cleaned if ch.isprintable() or ch.isspace())
+    return " ".join(cleaned.split())
+
+
 def normalize(header: str) -> str:
     """Fold a header for matching: case, whitespace, and separators."""
     folded = header.strip().lower()
@@ -293,7 +318,7 @@ class Profile:
                 return Decimal(text.replace(",", "").replace("$", ""))
             if spec.type == "datetime":
                 return parse_datetime(text)
-            return text
+            return normalize_value(text)
         except (ValueError, InvalidOperation, ArithmeticError) as exc:
             raise SchemaMismatch(
                 f"Row {row_no}: could not read {raw!r} as {spec.type} for field "
@@ -339,6 +364,67 @@ def parse_datetime(text: str) -> datetime:
     if parsed.tzinfo is None:
         return parsed.replace(tzinfo=timezone.utc)
     return parsed.astimezone(timezone.utc)
+
+
+def select_profile(
+    headers: tuple[str, ...],
+    kind: str,
+    directory: str | Path | None = None,
+) -> Profile:
+    """Find the profile whose columns this header row satisfies.
+
+    There is more than one producer of these CSVs -- the Console UI export and
+    Anthropic's cookbook exporter -- and they disagree on column names and, in
+    the cost file, on whether amounts are cents or dollars. Guessing wrong on
+    the latter is a 100x error, so the file is matched against every known
+    profile rather than assumed.
+
+    Selection is by *coverage*, not by first match. Several profiles can
+    satisfy the same header row -- the cookbook profile's required columns are
+    a subset of the Console export's, so "first verified profile that matches"
+    would claim every Console file. The profile that recognises the most of the
+    file is the one that actually describes it: a Console export carries
+    columns (`context_window`, `inference_geo`, the split cache TTLs) that the
+    cookbook profile has never heard of, and vice versa for
+    `cache_creation_tokens`.
+
+    Ties break toward the verified profile, then by name so the choice is
+    deterministic.
+    """
+    d = Path(directory) if directory else DEFAULT_SCHEMA_DIR
+    candidates = [
+        Profile.load(path)
+        for path in sorted(d.glob("*.json"))
+    ]
+    candidates = [p for p in candidates if p.kind == kind]
+    if not candidates:
+        raise SchemaError(f"no {kind!r} schema profiles found in {d}")
+
+    matched: list[tuple[int, bool, str, Profile]] = []
+    attempts: list[str] = []
+    for profile in candidates:
+        try:
+            mapping = profile.match(headers)
+        except SchemaMismatch as exc:
+            missing = ", ".join(exc.missing) if exc.missing else "ambiguous match"
+            attempts.append(f"    {profile.name} [{profile.status}]: {missing}")
+            continue
+        matched.append(
+            (len(mapping.unmapped), profile.status != "verified", profile.name, profile)
+        )
+
+    if matched:
+        matched.sort(key=lambda item: item[:3])
+        return matched[0][3]
+
+    detail = "\n".join(attempts)
+    raise SchemaMismatch(
+        f"No {kind} schema profile matches this file. Tried "
+        f"{len(candidates)}, each failing on:\n{detail}",
+        headers=headers,
+        profile=", ".join(p.name for p in candidates),
+        profile_path=d,
+    )
 
 
 def infer_bucket_width(starts: list[datetime]) -> str | None:

@@ -16,6 +16,7 @@ from pathlib import Path
 
 from .. import gaps as gapmod
 from ..frame import (
+    ALL_TOKEN_FIELDS,
     DIMENSIONS,
     TOKEN_FIELDS,
     CostRow,
@@ -25,7 +26,13 @@ from ..frame import (
     TokenBuckets,
     UsageRow,
 )
-from .schema import Mapping_, Profile, SchemaMismatch, infer_bucket_width
+from .schema import (
+    Mapping_,
+    Profile,
+    SchemaMismatch,
+    infer_bucket_width,
+    select_profile,
+)
 
 #: Markers that would positively indicate Bedrock-routed traffic. Absent one of
 #: these there is no signal in aggregate data, so no claim is made -- see §2.
@@ -40,7 +47,12 @@ def load_usage_csv(
     profile: Profile | None = None,
 ) -> tuple[Frame, Mapping_]:
     """Read a Usage page export into a Frame."""
-    profile = profile or Profile.load_named("console_usage_csv")
+    if profile is None:
+        # Auto-select: more than one producer writes these files, and they
+        # disagree on column names and on cents-vs-dollars.
+        p_probe = Path(path)
+        headers_probe, _ = _read(p_probe)
+        profile = select_profile(headers_probe, "usage")
     if profile.kind != "usage":
         raise SchemaMismatch(
             f"Profile {profile.name!r} describes {profile.kind!r} data, not usage.",
@@ -75,7 +87,7 @@ def load_usage_csv(
                     **{d: values.get(d) for d in DIMENSIONS if d in mapping.fields}
                 ),
                 tokens=TokenBuckets(
-                    **{f: values.get(f) or 0 for f in TOKEN_FIELDS}
+                    **{f: values.get(f) or 0 for f in ALL_TOKEN_FIELDS}
                 ),
                 web_search_requests=values.get("web_search_requests") or 0,
             )
@@ -109,7 +121,10 @@ def load_cost_csv(
     profile: Profile | None = None,
 ) -> tuple[Frame, Mapping_]:
     """Read a Cost page export into a Frame."""
-    profile = profile or Profile.load_named("console_cost_csv")
+    if profile is None:
+        p_probe = Path(path)
+        headers_probe, _ = _read(p_probe)
+        profile = select_profile(headers_probe, "cost")
     if profile.kind != "cost":
         raise SchemaMismatch(
             f"Profile {profile.name!r} describes {profile.kind!r} data, not cost.",

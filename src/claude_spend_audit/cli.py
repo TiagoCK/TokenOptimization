@@ -200,6 +200,14 @@ def main(argv: list[str] | None = None) -> int:
 # --------------------------------------------------------------------------
 
 
+def _profile_of(frame: Frame, explicit: Profile | None) -> Profile:
+    """Recover the profile ingest actually used, for --explain-schema."""
+    if explicit is not None:
+        return explicit
+    name = frame.sources[0].profile
+    return Profile.load_named(f"{name}_csv")
+
+
 class _LoadFailed(Exception):
     def __init__(self, message: str, code: int):
         super().__init__(message)
@@ -217,23 +225,23 @@ def _load(args) -> tuple[Frame, PricingTable, object]:
         raise _LoadFailed(str(exc), 2) from exc
 
     try:
+        # None means "auto-select": more than one producer writes these CSVs
+        # and they disagree on column names and on cents-vs-dollars.
         usage_profile = (
-            Profile.load(args.usage_profile)
-            if args.usage_profile
-            else Profile.load_named("console_usage_csv")
+            Profile.load(args.usage_profile) if args.usage_profile else None
         )
         usage_frame, usage_mapping = load_usage_csv(args.usage, usage_profile)
+        usage_profile = _profile_of(usage_frame, usage_profile)
 
         cost_frame = None
         cost_mapping = None
         cost_profile = None
         if args.cost:
             cost_profile = (
-                Profile.load(args.cost_profile)
-                if args.cost_profile
-                else Profile.load_named("console_cost_csv")
+                Profile.load(args.cost_profile) if args.cost_profile else None
             )
             cost_frame, cost_mapping = load_cost_csv(args.cost, cost_profile)
+            cost_profile = _profile_of(cost_frame, cost_profile)
     except SchemaMismatch as exc:
         raise _LoadFailed(str(exc), 1) from exc
     except (SchemaError, FileNotFoundError) as exc:
@@ -252,6 +260,10 @@ def _load(args) -> tuple[Frame, PricingTable, object]:
 
     estimate = pricing.estimate_frame(frame)
     frame = frame.with_gaps(estimate.gaps)
+    # One model spelled two ways splits its spend across segments and makes
+    # every downstream share wrong. Reported rather than merged: merging would
+    # rewrite the user's data on an inference.
+    frame = frame.with_gaps(pricing.alias_collisions(frame))
     return frame, pricing, estimate
 
 

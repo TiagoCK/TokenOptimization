@@ -1,0 +1,44 @@
+{
+  "_comment": [
+    "Fixture 6 from DATA_FORMATS.md: the cost endpoint's `amount` arrives",
+    "as a decimal string in some rows and a JSON number in others. The",
+    "cookbook handles this with float(); this tool must handle it with",
+    "Decimal and produce identical results either way.",
+    "",
+    "Both rows are 12345 minor units = $123.45. Total $246.90."
+  ],
+  "data": [
+    {
+      "starting_at": "2026-08-01T00:00:00Z",
+      "ending_at": "2026-08-02T00:00:00Z",
+      "results": [
+        {
+          "amount": "12345",
+          "currency": "USD",
+          "cost_type": "tokens",
+          "description": "string amount",
+          "model": "claude-opus-5",
+          "token_type": "uncached_input_tokens",
+          "service_tier": "standard",
+          "workspace_id": "wrkspc_main",
+          "context_window": "0-200k",
+          "inference_geo": "global"
+        },
+        {
+          "amount": 12345,
+          "currency": "USD",
+          "cost_type": "tokens",
+          "description": "numeric amount",
+          "model": "claude-opus-5",
+          "token_type": "output_tokens",
+          "service_tier": "standard",
+          "workspace_id": "wrkspc_main",
+          "context_window": "0-200k",
+          "inference_geo": "global"
+        }
+      ]
+    }
+  ],
+  "has_more": false,
+  "next_page": null
+}
