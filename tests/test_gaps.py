@@ -59,24 +59,34 @@ def test_the_two_cases_are_distinguishable():
 
 
 def test_ungrouped_workspace_raises_dimension_not_grouped_not_unattributed(
-    tmp_path, usage_profile
+    pricing, usage_profile
 ):
-    """The end-to-end version of the same guarantee."""
-    path = tmp_path / "no_workspace.csv"
-    path.write_text(
-        "start,model,uncached_input_tokens,output_tokens\n"
-        "2026-08-01T00:00:00Z,claude-opus-5,1000,100\n",
-        encoding="utf-8",
-    )
-    frame, _ = load_usage_csv(path, usage_profile)
+    """The end-to-end version of the same guarantee.
 
-    codes = {g.code for g in frame.gaps}
+    Since M2 this gap comes from a check's declared preconditions rather than
+    from the parser -- ingest reports facts about the data, the registry owns
+    which checks those facts block. The guarantee itself is unchanged: an
+    export that was never grouped by workspace must not read as unattributed
+    spend.
+    """
+    from claude_spend_audit.checks import Check, run_checks
+
+    frame = _frame(Segment(model="claude-opus-5"), {"model"})
+    needs_workspace = Check(
+        id="CX",
+        name="Attribution coverage",
+        run=lambda f, p, c: [],
+        needs_dimensions=frozenset({"workspace_id"}),
+    )
+    run = run_checks(frame, pricing, checks=[needs_workspace])
+
+    codes = {g.code for g in run.gaps}
     assert GapCode.DIMENSION_NOT_GROUPED in codes
     assert GapCode.UNATTRIBUTED_SPEND not in codes
 
     gap = next(
         g
-        for g in frame.gaps
+        for g in run.gaps
         if g.code is GapCode.DIMENSION_NOT_GROUPED and g.scope == "workspace_id"
     )
     assert "property of the export, not a finding" in gap.message

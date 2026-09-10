@@ -242,30 +242,13 @@ def _usage_gaps(
 ) -> list:
     found = _source_gaps(profile, mapping, bedrock_seen)
 
-    # Tiers we cannot price, and dimensions the export never carried.
+    # Tiers we cannot price. Which *checks* a given export can support is the
+    # check registry's business, not the parser's -- ingest naming a check
+    # would drift the moment one was renamed, so those gaps are raised in
+    # checks.run_checks() from each check's own declared preconditions.
     if "service_tier" in frame.grouped_by:
         for tier in frame.distinct("service_tier"):
             if tier and tier.startswith("priority"):
                 found.append(gapmod.priority_tier_present(tier))
-    else:
-        found.append(
-            gapmod.dimension_not_grouped(
-                "service_tier", "batch tier adoption (C3)"
-            )
-        )
-
-    if "workspace_id" not in frame.grouped_by and "api_key_id" not in frame.grouped_by:
-        found.append(
-            gapmod.dimension_not_grouped(
-                "workspace_id", "attribution coverage (C7)"
-            )
-        )
-
-    if frame.usage and frame.bucket_width and frame.bucket_width != "1h":
-        found.append(
-            gapmod.granularity_too_coarse(
-                frame.bucket_width, "1h", "off-hours and anomaly detection (C6)"
-            )
-        )
 
     return found

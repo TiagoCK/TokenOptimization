@@ -179,8 +179,19 @@ def test_bedrock_caveat_is_present_but_makes_no_claim(usage_csv, usage_profile):
     assert "no signal in aggregate data" in gap.message
 
 
-def test_daily_granularity_blocks_c6(usage_csv, usage_profile):
+def test_daily_granularity_blocks_the_off_hours_check(usage_csv, usage_profile, pricing):
+    """Ingest records the granularity; the registry decides what it blocks.
+
+    Before M2 this gap came from the CSV parser, which meant the parser named
+    a check ("off-hours and anomaly detection (C6)") that did not exist yet.
+    """
+    from claude_spend_audit.checks import run_checks
+
     frame, _ = load_usage_csv(usage_csv, usage_profile)
-    gap = next(g for g in frame.gaps if g.code is GapCode.GRANULARITY_TOO_COARSE)
+    assert frame.bucket_width == "1d"
+
+    run = run_checks(frame, pricing)
+    gap = next(g for g in run.gaps if g.code is GapCode.GRANULARITY_TOO_COARSE)
     assert gap.scope == "1d"
     assert "1h" in gap.remedy
+    assert "C6b" in gap.message
