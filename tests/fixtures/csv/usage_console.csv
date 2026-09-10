@@ -1,0 +1,5 @@
+start,end,model,workspace_id,api_key_id,service_tier,context_window,inference_geo,speed,uncached_input_tokens,cache_read_input_tokens,cache_creation.ephemeral_5m_input_tokens,cache_creation.ephemeral_1h_input_tokens,output_tokens,web_search_requests
+2026-08-01T00:00:00Z,2026-08-02T00:00:00Z,claude-opus-5,wrkspc_01JwQvzr7rXLA5AGx3HKfFUJ,apikey_01Rj2N8SVvo6BePZj99NhmiT,standard,0-200k,global,standard,1000000,2000000,400000,100000,200000,50
+2026-08-01T00:00:00Z,2026-08-02T00:00:00Z,claude-sonnet-5,,,batch,0-200k,global,standard,2000000,0,0,0,500000,0
+2026-08-02T00:00:00Z,2026-08-03T00:00:00Z,claude-opus-5,wrkspc_01JwQvzr7rXLA5AGx3HKfFUJ,apikey_01Rj2N8SVvo6BePZj99NhmiT,standard,0-200k,us,standard,1000000,0,0,0,100000,0
+2026-08-02T00:00:00Z,2026-08-03T00:00:00Z,claude-haiku-4-5,wrkspc_01XYZ789ABC123DEF456MNO,,priority,0-200k,global,standard,5000000,0,0,0,1000000,0

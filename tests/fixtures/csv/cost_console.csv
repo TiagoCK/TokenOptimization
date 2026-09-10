@@ -1,0 +1,12 @@
+start,end,workspace_id,cost_type,description,model,token_type,service_tier,context_window,inference_geo,amount,currency
+2026-08-01T00:00:00Z,2026-08-02T00:00:00Z,wrkspc_01JwQvzr7rXLA5AGx3HKfFUJ,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,0-200k,global,500,USD
+2026-08-01T00:00:00Z,2026-08-02T00:00:00Z,wrkspc_01JwQvzr7rXLA5AGx3HKfFUJ,tokens,Claude Opus 5 Usage - Cache Read Tokens,claude-opus-5,cache_read_input_tokens,standard,0-200k,global,100,USD
+2026-08-01T00:00:00Z,2026-08-02T00:00:00Z,wrkspc_01JwQvzr7rXLA5AGx3HKfFUJ,tokens,Claude Opus 5 Usage - Cache Write Tokens (5m),claude-opus-5,cache_creation.ephemeral_5m_input_tokens,standard,0-200k,global,250,USD
+2026-08-01T00:00:00Z,2026-08-02T00:00:00Z,wrkspc_01JwQvzr7rXLA5AGx3HKfFUJ,tokens,Claude Opus 5 Usage - Cache Write Tokens (1h),claude-opus-5,cache_creation.ephemeral_1h_input_tokens,standard,0-200k,global,100,USD
+2026-08-01T00:00:00Z,2026-08-02T00:00:00Z,wrkspc_01JwQvzr7rXLA5AGx3HKfFUJ,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,0-200k,global,500,USD
+2026-08-01T00:00:00Z,2026-08-02T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,batch,0-200k,global,200,USD
+2026-08-01T00:00:00Z,2026-08-02T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,batch,0-200k,global,250,USD
+2026-08-01T00:00:00Z,2026-08-02T00:00:00Z,wrkspc_01JwQvzr7rXLA5AGx3HKfFUJ,web_search,Web Search Usage,,,,,,50,USD
+2026-08-01T00:00:00Z,2026-08-02T00:00:00Z,wrkspc_01JwQvzr7rXLA5AGx3HKfFUJ,code_execution,Code Execution Usage,,,,,,300,USD
+2026-08-02T00:00:00Z,2026-08-03T00:00:00Z,wrkspc_01JwQvzr7rXLA5AGx3HKfFUJ,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,0-200k,us,550,USD
+2026-08-02T00:00:00Z,2026-08-03T00:00:00Z,wrkspc_01JwQvzr7rXLA5AGx3HKfFUJ,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,0-200k,us,275,USD
