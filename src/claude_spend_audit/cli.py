@@ -258,12 +258,14 @@ def _load(args) -> tuple[Frame, PricingTable, object]:
     if not frame.cost:
         frame = frame.with_gaps([gapmod.no_cost_data()])
 
+    # Merge before estimating, so every figure downstream sees one segment per
+    # model rather than one per spelling. Each merge is reported in the
+    # caveats, naming the strings that were combined.
+    frame, merged = pricing.merge_model_aliases(frame)
+    frame = frame.with_gaps(merged)
+
     estimate = pricing.estimate_frame(frame)
     frame = frame.with_gaps(estimate.gaps)
-    # One model spelled two ways splits its spend across segments and makes
-    # every downstream share wrong. Reported rather than merged: merging would
-    # rewrite the user's data on an inference.
-    frame = frame.with_gaps(pricing.alias_collisions(frame))
     return frame, pricing, estimate
 
 

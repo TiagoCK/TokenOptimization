@@ -44,7 +44,7 @@ class GapCode(StrEnum):
 
     # The source threw away detail the API provides
     CACHE_TTL_NOT_SPLIT = "cache_ttl_not_split"
-    MODEL_ALIAS_SPLIT = "model_alias_split"
+    MODEL_ALIAS_MERGED = "model_aliases_merged"
 
     # Findings about the data itself
     UNATTRIBUTED_SPEND = "unattributed_spend"
@@ -277,28 +277,31 @@ def cache_ttl_not_split(tokens: int) -> Gap:
     )
 
 
-def model_alias_split(canonical: str, spellings: tuple[str, ...]) -> Gap:
-    """Two spellings of one model, splitting its spend across segments.
+def model_aliases_merged(canonical: str, spellings: tuple[str, ...]) -> Gap:
+    """Several spellings of one model, combined into its canonical id.
 
-    Reported rather than silently merged: merging would rewrite the user's
-    data on an inference. Reporting keeps every downstream percentage
-    checkable.
+    Left alone they would split one model's spend across segments and every
+    downstream share would be computed on a fraction of it. Merging is a
+    rewrite of the source data, so it is reported here rather than done
+    quietly -- the reader can see exactly which strings were treated as the
+    same thing and disagree if they know better.
     """
     listed = ", ".join(repr(s) for s in spellings)
     return Gap(
-        code=GapCode.MODEL_ALIAS_SPLIT,
-        severity=Severity.WARNING,
+        code=GapCode.MODEL_ALIAS_MERGED,
+        severity=Severity.INFO,
         scope=canonical,
         message=(
-            f"{len(spellings)} different spellings of {canonical!r} appear in "
-            f"this data ({listed}), so its spend is split across separate rows "
-            "and every share and ranking that involves it is computed on the "
+            f"{len(spellings)} spellings of {canonical!r} appeared in this data "
+            f"({listed}) and have been combined under the canonical id. Without "
+            "that, this model's spend would be split across separate rows and "
+            "every share and ranking involving it would be computed on the "
             "parts rather than the whole."
         ),
         remedy=(
             "Check the export for trailing whitespace or mixed identifier "
-            "styles. Re-exporting with consistent model identifiers merges "
-            "these rows."
+            "styles. The figures above are correct either way; consistent "
+            "identifiers just make the raw export easier to work with."
         ),
     )
 

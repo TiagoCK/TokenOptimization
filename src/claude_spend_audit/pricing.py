@@ -14,7 +14,7 @@ estimate conservative and state assumptions in the output itself."
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from decimal import Decimal
 from pathlib import Path
 from typing import Iterable, Mapping
@@ -320,14 +320,22 @@ class PricingTable:
 
         return Priced(usd_per_mtok=rate, basis=" ".join(basis_parts))
 
-    def alias_collisions(self, frame: Frame) -> list[Gap]:
-        """Distinct model strings in the data that mean the same model.
+    def merge_model_aliases(self, frame: Frame) -> tuple[Frame, list[Gap]]:
+        """Rewrite every spelling of a model to its canonical id.
 
         The cookbook exporter does no normalisation, and its own published
         sample output lists the same model twice -- so identical-looking keys
-        that do not collide are a real hazard. Left undetected, one model's
-        spend is split across two rows and every downstream percentage is
-        computed on a fraction of it.
+        that do not collide are a real hazard. Left alone, one model's spend
+        splits across two segments and every downstream share, ranking and
+        percentage is computed on a fraction of it.
+
+        Merging is a rewrite of the user's data, so it is done only where the
+        pricing file can *prove* two strings are the same model, and every
+        merge is reported in the caveats naming the spellings involved. A
+        spelling the pricing file cannot resolve is left exactly as it came in:
+        there is nothing to prove it is a duplicate of anything.
+
+        Returns the rewritten frame and the gaps describing what changed.
         """
         by_canonical: dict[str, set[str]] = {}
         for row in frame.usage:
@@ -336,14 +344,37 @@ class PricingTable:
                 continue
             canonical = self.resolve_model(raw)
             if canonical is None:
-                continue
+                continue  # unresolvable: nothing proves it is a duplicate
             by_canonical.setdefault(canonical, set()).add(raw)
 
-        return [
-            gapmod.model_alias_split(canonical, tuple(sorted(spellings)))
-            for canonical, spellings in sorted(by_canonical.items())
-            if len(spellings) > 1
-        ]
+        # Only spellings that actually collide are rewritten. A model spelled
+        # one consistent way is left as the user wrote it, even if that is a
+        # display name rather than the canonical id.
+        rewrite: dict[str, str] = {}
+        gaps: list[Gap] = []
+        for canonical, spellings in sorted(by_canonical.items()):
+            if len(spellings) < 2:
+                continue
+            for spelling in spellings:
+                rewrite[spelling] = canonical
+            gaps.append(
+                gapmod.model_aliases_merged(canonical, tuple(sorted(spellings)))
+            )
+
+        if not rewrite:
+            return frame, []
+
+        usage = tuple(
+            replace(row, segment=replace(row.segment, model=rewrite[row.segment.model]))
+            if row.segment.model in rewrite
+            else row
+            for row in frame.usage
+        )
+        cost = tuple(
+            replace(row, model=rewrite[row.model]) if row.model in rewrite else row
+            for row in frame.cost
+        )
+        return replace(frame, usage=usage, cost=cost), gaps
 
     def web_search_rate(self) -> Decimal:
         entry = self._server_tools.get("web_search") or {}
