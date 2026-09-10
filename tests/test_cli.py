@@ -8,6 +8,9 @@ import pytest
 from claude_spend_audit.cli import main
 
 
+FIXTURE_USAGE = "tests/fixtures/csv/usage_console.csv"
+
+
 def run(capsys, *argv) -> tuple[int, str, str]:
     code = main(list(argv))
     captured = capsys.readouterr()
@@ -100,7 +103,7 @@ def test_explain_schema_shows_the_mapping(capsys, usage_csv):
     _, out, _ = run(capsys, "inspect", str(usage_csv), "--explain-schema")
     assert "schema profile: console_usage" in out
     assert "[provisional]" in out
-    assert "does not publish these column headers" in out
+    assert "does not publish these headers" in out
     assert "-> " in out
     assert "cache_write_1h" in out
 
@@ -175,3 +178,116 @@ def test_version_flag(capsys):
     with pytest.raises(SystemExit) as excinfo:
         main(["--version"])
     assert excinfo.value.code == 0
+
+
+# --------------------------------------------------------------------------
+# audit (M2)
+# --------------------------------------------------------------------------
+
+WASTE = "tests/fixtures/csv/usage_cache_waste.csv"
+HOURLY = "tests/fixtures/csv/usage_hourly.csv"
+
+
+def test_audit_leads_with_c1(capsys):
+    """§4: 'Lead the report with it.' C1 is the only measured-waste check, so
+    tier ranking puts it first without a special case."""
+    _, out, _ = run(capsys, "audit", WASTE)
+    assert "FINDINGS" in out
+    findings_block = out.split("FINDINGS", 1)[1]
+    assert findings_block.index("C1") < findings_block.index("caveats")
+    assert "$9.10" in out
+
+
+def test_audit_shows_confidence_on_every_row(capsys):
+    """§5: 'confidence level visible on every row'."""
+    import re
+
+    _, out, _ = run(capsys, "audit", HOURLY)
+    # Ranked-table rows look like "  1   C6b    measured   $74.88  not claimed"
+    rows = [
+        ln for ln in out.splitlines() if re.match(r"^\s+\d+\s+C\w+\s+\w+\s", ln)
+    ]
+    assert len(rows) == 2, rows
+    for row in rows:
+        assert any(c in row for c in ("measured", "candidate", "observation")), row
+
+
+def test_c6_says_it_claims_no_savings(capsys):
+    """The distinction the whole Finding shape exists to preserve."""
+    _, out, _ = run(capsys, "audit", HOURLY)
+    assert "not claimed" in out
+    assert "measures what was spent" in out
+
+
+def test_audit_reports_blocked_checks(capsys):
+    """Silence about a check that could not run would be misleading."""
+    _, out, _ = run(capsys, "audit", str(FIXTURE_USAGE))
+    assert "CHECKS THAT COULD NOT RUN" in out
+    assert "Off-hours and weekend volume (C6b)" in out
+
+
+def test_audit_findings_do_not_change_the_exit_code(capsys):
+    """Finding something is the tool working, not an error. The waste fixture
+    has no total-invalidating gap, so it exits 0 despite a $9.10 finding."""
+    code, out, _ = run(capsys, "audit", WASTE)
+    assert "$9.10" in out
+    assert code == 0
+
+
+def test_audit_still_flags_an_invalidated_total(capsys):
+    """The M1 contract survives: priority tier in the data means exit 1."""
+    code, _, _ = run(capsys, "audit", str(FIXTURE_USAGE))
+    assert code == 1
+
+
+def test_min_impact_filters_findings(capsys):
+    _, out, _ = run(capsys, "audit", WASTE, "--min-impact", "100")
+    assert "No findings" in out
+
+
+def test_utc_offset_moves_the_business_window(capsys):
+    at_utc = run(capsys, "audit", HOURLY, "--json")[1]
+    shifted = run(capsys, "audit", HOURLY, "--utc-offset", "-5", "--json")[1]
+    import json as _json
+
+    a = next(f for f in _json.loads(at_utc)["findings"] if f["check_id"] == "C6b")
+    b = next(f for f in _json.loads(shifted)["findings"] if f["check_id"] == "C6b")
+    assert a["measured_usd"] != b["measured_usd"]
+    assert "UTC-5" in b["scope"]
+
+
+def test_business_hours_flag_is_validated(capsys):
+    with pytest.raises(SystemExit):
+        main(["audit", HOURLY, "--business-hours", "not-a-window"])
+
+
+def test_audit_json_shape(capsys):
+    import json as _json
+
+    _, out, _ = run(capsys, "audit", WASTE, "--json")
+    payload = _json.loads(out)
+    finding = next(f for f in payload["findings"] if f["check_id"] == "C1")
+
+    # Money as strings, as everywhere else.
+    assert finding["measured_usd"] == "9.10"
+    assert finding["recoverable"]["low"] == "9.10"
+    assert finding["recoverable"]["assumptions"]
+    assert finding["measured_basis"]
+    assert finding["evidence"]["columns"][0] == "model / workspace / key"
+    assert payload["checks_blocked"] == ["Off-hours and weekend volume (C6b)"]
+
+
+def test_inspect_reports_which_checks_the_export_supports(capsys):
+    """inspect gained this from the registry -- it used to be two hardcoded
+    strings in the CSV parser."""
+    _, out, _ = run(capsys, "inspect", str(FIXTURE_USAGE))
+    assert "CHECKS THAT COULD NOT RUN" in out
+    assert "use `audit`" in out
+
+
+def test_output_stays_within_terminal_width(capsys):
+    """Reports get pasted into email and tickets; wrapped tables are unreadable."""
+    for argv in (("audit", WASTE), ("audit", HOURLY), ("inspect", str(FIXTURE_USAGE))):
+        _, out, _ = run(capsys, *argv)
+        overlong = [ln for ln in out.splitlines() if len(ln) > 78]
+        assert not overlong, f"{argv}: {overlong[:2]}"

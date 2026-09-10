@@ -1,11 +1,12 @@
 """Command line entry point.
 
-M1 ships one command, ``inspect``: read the data, print the §5 header block, and
-say what is missing. There is no check logic here yet.
+Two commands:
 
-Deliberately stdlib-only. ``rich`` arrives with the terminal renderer in M2; a
-prospect's security team should be able to read this project's whole dependency
-list in five minutes (§7).
+* ``inspect`` -- what the data covers and what it cannot show. No checks.
+* ``audit``   -- runs the registered checks and prints the ranked findings.
+
+Rendering lives in ``render.terminal``; this module handles arguments, loading,
+and exit codes only.
 """
 
 from __future__ import annotations
@@ -13,17 +14,71 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 from . import __version__
-from .frame import TOKEN_FIELD_LABELS, TOKEN_FIELDS, Frame, merge
-from .gaps import Severity
+from . import gaps as gapmod
+from .checks import CHECKS, CheckConfig, run_checks
+from .frame import Frame, merge
 from .ingest import load_cost_csv, load_usage_csv
 from .ingest.schema import Profile, SchemaError, SchemaMismatch
 from .pricing import PricingError, PricingTable
+from .render import terminal
 
-_SEVERITY_ORDER = {Severity.CRITICAL: 0, Severity.WARNING: 1, Severity.INFO: 2}
+_SEVERITY_ORDER = {"critical": 0, "warning": 1, "info": 2}
+
+
+# --------------------------------------------------------------------------
+# arguments
+# --------------------------------------------------------------------------
+
+
+def _add_data_args(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("usage", type=Path, help="Console Usage page CSV export")
+    parser.add_argument(
+        "--cost", type=Path, default=None, help="Console Cost page CSV export"
+    )
+    parser.add_argument(
+        "--pricing",
+        type=Path,
+        default=None,
+        help="pricing JSON file (default: newest in pricing/)",
+    )
+    parser.add_argument(
+        "--usage-profile", type=Path, default=None, help="override the usage CSV schema"
+    )
+    parser.add_argument(
+        "--cost-profile", type=Path, default=None, help="override the cost CSV schema"
+    )
+    parser.add_argument(
+        "--explain-schema",
+        action="store_true",
+        help="print which CSV column mapped to which field, then continue",
+    )
+    parser.add_argument("--json", action="store_true", help="emit JSON instead of text")
+
+
+def _business_hours(text: str) -> tuple[int, int]:
+    try:
+        start, _, end = text.partition("-")
+        first, last = int(start.split(":")[0]), int(end.split(":")[0])
+    except (ValueError, IndexError) as exc:
+        raise argparse.ArgumentTypeError(
+            f"expected a window like 09:00-18:00, got {text!r}"
+        ) from exc
+    if not (0 <= first < 24 and 0 < last <= 24 and first < last):
+        raise argparse.ArgumentTypeError(
+            f"{text!r} is not a valid window inside a single day"
+        )
+    return first, last
+
+
+def _decimal(text: str) -> Decimal:
+    try:
+        return Decimal(text)
+    except InvalidOperation as exc:
+        raise argparse.ArgumentTypeError(f"{text!r} is not a number") from exc
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -41,28 +96,43 @@ def build_parser() -> argparse.ArgumentParser:
         "inspect",
         help="summarise a usage export and report what the data cannot show",
     )
-    inspect.add_argument("usage", type=Path, help="Console Usage page CSV export")
-    inspect.add_argument(
-        "--cost", type=Path, default=None, help="Console Cost page CSV export"
+    _add_data_args(inspect)
+
+    audit = sub.add_parser(
+        "audit", help="run the checks and print ranked findings"
     )
-    inspect.add_argument(
-        "--pricing",
-        type=Path,
-        default=None,
-        help="pricing JSON file (default: newest in pricing/)",
+    _add_data_args(audit)
+    audit.add_argument(
+        "--min-impact",
+        type=_decimal,
+        default=Decimal("1"),
+        metavar="USD",
+        help="drop findings below this dollar amount (default: 1)",
     )
-    inspect.add_argument(
-        "--usage-profile", type=Path, default=None, help="override the usage CSV schema"
+    audit.add_argument(
+        "--spike-threshold",
+        type=_decimal,
+        default=Decimal("3"),
+        metavar="X",
+        help="flag a day at this multiple of the trailing median (default: 3)",
     )
-    inspect.add_argument(
-        "--cost-profile", type=Path, default=None, help="override the cost CSV schema"
+    audit.add_argument(
+        "--utc-offset",
+        type=_decimal,
+        default=Decimal("0"),
+        metavar="HOURS",
+        help=(
+            "hours from UTC defining your local business day, e.g. -5 or +5.5 "
+            "(default: 0). Daylight saving is not modelled."
+        ),
     )
-    inspect.add_argument(
-        "--explain-schema",
-        action="store_true",
-        help="print which CSV column mapped to which field, then continue",
+    audit.add_argument(
+        "--business-hours",
+        type=_business_hours,
+        default=(9, 18),
+        metavar="HH:MM-HH:MM",
+        help="local business-hours window (default: 09:00-18:00)",
     )
-    inspect.add_argument("--json", action="store_true", help="emit JSON instead of text")
     return parser
 
 
@@ -70,10 +140,23 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     if args.command == "inspect":
         return _inspect(args)
+    if args.command == "audit":
+        return _audit(args)
     return 2  # pragma: no cover - argparse rejects unknown commands first
 
 
-def _inspect(args) -> int:
+# --------------------------------------------------------------------------
+# loading, shared by both commands
+# --------------------------------------------------------------------------
+
+
+class _LoadFailed(Exception):
+    def __init__(self, message: str, code: int):
+        super().__init__(message)
+        self.code = code
+
+
+def _load(args) -> tuple[Frame, PricingTable, object]:
     try:
         pricing = (
             PricingTable.load(args.pricing)
@@ -81,8 +164,7 @@ def _inspect(args) -> int:
             else PricingTable.load_default()
         )
     except PricingError as exc:
-        print(f"error: {exc}", file=sys.stderr)
-        return 2
+        raise _LoadFailed(str(exc), 2) from exc
 
     try:
         usage_profile = (
@@ -103,11 +185,9 @@ def _inspect(args) -> int:
             )
             cost_frame, cost_mapping = load_cost_csv(args.cost, cost_profile)
     except SchemaMismatch as exc:
-        print(f"error: {exc}", file=sys.stderr)
-        return 1
+        raise _LoadFailed(str(exc), 1) from exc
     except (SchemaError, FileNotFoundError) as exc:
-        print(f"error: {exc}", file=sys.stderr)
-        return 2
+        raise _LoadFailed(str(exc), 2) from exc
 
     if args.explain_schema:
         print(usage_mapping.explain(usage_profile))
@@ -118,157 +198,152 @@ def _inspect(args) -> int:
 
     frame = merge(usage_frame, cost_frame) if cost_frame else usage_frame
     if not frame.cost:
-        from . import gaps as gapmod
-
         frame = frame.with_gaps([gapmod.no_cost_data()])
 
     estimate = pricing.estimate_frame(frame)
     frame = frame.with_gaps(estimate.gaps)
+    return frame, pricing, estimate
 
-    if args.json:
-        print(json.dumps(_as_json(frame, pricing, estimate), indent=2))
-    else:
-        print(_render(frame, pricing, estimate))
 
-    # Exit 1 when a gap invalidates the headline total, so a script wrapping
-    # this cannot mistake a caveated number for a clean one.
+def _exit_code(frame: Frame) -> int:
+    """1 when a gap means the headline total understates the real bill.
+
+    Findings do not affect this: "we found something" is the tool working, not
+    an error.
+    """
     return 1 if any(g.invalidates_total for g in frame.gaps) else 0
 
 
 # --------------------------------------------------------------------------
-# rendering
+# inspect
 # --------------------------------------------------------------------------
 
 
-def _usd(amount: Decimal) -> str:
-    """Format money with the sign outside the symbol: -$3.00, not $-3.00."""
-    rounded = amount.quantize(Decimal("0.01"))
-    sign = "-" if rounded < 0 else ""
-    return f"{sign}${abs(rounded):,}"
+def _inspect(args) -> int:
+    try:
+        frame, pricing, estimate = _load(args)
+    except _LoadFailed as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return exc.code
 
+    # Evaluate check preconditions without running anything, so `inspect` can
+    # say which checks this export supports. The registry is the single source
+    # of truth for that -- ingest no longer hardcodes check names.
+    blocked: list[tuple[str, str]] = []
+    for check in CHECKS:
+        unmet = check.unmet(frame)
+        if unmet:
+            frame = frame.with_gaps(unmet)
+            blocked.append((check.label, "; ".join(g.message for g in unmet)))
 
-def _render(frame: Frame, pricing: PricingTable, estimate) -> str:
-    out: list[str] = []
-    rule = "=" * 72
+    if args.json:
+        payload = _as_json(frame, pricing, estimate)
+        payload["checks_blocked"] = [label for label, _ in blocked]
+        print(json.dumps(payload, indent=2))
+        return _exit_code(frame)
 
-    out.append(rule)
-    out.append("claude-spend-audit -- ingest summary")
-    out.append(rule)
-
-    start, end = frame.period_start, frame.period_end
-    period = (
-        f"{start:%Y-%m-%d %H:%M} to {end:%Y-%m-%d %H:%M} UTC"
-        if start and end
-        else "unknown"
+    out = terminal.render_header(frame, pricing, estimate, title="ingest summary")
+    out.extend(terminal.render_dimensions(frame))
+    out.extend(terminal.render_gaps(frame.gaps))
+    out.extend(terminal.render_skipped(blocked))
+    out.extend(
+        terminal.footer(
+            [
+                f"No checks run. {len(CHECKS) - len(blocked)} of {len(CHECKS)} would "
+                "run on this data -- use `audit`.",
+            ]
+        )
     )
-    out.append(f"  period covered   {period}")
-    out.append(f"  granularity      {frame.bucket_width or 'indeterminate'}")
-    out.append(f"  usage rows       {len(frame.usage):,}")
-    out.append(f"  cost rows        {len(frame.cost):,}")
-    out.append(f"  pricing file     {pricing.version} (fetched {pricing.fetched_at})")
-    for source in frame.sources:
-        label = source.profile or source.ingest_path
-        status = f" [{source.profile_status}]" if source.profile_status else ""
-        out.append(f"  source           {source.path}  via {label}{status}")
+    print("\n".join(out))
+    return _exit_code(frame)
 
-    # -- spend ---------------------------------------------------------
-    out.append("")
-    out.append("SPEND")
-    billed = frame.billed_total_usd
-    if billed is not None:
-        out.append(f"  billed (from cost data)      {_usd(billed):>16}")
-    else:
-        out.append(f"  billed (from cost data)      {'not supplied':>16}")
-    out.append(f"  estimated (usage x pricing)  {_usd(estimate.usd):>16}")
 
-    # The two are never merged. Their difference is the signal that surfaces
-    # Priority Tier understatement (§2) rather than hiding it in a total.
-    if billed is not None and estimate.usd:
-        delta = estimate.usd - billed
-        pct = (delta / billed * 100) if billed else Decimal("0")
-        out.append(
-            f"  difference                   {_usd(delta):>16}"
-            f"  ({pct.quantize(Decimal('0.1'))}%)"
+# --------------------------------------------------------------------------
+# audit
+# --------------------------------------------------------------------------
+
+
+def _audit(args) -> int:
+    try:
+        frame, pricing, estimate = _load(args)
+    except _LoadFailed as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return exc.code
+
+    start, end = args.business_hours
+    config = CheckConfig(
+        min_impact_usd=args.min_impact,
+        spike_threshold=args.spike_threshold,
+        utc_offset_hours=args.utc_offset,
+        business_hour_start=start,
+        business_hour_end=end,
+    )
+
+    run = run_checks(frame, pricing, config)
+    frame = frame.with_gaps(run.gaps)
+
+    if args.json:
+        payload = _as_json(frame, pricing, estimate)
+        payload["findings"] = [_finding_json(f) for f in run.findings]
+        payload["checks_blocked"] = [label for label, _ in run.skipped]
+        payload["checks_clean"] = list(run.clean)
+        print(json.dumps(payload, indent=2))
+        return _exit_code(frame)
+
+    out = terminal.render_header(frame, pricing, estimate, title="audit")
+    out.extend(terminal.render_findings(run.findings))
+    out.extend(terminal.render_skipped(run.skipped))
+    out.extend(terminal.render_gaps(frame.gaps))
+    out.extend(
+        terminal.footer(
+            [
+                f"{len(run.findings)} finding(s) from "
+                f"{len(CHECKS) - len(run.skipped)} of {len(CHECKS)} checks.",
+            ]
         )
-        out.append(
-            "    A large gap is diagnostic, not cosmetic: it can mean Priority"
-        )
-        out.append(
-            "    Tier spend missing from cost data, negotiated rates the pricing"
-        )
-        out.append("    file does not know about, or a mis-mapped CSV column.")
-
-    if not estimate.is_complete:
-        out.append(
-            f"  NOT PRICED: {estimate.unpriced_tokens:,} tokens have no published "
-            "rate and are"
-        )
-        out.append(
-            "    excluded from the estimate above rather than counted as zero."
-        )
-
-    # -- tokens --------------------------------------------------------
-    tokens = frame.tokens
-    out.append("")
-    out.append("TOKENS")
-    for f in TOKEN_FIELDS:
-        count = getattr(tokens, f)
-        share = (count / tokens.total * 100) if tokens.total else 0
-        out.append(f"  {TOKEN_FIELD_LABELS[f]:<18} {count:>16,}  {share:5.1f}%")
-    out.append(f"  {'total':<18} {tokens.total:>16,}")
-    if frame.web_search_requests:
-        out.append(f"  {'web searches':<18} {frame.web_search_requests:>16,}")
-
-    # -- dimensions ----------------------------------------------------
-    out.append("")
-    out.append("DIMENSIONS PRESENT")
-    if frame.grouped_by:
-        for dim in sorted(frame.grouped_by):
-            values = frame.distinct(dim)
-            shown = ", ".join(str(v) if v is not None else "(null)" for v in values[:6])
-            more = f", +{len(values) - 6} more" if len(values) > 6 else ""
-            out.append(f"  {dim:<18} {len(values):>3} distinct  {shown}{more}")
-    else:
-        out.append("  (none -- this export carries no grouping columns)")
-
-    # -- caveats -------------------------------------------------------
-    out.append("")
-    out.append("WHAT THIS DATA CANNOT SHOW")
-    if not frame.gaps:
-        out.append("  (nothing recorded)")
-    for gap in sorted(frame.gaps, key=lambda g: _SEVERITY_ORDER[g.severity]):
-        marker = {
-            Severity.CRITICAL: "!!",
-            Severity.WARNING: " !",
-            Severity.INFO: " -",
-        }[gap.severity]
-        scope = f" [{gap.scope}]" if gap.scope else ""
-        out.append("")
-        out.append(f"  {marker}{scope} {_wrap(gap.message, 66, '        ')}")
-        if gap.remedy:
-            out.append(f"        -> {_wrap(gap.remedy, 62, '           ')}")
-
-    out.append("")
-    out.append(rule)
-    out.append("No analysis run: this is M1 (ingest). Checks arrive in M2.")
-    out.append("All processing happened locally. Nothing was uploaded.")
-    out.append(rule)
-    return "\n".join(out)
+    )
+    print("\n".join(out))
+    return _exit_code(frame)
 
 
-def _wrap(text: str, width: int, indent: str) -> str:
-    words = text.split()
-    lines: list[str] = []
-    current = ""
-    for word in words:
-        if current and len(current) + 1 + len(word) > width:
-            lines.append(current)
-            current = word
-        else:
-            current = f"{current} {word}".strip()
-    if current:
-        lines.append(current)
-    return f"\n{indent}".join(lines)
+# --------------------------------------------------------------------------
+# JSON
+# --------------------------------------------------------------------------
+
+
+def _finding_json(finding) -> dict:
+    return {
+        "check_id": finding.check_id,
+        "title": finding.title,
+        "confidence": str(finding.confidence),
+        "scope": finding.scope,
+        "summary": finding.summary,
+        # Money as strings: a JSON float would round it.
+        "measured_usd": (
+            str(finding.measured_usd) if finding.measured_usd is not None else None
+        ),
+        "measured_basis": finding.measured_basis,
+        "recoverable": (
+            {
+                "low": str(finding.recoverable.low),
+                "high": str(finding.recoverable.high),
+                "assumptions": list(finding.recoverable.assumptions),
+            }
+            if finding.recoverable
+            else None
+        ),
+        "evidence": (
+            {
+                "columns": list(finding.evidence.columns),
+                "rows": [list(r) for r in finding.evidence.rows],
+                "note": finding.evidence.note,
+            }
+            if finding.evidence
+            else None
+        ),
+        "remedy": finding.remedy,
+        "caveats": list(finding.caveats),
+    }
 
 
 def _as_json(frame: Frame, pricing: PricingTable, estimate) -> dict:
@@ -295,8 +370,6 @@ def _as_json(frame: Frame, pricing: PricingTable, estimate) -> dict:
             for s in frame.sources
         ],
         "spend": {
-            # Strings, not floats: these are money and a JSON float would
-            # silently round them.
             "billed_usd": str(billed) if billed is not None else None,
             "estimated_usd": str(estimate.usd),
             "estimate_is_complete": estimate.is_complete,
@@ -314,7 +387,7 @@ def _as_json(frame: Frame, pricing: PricingTable, estimate) -> dict:
                 "invalidates_total": g.invalidates_total,
                 "remedy": g.remedy,
             }
-            for g in sorted(frame.gaps, key=lambda g: _SEVERITY_ORDER[g.severity])
+            for g in sorted(frame.gaps, key=lambda g: _SEVERITY_ORDER[str(g.severity)])
         ],
     }
 

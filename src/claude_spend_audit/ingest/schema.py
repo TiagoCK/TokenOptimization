@@ -117,8 +117,8 @@ class Mapping_:
             lines.append(f"profile file:   {profile.path}")
         if profile.status == "provisional":
             lines.append(
-                "                (unverified -- Anthropic does not publish these "
-                "column headers)"
+                "                (unverified -- Anthropic does not publish "
+                "these headers)"
             )
         lines.append("")
         lines.append(f"{'CSV column':<34}  ->  canonical field")

@@ -11,17 +11,19 @@ going, with dollar estimates you can trace to a file you control.
 
 ---
 
-## Status: M1 (ingest)
+## Status: M2 (the first two checks)
 
-Ingest, normalization, and pricing only. **No analysis yet** — the checks land in
-M2. What works today:
-
+- **C1, cache write amortization.** Finds prompt-cache traffic that costs more
+  than it saves, and says by how much. Arithmetic, not an estimate.
+- **C6a/C6b, spikes and off-hours volume.** Finds days that cost several times a
+  typical one, and spend that lands outside business hours.
 - Console CSV exports (Usage and Cost pages) parsed into one internal shape
-- The same shape produced from Usage & Cost API JSON, so later checks never need
-  to know which path the data came from
+- The same shape produced from Usage & Cost API JSON, so checks never need to
+  know which path the data came from
 - A pricing table loaded from a versioned, inspectable file
-- `inspect`, which prints what the data covers and — just as importantly — what
-  it cannot show
+- `inspect`, which prints what the data covers and what it cannot show
+
+C2, C3 and C7, plus the shareable Markdown report, arrive in M3.
 
 ## Install
 
@@ -42,18 +44,41 @@ falling back on rates it cannot show you.
 ## Use
 
 ```bash
-claude-spend-audit inspect usage.csv --cost cost.csv
+claude-spend-audit audit usage.csv --cost cost.csv
 ```
+
+`audit` runs the checks and prints ranked findings. `inspect` does the same
+loading but runs nothing, reporting only what the data covers and which checks
+it can support.
 
 Useful flags:
 
 - `--explain-schema` — print exactly which CSV column mapped to which field
 - `--json` — machine-readable output
 - `--pricing pricing/2026-09.json` — use a specific rate card
+- `--utc-offset -5` — set your local business day for the off-hours check
+- `--business-hours 08:00-17:00` — set the window it measures against
+- `--min-impact 50` — drop findings below a dollar threshold
 
 Exit code is `1` when something in the data means the headline total understates
 the real bill, so a script wrapping this cannot mistake a caveated number for a
 clean one.
+
+## How findings are ranked, and what a dollar figure means
+
+Every finding carries a confidence level, and the ranked table is ordered by
+confidence first, dollars second. A `measured` finding is arithmetic on your
+data. A `candidate` is a pattern consistent with waste that the data cannot
+confirm, and it never carries a point estimate — only a range with the
+assumption stated beside it. An `observation` makes no savings claim at all.
+
+Two different numbers are also kept apart. **Measured** is what was spent, and
+is arithmetic. **Recoverable** is what could actually be saved, and is often
+unknowable from aggregate data. C6 can measure that $40,000 was spent overnight
+without being able to say whether any of it was avoidable — so it reports the
+first and prints `not claimed` for the second. Only C1 carries a point
+recoverable, because switching caching off recovers exactly the waste it
+measures.
 
 ## Two things worth knowing before you trust a number
 
