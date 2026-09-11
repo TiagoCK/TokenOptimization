@@ -80,6 +80,28 @@
     }
   },
 
+  "long_context": {
+    "provenance": "published",
+    "note": "'Claude 4.6 and later models and Claude Mythos Preview include the full 1M token context window at standard pricing. (A 900k-token request is billed at the same per-token rate as a 9k-token request.)' The page makes no statement about long-context rates for earlier models, so their 200k-1M traffic is priced at the standard rate below and reported as unconfirmed rather than assumed correct.",
+    "standard_rate_models": [
+      "claude-fable-5-1",
+      "claude-mythos-5-1",
+      "claude-fable-5",
+      "claude-mythos-5",
+      "claude-opus-5",
+      "claude-opus-4-8",
+      "claude-opus-4-7",
+      "claude-opus-4-6",
+      "claude-sonnet-5",
+      "claude-sonnet-4-6"
+    ]
+  },
+
+  "model_tiers": {
+    "provenance": "classification",
+    "note": "The 'tier' on each model below (frontier / mid / small) is this tool's classification, not Anthropic's -- the pricing page publishes rates, not tiers. It is used only to group the model-mix observation (C8) and never affects a price. Edit it to match how your organization thinks about its models."
+  },
+
   "server_tools": {
     "web_search": {
       "usd_per_1000_requests": "10",

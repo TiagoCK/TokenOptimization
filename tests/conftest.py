@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 import pytest
@@ -12,6 +13,16 @@ FIXTURES = Path(__file__).resolve().parent / "fixtures"
 @pytest.fixture(scope="session")
 def pricing() -> PricingTable:
     return PricingTable.load(ROOT / "pricing" / "2026-09.json")
+
+
+@pytest.fixture
+def pricing_data() -> dict:
+    """A fresh, mutable copy of the shipped rate card.
+
+    For tests that edit a value and assert the output follows -- the only way
+    to prove a figure comes from the file rather than from the code.
+    """
+    return json.loads((ROOT / "pricing" / "2026-09.json").read_text(encoding="utf-8"))
 
 
 @pytest.fixture(scope="session")

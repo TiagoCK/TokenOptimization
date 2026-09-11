@@ -46,6 +46,10 @@ class GapCode(StrEnum):
     CACHE_TTL_NOT_SPLIT = "cache_ttl_not_split"
     MODEL_ALIAS_MERGED = "model_aliases_merged"
 
+    # A rate was applied that the pricing page does not confirm
+    LONG_CONTEXT_RATE_UNCONFIRMED = "long_context_rate_unconfirmed"
+    PRICING_DIMENSION_NOT_GROUPED = "pricing_dimension_not_grouped"
+
     # Findings about the data itself
     UNATTRIBUTED_SPEND = "unattributed_spend"
     PROVISIONAL_CSV_SCHEMA = "provisional_csv_schema"
@@ -302,6 +306,67 @@ def model_aliases_merged(canonical: str, spellings: tuple[str, ...]) -> Gap:
             "Check the export for trailing whitespace or mixed identifier "
             "styles. The figures above are correct either way; consistent "
             "identifiers just make the raw export easier to work with."
+        ),
+    )
+
+
+def long_context_rate_unconfirmed(model: str, tokens: int) -> Gap:
+    """Long-context traffic on a model the pricing page is silent about.
+
+    The page confirms standard-rate 1M context for Claude 4.6 and later only.
+    Earlier models that offered a 1M window did so as a beta, and the page no
+    longer says what that costs. Pricing it at the standard rate is the only
+    figure the file supports, but presenting it without comment would be
+    claiming a confirmation that does not exist.
+
+    Not ``invalidates_total``: that flag drives the exit code and means the
+    total is *known* to understate. Here it may or may not; the gap exists so
+    the reader can find out.
+    """
+    return Gap(
+        code=GapCode.LONG_CONTEXT_RATE_UNCONFIRMED,
+        severity=Severity.WARNING,
+        scope=model,
+        message=(
+            f"{tokens:,} tokens on {model!r} fall in the 200k-1M context window. "
+            "The pricing page confirms standard-rate long context for Claude "
+            "4.6 and later only, and says nothing about this model, so these "
+            "tokens are priced at the standard rate without confirmation. If a "
+            "long-context premium applies, the estimate understates them."
+        ),
+        remedy=(
+            "Check the invoice for this model's long-context lines, and add a "
+            "rate to the pricing file if they differ."
+        ),
+    )
+
+
+def pricing_dimension_not_grouped(dimensions: tuple[str, ...]) -> Gap:
+    """The export omits a dimension the rate depends on.
+
+    ``service_tier``, ``inference_geo`` and ``speed`` all change the price of a
+    token: batch is half price, US-only inference 1.1x, fast mode 2x. With the
+    dimension absent every row is priced at the baseline, and nothing in the
+    numbers would show it.
+    """
+    assumed = {
+        "service_tier": "standard tier (batch would be overstated, priority priced when it should not be)",
+        "inference_geo": "global routing (US-only inference, at 1.1x, would be understated)",
+        "speed": "standard speed (fast mode, at 2x, would be understated)",
+    }
+    listed = "; ".join(f"{d}: assumed {assumed.get(d, 'baseline')}" for d in dimensions)
+    return Gap(
+        code=GapCode.PRICING_DIMENSION_NOT_GROUPED,
+        severity=Severity.WARNING,
+        scope=", ".join(dimensions),
+        message=(
+            f"The usage data is not broken out by {', '.join(dimensions)}, each "
+            "of which changes the price of a token. The estimate therefore "
+            f"prices every token at the baseline -- {listed}."
+        ),
+        remedy=(
+            "Re-export with these dimensions included, or fetch with them in "
+            "--group-by (the default includes all three)."
         ),
     )
 

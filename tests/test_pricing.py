@@ -317,3 +317,129 @@ def test_model_tiers_are_available_for_c8(pricing):
     assert pricing.tier_of("claude-sonnet-5") == "mid"
     assert pricing.tier_of("claude-haiku-4-5") == "small"
     assert pricing.tier_of("claude-imaginary-9") is None
+
+
+def test_every_model_on_file_has_a_known_tier(pricing):
+    """C8 groups by tier. A model with a typo'd or missing tier would land in
+    the 'unclassified' row -- correct behaviour for a user's edited file, but
+    the shipped file should never need it."""
+    for model_id in pricing.model_ids:
+        assert pricing.tier_of(model_id) in {"frontier", "mid", "small"}, model_id
+
+
+def test_the_tier_classification_says_it_is_not_published(pricing_data):
+    """Every other value in the file names its source. The tiers have none,
+    because they are a judgement -- and the file has to say so."""
+    note = pricing_data["model_tiers"]
+    assert note["provenance"] == "classification"
+    assert "not Anthropic's" in note["note"]
+
+
+def test_tier_of_resolves_display_names_and_aliases(pricing):
+    assert pricing.tier_of("Claude Opus 5") == "frontier"
+    assert pricing.tier_of("claude-haiku-4-5-20251001") == "small"
+
+
+# --------------------------------------------------------------------------
+# Long context
+# --------------------------------------------------------------------------
+
+
+def test_long_context_models_all_exist_in_the_rate_card(pricing):
+    """A typo in the confirmation list would silently un-confirm a model."""
+    assert pricing.long_context_models
+    assert pricing.long_context_models <= set(pricing.model_ids)
+
+
+@pytest.mark.parametrize(
+    "model",
+    ["claude-opus-5", "claude-sonnet-5", "claude-opus-4-6", "claude-sonnet-4-6",
+     "claude-fable-5-1", "Claude Opus 5"],
+)
+def test_long_context_is_confirmed_for_4_6_and_later(pricing, model):
+    # Published: "Claude 4.6 and later models ... include the full 1M token
+    # context window at standard pricing."
+    assert pricing.long_context_confirmed(model)
+
+
+@pytest.mark.parametrize(
+    "model", ["claude-sonnet-4-5", "claude-sonnet-4", "claude-opus-4-5", "claude-opus-4-1"]
+)
+def test_long_context_is_not_confirmed_for_earlier_models(pricing, model):
+    """The page is silent about these. Silence is not a confirmation."""
+    assert not pricing.long_context_confirmed(model)
+
+
+def test_an_unknown_model_is_not_confirmed(pricing):
+    assert not pricing.long_context_confirmed("claude-imaginary-9")
+    assert not pricing.long_context_confirmed(None)
+
+
+def test_long_context_does_not_change_the_rate(pricing):
+    """No premium: the same tokens cost the same in either window.
+
+        1,000,000 uncached on claude-opus-5 = $5.00 at 9k context or 900k.
+    """
+    tokens = TokenBuckets(uncached_input=MTOK)
+    short = pricing.estimate_tokens(tokens, Segment(model="claude-opus-5", context_window="0-200k"))
+    long = pricing.estimate_tokens(tokens, Segment(model="claude-opus-5", context_window="200k-1M"))
+    assert short.usd == long.usd == Decimal("5.00")
+
+
+# --------------------------------------------------------------------------
+# Per-bucket costs
+# --------------------------------------------------------------------------
+
+
+def test_bucket_costs_break_out_the_estimate(pricing):
+    """The same fixture row as test_estimate_of_a_full_segment, by bucket.
+    The parts must sum to the whole, or C4's composition would not reconcile."""
+    tokens = TokenBuckets(
+        uncached_input=1_000_000,
+        cache_read=2_000_000,
+        cache_write_5m=400_000,
+        cache_write_1h=100_000,
+        output=200_000,
+    )
+    segment = Segment(model="claude-opus-5", service_tier="standard")
+    costs = pricing.bucket_costs(tokens, segment)
+    assert costs == {
+        "uncached_input": Decimal("5.00"),
+        "cache_read": Decimal("1.00"),
+        "cache_write_5m": Decimal("2.50"),
+        "cache_write_1h": Decimal("1.00"),
+        "output": Decimal("5.00"),
+    }
+    assert sum(costs.values()) == pricing.estimate_tokens(tokens, segment).usd
+
+
+def test_bucket_costs_omit_unpriced_buckets_rather_than_zeroing_them(pricing):
+    costs = pricing.bucket_costs(
+        TokenBuckets(uncached_input=MTOK, output=MTOK),
+        Segment(model="claude-haiku-4-5", service_tier="priority"),
+    )
+    assert costs == {}
+
+
+def test_bucket_costs_skip_empty_buckets(pricing):
+    costs = pricing.bucket_costs(
+        TokenBuckets(uncached_input=MTOK), Segment(model="claude-opus-5")
+    )
+    assert list(costs) == ["uncached_input"]
+
+
+# --------------------------------------------------------------------------
+# Service tier multipliers
+# --------------------------------------------------------------------------
+
+
+def test_service_tier_multiplier_reads_the_file(pricing):
+    assert pricing.service_tier_multiplier("batch") == Decimal("0.5")
+    assert pricing.service_tier_multiplier("standard") == Decimal("1")
+
+
+def test_a_missing_service_tier_multiplier_is_an_error_not_a_default(pricing):
+    from claude_spend_audit.pricing import PricingError
+
+    with pytest.raises(PricingError, match="priority"):
+        pricing.service_tier_multiplier("priority")

@@ -21,6 +21,7 @@ from typing import Iterable, Mapping
 
 from .frame import (
     ALL_TOKEN_FIELDS,
+    LONG_CONTEXT_WINDOW,
     TOKEN_FIELDS,
     UNSPLIT_CACHE_WRITE,
     Frame,
@@ -34,6 +35,11 @@ from .gaps import Gap
 TOKENS_PER_MTOK = Decimal("1000000")
 
 DEFAULT_PRICING_DIR = Path(__file__).resolve().parents[2] / "pricing"
+
+#: Dimensions that change the price of a token. Absent from an export, every
+#: row prices at the baseline for each -- see the PRICING_DIMENSION_NOT_GROUPED
+#: gap. (``model`` changes it too, but a row without one is Unpriced outright.)
+PRICE_DIMENSIONS: tuple[str, ...] = ("service_tier", "inference_geo", "speed")
 
 
 class PricingError(Exception):
@@ -158,6 +164,10 @@ class PricingTable:
         )  # type: ignore[assignment]
         self._unpriced_tiers: Mapping[str, str] = data.get("unpriced_service_tiers") or {}  # type: ignore[assignment]
         self._server_tools: Mapping[str, Mapping] = data.get("server_tools") or {}  # type: ignore[assignment]
+        long_context = data.get("long_context") or {}
+        self._long_context_models: frozenset[str] = frozenset(
+            long_context.get("standard_rate_models") or ()  # type: ignore[union-attr]
+        )
 
         if not self._models:
             raise PricingError(f"{path or '<memory>'}: no models in pricing file")
@@ -229,11 +239,35 @@ class PricingTable:
         return tuple(self._models)
 
     def tier_of(self, model: str | None) -> str | None:
-        """Frontier / mid / small, for C8's model mix. None if unknown."""
+        """Frontier / mid / small, for C8's model mix. None if unknown.
+
+        A classification from the pricing file, not a published fact -- see
+        its ``model_tiers`` note. It never affects a price.
+        """
         canonical = self.resolve_model(model)
         if canonical is None:
             return None
         return self._models[canonical].get("tier")
+
+    def long_context_confirmed(self, model: str | None) -> bool:
+        """Whether the pricing page confirms standard-rate 1M context for this model.
+
+        False for an unknown model as well as for one the page is silent
+        about: absence of a confirmation is not a confirmation.
+        """
+        canonical = self.resolve_model(model)
+        return canonical is not None and canonical in self._long_context_models
+
+    @property
+    def long_context_models(self) -> frozenset[str]:
+        return self._long_context_models
+
+    def service_tier_multiplier(self, tier: str) -> Decimal:
+        """The published multiplier for a service tier, e.g. 0.5 for batch."""
+        entry = self._tier_multipliers.get(tier)
+        if entry is None:
+            raise PricingError(f"no service tier multiplier {tier!r} in pricing file")
+        return _dec(entry.get("value"), f"service_tier.{tier}")
 
     # -- rates -----------------------------------------------------------
 
@@ -382,6 +416,22 @@ class PricingTable:
 
     # -- estimation ------------------------------------------------------
 
+    def _rates(
+        self, tokens: TokenBuckets, segment: Segment
+    ) -> Iterable[tuple[str, int, Rate]]:
+        """(bucket, count, rate) for every non-empty bucket. The one pricing loop."""
+        for bucket in ALL_TOKEN_FIELDS:
+            count = getattr(tokens, bucket)
+            if count == 0:
+                continue
+            yield bucket, count, self.rate_for(
+                segment.model,
+                bucket,
+                service_tier=segment.service_tier,
+                inference_geo=segment.inference_geo,
+                speed=segment.speed,
+            )
+
     def estimate_tokens(self, tokens: TokenBuckets, segment: Segment) -> Estimate:
         """Estimated cost of one segment's token buckets."""
         total = Decimal("0")
@@ -389,17 +439,7 @@ class PricingTable:
         unpriced = 0
         collected: dict[tuple[str, str], Gap] = {}
 
-        for bucket in ALL_TOKEN_FIELDS:
-            count = getattr(tokens, bucket)
-            if count == 0:
-                continue
-            rate = self.rate_for(
-                segment.model,
-                bucket,
-                service_tier=segment.service_tier,
-                inference_geo=segment.inference_geo,
-                speed=segment.speed,
-            )
+        for _, count, rate in self._rates(tokens, segment):
             if rate.is_priced:
                 total += rate.cost_of(count)  # type: ignore[union-attr]
                 priced += count
@@ -414,11 +454,37 @@ class PricingTable:
             gaps=tuple(collected.values()),
         )
 
+    def bucket_costs(self, tokens: TokenBuckets, segment: Segment) -> dict[str, Decimal]:
+        """Spend per token bucket, for checks that need the composition.
+
+        Unpriced buckets are absent rather than zero, so a caller summing the
+        values gets exactly ``estimate_tokens(...).usd`` and nothing invented.
+        """
+        return {
+            bucket: rate.cost_of(count)  # type: ignore[misc]
+            for bucket, count, rate in self._rates(tokens, segment)
+            if rate.is_priced
+        }
+
     def estimate_frame(self, frame: Frame) -> Estimate:
-        """Estimated cost of a whole Frame, including web search requests."""
+        """Estimated cost of a whole Frame, including web search requests.
+
+        Also raises the two gaps that are about the estimate as a whole rather
+        than any one rate: a rate applied without the pricing page confirming
+        it, and a price-changing dimension the data never broke out.
+        """
         estimate = Estimate(Decimal("0"), 0, 0)
+        unconfirmed: dict[str, int] = {}
         for row in frame.usage:
-            estimate = estimate + self.estimate_tokens(row.tokens, row.segment)
+            row_estimate = self.estimate_tokens(row.tokens, row.segment)
+            estimate = estimate + row_estimate
+            if (
+                row.segment.context_window == LONG_CONTEXT_WINDOW
+                and row_estimate.priced_tokens
+                and not self.long_context_confirmed(row.segment.model)
+            ):
+                label = self.resolve_model(row.segment.model) or str(row.segment.model)
+                unconfirmed[label] = unconfirmed.get(label, 0) + row_estimate.priced_tokens
 
         searches = frame.web_search_requests
         if searches:
@@ -427,6 +493,19 @@ class PricingTable:
                 priced_tokens=0,
                 unpriced_tokens=0,
             )
+
+        extra: list[Gap] = [
+            gapmod.long_context_rate_unconfirmed(model, count)
+            for model, count in sorted(unconfirmed.items())
+        ]
+        if frame.usage:
+            missing = tuple(
+                d for d in PRICE_DIMENSIONS if not frame.has_dimension(d)
+            )
+            if missing:
+                extra.append(gapmod.pricing_dimension_not_grouped(missing))
+        if extra:
+            estimate = estimate + Estimate(Decimal("0"), 0, 0, gaps=tuple(extra))
         return estimate
 
     # -- provenance ------------------------------------------------------

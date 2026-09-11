@@ -37,8 +37,6 @@ _ELIGIBLE_TIER = "standard"
 #: Published: "Fast mode is not available with the Batch API."
 _INELIGIBLE_SPEED = "fast"
 
-BATCH_DISCOUNT = Decimal("0.5")
-
 
 def _describe(segment: Segment) -> str:
     model = segment.model or "unknown model"
@@ -67,8 +65,14 @@ def run(frame: Frame, pricing: PricingTable, config) -> Iterable[Finding]:
 
         eligible[segment] = eligible.get(segment, Decimal("0")) + estimate.usd
 
+    # The discount is a rate, so it comes from the pricing file like every
+    # other rate -- §3 forbids a check from containing one. Batch costs
+    # `multiplier` of standard; the saving is the rest.
+    multiplier = pricing.service_tier_multiplier("batch")
+    discount = 1 - multiplier
+
     standard_spend = sum(eligible.values(), Decimal("0"))
-    ceiling = standard_spend * BATCH_DISCOUNT
+    ceiling = standard_spend * discount
     if ceiling < config.min_impact_usd:
         return []
 
@@ -105,11 +109,11 @@ def run(frame: Frame, pricing: PricingTable, config) -> Iterable[Finding]:
 
     rows = sorted(by_label.items(), key=lambda kv: kv[1], reverse=True)
     evidence_rows = [
-        (label, f"${spend:,.2f}", f"${spend * BATCH_DISCOUNT:,.2f}")
+        (label, f"${spend:,.2f}", f"${spend * multiplier:,.2f}")
         for label, spend in rows
     ]
     note = (
-        "Batch is a flat 50% discount on both input and output, and it stacks "
+        f"Batch is a flat {discount:.0%} discount on both input and output, and it stacks "
         "with the prompt-caching multipliers, so it applies to all five token "
         "categories."
     )
@@ -122,19 +126,19 @@ def run(frame: Frame, pricing: PricingTable, config) -> Iterable[Finding]:
     return [
         Finding(
             check_id="C3",
-            title="Standard-tier spend that could carry the 50% batch discount",
+            title=f"Standard-tier spend that could carry the {discount:.0%} batch discount",
             confidence=Confidence.CANDIDATE,
             scope=f"{len(rows)} segment(s)",
             summary=(
                 f"${standard_spend:,.2f} of standard-tier spend was measured "
                 f"across {len(rows)} segment(s). Any of it that tolerates "
-                f"asynchronous processing would cost half as much on the Batch "
-                f"API."
+                f"asynchronous processing would cost {discount:.0%} less on the "
+                f"Batch API."
             ),
             measured_usd=ceiling,
             measured_basis=(
-                "half of measured standard-tier spend -- what the batch discount "
-                "would be worth if the entire workload could move"
+                f"{discount:.0%} of measured standard-tier spend -- what the batch "
+                "discount would be worth if the entire workload could move"
             ),
             recoverable=Recoverable(
                 low=low, high=ceiling, assumptions=tuple(assumptions)

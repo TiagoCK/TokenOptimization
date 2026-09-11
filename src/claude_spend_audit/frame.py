@@ -73,6 +73,8 @@ SERVICE_TIERS: frozenset[str] = frozenset(
     {"standard", "batch", "flex", "flex_discount", "priority", "priority_on_demand"}
 )
 CONTEXT_WINDOWS: frozenset[str] = frozenset({"0-200k", "200k-1M"})
+#: The long-context bucket, for C4 and the long-context pricing gap.
+LONG_CONTEXT_WINDOW = "200k-1M"
 INFERENCE_GEOS: frozenset[str] = frozenset({"global", "us", "not_available"})
 SPEEDS: frozenset[str] = frozenset({"standard", "fast"})
 COST_TYPES: frozenset[str] = frozenset(

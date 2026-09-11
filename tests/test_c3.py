@@ -70,6 +70,24 @@ def test_ceiling_is_half_of_standard_spend(pricing):
     assert "$100.00" in finding.summary
 
 
+def test_the_discount_comes_from_the_pricing_file(pricing_data):
+    """§3: a check never contains a rate. Change the batch multiplier in the
+    file to 0.6 and the ceiling follows -- to 40%, not 50%.
+
+        $100.00 standard spend (as above) x (1 - 0.6) = $40.00 ceiling
+        each segment's batch-rate column is $100.00 x 0.6 = $60.00
+    """
+    from claude_spend_audit.pricing import PricingTable
+
+    pricing_data["service_tier_multipliers"]["batch"]["value"] = "0.6"
+    edited = PricingTable(pricing_data)
+    tokens = TokenBuckets(uncached_input=10_000_000, output=2_000_000)
+    finding = only(list(C3.run(frame_of((seg(), tokens)), edited, CheckConfig())))
+    assert finding.measured_usd == Decimal("40.00")
+    assert "40%" in finding.title
+    assert finding.evidence.rows[0][2] == "$60.00"
+
+
 def test_discount_applies_to_cache_buckets_too(pricing):
     """Batch stacks with the caching multipliers, so all five buckets halve.
 
