@@ -1,9 +1,11 @@
 """Command line entry point.
 
-Two commands:
+Three commands:
 
 * ``inspect`` -- what the data covers and what it cannot show. No checks.
 * ``audit``   -- runs the registered checks and prints the ranked findings.
+* ``fetch``   -- downloads usage or cost from the Admin API to a file, and
+  stops. Analysis then runs on that file, offline.
 
 Rendering lives in ``render.terminal``; this module handles arguments, loading,
 and exit codes only.
@@ -37,6 +39,23 @@ from .pricing import PricingError, PricingTable
 from .render import markdown, terminal
 
 _SEVERITY_ORDER = {"critical": 0, "warning": 1, "info": 2}
+
+#: What `fetch` breaks usage out by unless told otherwise. Two jobs:
+#: every dimension a registered check declares in `needs_dimensions`, and
+#: every dimension that changes a token's price (pricing.PRICE_DIMENSIONS) --
+#: without inference_geo and speed, US-only and fast-mode traffic would be
+#: priced at the baseline with nothing in the numbers to show it. A test
+#: holds this against the registry so the two cannot drift apart.
+#: `speed` needs a beta header, which ApiClient adds by itself.
+DEFAULT_FETCH_GROUP_BY: tuple[str, ...] = (
+    "model",
+    "workspace_id",
+    "api_key_id",
+    "service_tier",
+    "context_window",
+    "inference_geo",
+    "speed",
+)
 
 
 # --------------------------------------------------------------------------
@@ -252,11 +271,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     fetch.add_argument(
         "--group-by",
-        default="model,workspace_id,api_key_id,service_tier",
+        default=",".join(DEFAULT_FETCH_GROUP_BY),
         metavar="A,B,C",
         help=(
-            "dimensions to break out, comma separated. The default covers the "
-            "checks that need grouping; pass an empty string for none"
+            "dimensions to break out, comma separated. The default covers "
+            "every check that needs grouping and every dimension that changes "
+            "a price; pass an empty string for none"
         ),
     )
     fetch.add_argument(
@@ -469,7 +489,7 @@ def _inspect(args) -> int:
     # of truth for that -- ingest no longer hardcodes check names.
     blocked: list[tuple[str, str]] = []
     for check in CHECKS:
-        unmet = check.unmet(frame)
+        unmet = check.unmet(frame, CheckConfig())
         if unmet:
             frame = frame.with_gaps(unmet)
             blocked.append((check.label, "; ".join(g.message for g in unmet)))

@@ -48,8 +48,11 @@ class CheckConfig:
     spike_threshold: Decimal = Decimal("3")
     #: Days of history used for the trailing median.
     spike_window_days: int = 7
-    #: Fewer prior days than this and no baseline is trustworthy.
-    spike_min_history_days: int = 3
+    #: Fewer prior days than this and no baseline is trustworthy. A full week,
+    #: so every baseline contains both weekdays and a weekend: with three
+    #: days, data starting on a Saturday compares Tuesday against a weekend
+    #: median, and weekday-heavy traffic reads as a spike that never happened.
+    spike_min_history_days: int = 7
 
     # -- C6b, off-hours --------------------------------------------------
     #: Hours offset from UTC defining the org's local day. A fixed offset
@@ -118,12 +121,17 @@ class Check:
     #: and every bucket width, it has just destroyed the one distinction C1
     #: is about.
     blocked_by_tokens: frozenset[str] = frozenset()
+    #: Distinct days of data needed, given the thresholds in force. A callable
+    #: because it depends on config: C6a needs its baseline plus the day being
+    #: judged. Without this, too short an export ran, found nothing, and was
+    #: reported as clean -- a claim it had no basis to make.
+    needs_days: Callable[["CheckConfig"], int] | None = None
 
     @property
     def label(self) -> str:
         return f"{self.name} ({self.id})"
 
-    def unmet(self, frame: Frame) -> list[Gap]:
+    def unmet(self, frame: Frame, config: "CheckConfig | None" = None) -> list[Gap]:
         """Gaps explaining why this check cannot run, empty if it can."""
         blocking: list[Gap] = []
 
@@ -147,6 +155,12 @@ class Check:
                         self.label,
                     )
                 )
+
+        if self.needs_days is not None:
+            need = self.needs_days(config or CheckConfig())
+            have = len({row.start.date() for row in frame.usage})
+            if have < need:
+                blocking.append(gapmod.insufficient_history(have, need, self.label))
 
         return blocking
 
@@ -181,7 +195,7 @@ def run_checks(
     skipped: list[tuple[str, str]] = []
 
     for check in registry:
-        blocking = check.unmet(frame)
+        blocking = check.unmet(frame, config)
         if blocking:
             gaps.extend(blocking)
             skipped.append((check.label, "; ".join(g.message for g in blocking)))

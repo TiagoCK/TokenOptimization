@@ -252,6 +252,8 @@ SPIKES = Check(
     # Works on daily or hourly data: hourly buckets are aggregated up.
     needs_bucket_width=frozenset({"1d", "1h"}),
     prefers_bucket_width="1d",
+    # A baseline of spike_min_history_days, plus at least one day to judge.
+    needs_days=lambda config: config.spike_min_history_days + 1,
 )
 
 OFF_HOURS = Check(

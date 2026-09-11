@@ -19,16 +19,41 @@ A weekend day has no business hours: $3.60 + 18h x $0.08 = $5.04.
 2026-08-11 (a Tuesday) is multiplied by 6: $69.12.
 """
 
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 
 from claude_spend_audit.checks import CheckConfig, run_checks
 from claude_spend_audit.checks.c6_anomalies import OFF_HOURS, SPIKES
 from claude_spend_audit.findings import Confidence
+from claude_spend_audit.frame import Frame, Segment, TokenBuckets, UsageRow
 from claude_spend_audit.gaps import GapCode
 from claude_spend_audit.ingest import load_usage_csv
 
 HOURLY = "tests/fixtures/csv/usage_hourly.csv"
+
+
+def daily_frame(dollars: list[int], *, start: date) -> Frame:
+    """One daily row per entry, each costing exactly that many dollars.
+
+    200,000 uncached input on claude-opus-5 @ $5.00/MTok = $1.00, so N
+    dollars is N x 200,000 tokens.
+    """
+    rows = []
+    for offset, amount in enumerate(dollars):
+        day = datetime.combine(start + timedelta(days=offset), datetime.min.time(), timezone.utc)
+        rows.append(
+            UsageRow(
+                start=day,
+                end=day + timedelta(days=1),
+                segment=Segment(model="claude-opus-5", service_tier="standard"),
+                tokens=TokenBuckets(uncached_input=amount * 200_000),
+            )
+        )
+    return Frame(
+        usage=tuple(rows),
+        grouped_by=frozenset({"model", "service_tier"}),
+        bucket_width="1d",
+    )
 
 
 def only(findings):
@@ -97,22 +122,106 @@ def test_absolute_floor_suppresses_trivial_multiples(pricing, usage_profile):
     assert list(SPIKES.run(hourly_frame(usage_profile), pricing, config)) == []
 
 
-def test_spike_runs_on_daily_data(pricing, usage_profile):
+def test_spike_runs_on_daily_data(pricing):
     """C6a needs days, not hours -- so a 1d export is enough.
 
     This is why C6 is registered as two checks: lumping them would lose spike
-    detection on every daily export.
+    detection on every daily export. Ten days at $5.00 and one at $25.00:
+
+        multiple = 25.00 / 5.00 = 5.0x    excess = $20.00
     """
     assert SPIKES.needs_bucket_width == frozenset({"1d", "1h"})
-    frame, _ = load_usage_csv("tests/fixtures/csv/usage_console.csv", usage_profile)
+    frame = daily_frame([5] * 10 + [25], start=date(2026, 8, 3))
     assert frame.bucket_width == "1d"
-    assert SPIKES.unmet(frame) == []
+    assert SPIKES.unmet(frame, CheckConfig()) == []
+    finding = only(list(SPIKES.run(frame, pricing, CheckConfig())))
+    assert finding.measured_usd == Decimal("20.00")
 
 
 def test_too_little_history_reports_nothing(pricing, usage_profile):
     """With no trustworthy baseline, silence beats a fabricated multiple."""
     config = CheckConfig(spike_min_history_days=30)
     assert list(SPIKES.run(hourly_frame(usage_profile), pricing, config)) == []
+
+
+# --------------------------------------------------------------------------
+# C6a -- how much history a baseline needs
+# --------------------------------------------------------------------------
+
+#: 1 August 2026 is a Saturday. Weekday traffic $10.00, weekends $1.00:
+#:
+#:     Sat  Sun  Mon  Tue  Wed  Thu  Fri  Sat  Sun  Mon  Tue
+#:     $1   $1   $10  $10  $10  $10  $10  $1   $1   $10  $10
+WEEKDAY_HEAVY = [1, 1, 10, 10, 10, 10, 10, 1, 1, 10, 10]
+SATURDAY = date(2026, 8, 1)
+
+
+def test_a_weekday_after_a_weekend_start_is_not_a_spike(pricing):
+    """The false positive the week-long baseline exists to prevent.
+
+    With a three-day baseline, Tuesday 4 August is judged against the median
+    of Sat/Sun/Mon -- $1.00 -- and reads as a 10x spike. Nothing happened.
+    With a week, every baseline holds five weekdays and a weekend, the median
+    is $10.00, and no day is flagged.
+    """
+    assert SATURDAY.weekday() == 5
+    frame = daily_frame(WEEKDAY_HEAVY, start=SATURDAY)
+    assert list(SPIKES.run(frame, pricing, CheckConfig())) == []
+
+
+def test_the_old_three_day_baseline_would_have_flagged_it(pricing):
+    """Pins the regression: the same data under the previous default."""
+    frame = daily_frame(WEEKDAY_HEAVY, start=SATURDAY)
+    config = CheckConfig(spike_min_history_days=3)
+    finding = only(list(SPIKES.run(frame, pricing, config)))
+    assert "2026-08-04" in finding.summary
+
+
+def test_a_real_spike_after_a_weekend_start_is_still_found(pricing):
+    """Tue 11 August at $50.00 against the $10.00 weekday median.
+
+        window Tue 4 .. Mon 10 = [10, 10, 10, 10, 1, 1, 10] -> median $10.00
+        multiple 5.0x, excess $40.00
+    """
+    frame = daily_frame(WEEKDAY_HEAVY[:-1] + [50], start=SATURDAY)
+    finding = only(list(SPIKES.run(frame, pricing, CheckConfig())))
+    assert finding.measured_usd == Decimal("40.00")
+    assert "2026-08-11" in finding.summary
+
+
+def test_a_one_week_export_is_skipped_not_reported_clean(pricing):
+    """Seven days is the API's default page and exactly one baseline's worth,
+    leaving no day to judge. Running would find nothing, and "found nothing"
+    would be reported as a clean result it had no basis for."""
+    frame = daily_frame([10] * 7, start=date(2026, 8, 3))
+    unmet = SPIKES.unmet(frame, CheckConfig())
+    assert [g.code for g in unmet] == [GapCode.INSUFFICIENT_HISTORY]
+    assert "covers 7 day(s)" in unmet[0].message
+    assert "needs at least 8" in unmet[0].message
+    assert "Day-over-day spend spikes (C6a)" in unmet[0].message
+
+    result = run_checks(frame, pricing, CheckConfig())
+    assert "Day-over-day spend spikes (C6a)" not in result.clean
+    assert "Day-over-day spend spikes (C6a)" in [label for label, _ in result.skipped]
+
+
+def test_eight_days_is_enough(pricing):
+    frame = daily_frame([10] * 8, start=date(2026, 8, 3))
+    assert SPIKES.unmet(frame, CheckConfig()) == []
+    result = run_checks(frame, pricing, CheckConfig())
+    assert "Day-over-day spend spikes (C6a)" in result.clean
+
+
+def test_the_history_requirement_follows_the_config(pricing):
+    """A shorter baseline, set deliberately, lowers the bar with it."""
+    frame = daily_frame([10] * 5, start=date(2026, 8, 3))
+    assert SPIKES.unmet(frame, CheckConfig())
+    assert SPIKES.unmet(frame, CheckConfig(spike_min_history_days=3)) == []
+
+
+def test_off_hours_has_no_history_requirement():
+    """One day of hourly data is enough to see when spend happens."""
+    assert OFF_HOURS.needs_days is None
 
 
 # --------------------------------------------------------------------------
@@ -215,9 +324,8 @@ def test_both_c6_checks_run_on_hourly_data(pricing, usage_profile):
     assert not [label for label, _ in run.skipped if "(C6" in label]
 
 
-def test_daily_data_runs_c6a_and_skips_c6b(pricing, usage_profile):
-    frame, _ = load_usage_csv("tests/fixtures/csv/usage_console.csv", usage_profile)
-    run = run_checks(frame, pricing, CheckConfig())
+def test_daily_data_runs_c6a_and_skips_c6b(pricing):
+    run = run_checks(daily_frame([10] * 10, start=date(2026, 8, 3)), pricing, CheckConfig())
     skipped = {label for label, _ in run.skipped}
     assert "Off-hours and weekend volume (C6b)" in skipped
     assert "Day-over-day spend spikes (C6a)" not in skipped

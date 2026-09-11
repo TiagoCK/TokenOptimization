@@ -275,7 +275,12 @@ def test_audit_json_shape(capsys):
     assert finding["recoverable"]["assumptions"]
     assert finding["measured_basis"]
     assert finding["evidence"]["columns"][0] == "model / workspace / key"
-    assert payload["checks_blocked"] == ["Off-hours and weekend volume (C6b)"]
+    # Two days of daily data: too coarse for C6b, too short a baseline for
+    # C6a. Both say why rather than reporting a clean result.
+    assert payload["checks_blocked"] == [
+        "Day-over-day spend spikes (C6a)",
+        "Off-hours and weekend volume (C6b)",
+    ]
 
 
 def test_inspect_reports_which_checks_the_export_supports(capsys):

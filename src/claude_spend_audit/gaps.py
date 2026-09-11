@@ -39,6 +39,7 @@ class GapCode(StrEnum):
     # Shape of the export limits what can be concluded
     DIMENSION_NOT_GROUPED = "dimension_not_grouped"
     GRANULARITY_TOO_COARSE = "granularity_too_coarse"
+    INSUFFICIENT_HISTORY = "insufficient_history"
     NO_COST_DATA = "no_cost_data"
     NO_USAGE_DATA = "no_usage_data"
 
@@ -209,6 +210,21 @@ def granularity_too_coarse(have: str, need: str, blocks: str) -> Gap:
             "distinguish sustained overnight load from ordinary daytime volume."
         ),
         remedy=f"Re-export at {need!r} granularity.",
+    )
+
+
+def insufficient_history(have: int, need: int, blocks: str) -> Gap:
+    return Gap(
+        code=GapCode.INSUFFICIENT_HISTORY,
+        severity=Severity.WARNING,
+        scope=f"{have} day(s)",
+        message=(
+            f"The data covers {have} day(s); {blocks} needs at least {need} -- "
+            "a baseline spanning a full week, weekend included, plus a day to "
+            "compare against it. Run on less, it could only report nothing, "
+            "and nothing would read as a clean result."
+        ),
+        remedy="Export a longer range; a month is typical.",
     )
 
 

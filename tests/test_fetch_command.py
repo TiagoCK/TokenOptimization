@@ -365,6 +365,95 @@ def test_the_fetched_file_is_immediately_auditable(tmp_path, monkeypatch, capsys
 
 
 # ==========================================================================
+# What a default fetch asks for
+# ==========================================================================
+
+
+def test_the_default_group_by_covers_every_check_that_needs_one():
+    """Before M5 the default omitted context_window, so C4 could never run
+    on fetched data -- while the help text claimed the default "covers the
+    checks that need grouping". Held against the live registry so the next
+    check with a new dimension fails here rather than in someone's report."""
+    from claude_spend_audit.checks import CHECKS
+    from claude_spend_audit.cli import DEFAULT_FETCH_GROUP_BY
+
+    needed = set().union(*(c.needs_dimensions for c in CHECKS))
+    assert needed <= set(DEFAULT_FETCH_GROUP_BY), needed - set(DEFAULT_FETCH_GROUP_BY)
+
+
+def test_the_default_group_by_covers_every_price_dimension():
+    """Without inference_geo and speed, US-only (1.1x) and fast-mode (2x)
+    traffic prices at the baseline and nothing in the output shows it."""
+    from claude_spend_audit.cli import DEFAULT_FETCH_GROUP_BY
+    from claude_spend_audit.pricing import PRICE_DIMENSIONS
+
+    assert set(PRICE_DIMENSIONS) <= set(DEFAULT_FETCH_GROUP_BY)
+
+
+def test_the_parser_default_is_the_declared_default():
+    from claude_spend_audit.cli import DEFAULT_FETCH_GROUP_BY, build_parser
+
+    args = build_parser().parse_args(
+        ["fetch", "--from", "2026-08-01", "--to", "2026-08-08", "-o", "x.json"]
+    )
+    assert args.group_by == ",".join(DEFAULT_FETCH_GROUP_BY)
+
+
+def test_a_default_fetch_requests_every_default_dimension(tmp_path, monkeypatch, capsys):
+    """On the wire, not just in the parser -- including the beta header the
+    docs require whenever speed is in group_by."""
+    from urllib.parse import parse_qs, urlsplit
+
+    from claude_spend_audit.cli import DEFAULT_FETCH_GROUP_BY
+
+    transport = FakeTransport(ok(page()))
+    monkeypatch.setenv("ANTHROPIC_ADMIN_KEY", KEY)
+    real_init = ApiClient.__init__
+
+    def patched(self, credential, **kw):
+        kw["transport"] = transport
+        kw["sleep"] = no_sleep
+        real_init(self, credential, **kw)
+
+    monkeypatch.setattr(ApiClient, "__init__", patched)
+
+    out = tmp_path / "raw.json"
+    assert main(["fetch", "--from", "2026-08-01", "--to", "2026-08-08", "-o", str(out)]) == 0
+    capsys.readouterr()
+
+    sent = parse_qs(urlsplit(transport.last.url).query)["group_by[]"]
+    assert sent == list(DEFAULT_FETCH_GROUP_BY)
+    assert "fast-mode-2026-02-01" in (transport.header("anthropic-beta") or "")
+
+    payload = json.loads(out.read_text(encoding="utf-8"))
+    assert payload["request"]["group_by"] == list(DEFAULT_FETCH_GROUP_BY)
+
+
+def test_a_default_fetch_raises_no_pricing_dimension_gap(tmp_path, monkeypatch, capsys):
+    """The point of the new default: a fetched file with no flags carries every
+    dimension the estimate needs, so the caveats do not warn about any."""
+    transport = FakeTransport(ok(page()))
+    monkeypatch.setenv("ANTHROPIC_ADMIN_KEY", KEY)
+    real_init = ApiClient.__init__
+
+    def patched(self, credential, **kw):
+        kw["transport"] = transport
+        kw["sleep"] = no_sleep
+        real_init(self, credential, **kw)
+
+    monkeypatch.setattr(ApiClient, "__init__", patched)
+
+    out = tmp_path / "raw.json"
+    assert main(["fetch", "--from", "2026-08-01", "--to", "2026-08-08", "-o", str(out)]) == 0
+    capsys.readouterr()
+
+    main(["audit", str(out), "--json"])
+    payload = json.loads(capsys.readouterr().out)
+    codes = {g["code"] for g in payload["gaps"]}
+    assert "pricing_dimension_not_grouped" not in codes
+
+
+# ==========================================================================
 # The recorded artifact
 # ==========================================================================
 
