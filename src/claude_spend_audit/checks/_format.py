@@ -8,10 +8,25 @@ from __future__ import annotations
 
 from decimal import Decimal
 
-from ..frame import Segment
+from ..frame import NOT_GROUPED, Frame, Segment
 
 _MILLION = Decimal("1000000")
 _THOUSAND = Decimal("1000")
+
+#: What a null means *inside* a grouped dimension -- the API's own meaning.
+_NULL_MEANS = {
+    "model": "unknown model",
+    "workspace_id": "default workspace",
+    "api_key_id": "no API key (Console)",
+}
+#: What an absent dimension means: the export never broke it out, so the row
+#: covers every value at once. Saying "default workspace" here would be the
+#: exact conflation Frame.value_of exists to prevent.
+_ABSENT_MEANS = {
+    "model": "all models",
+    "workspace_id": "all workspaces",
+    "api_key_id": "all keys",
+}
 
 
 def short_tokens(count: int) -> str:
@@ -32,8 +47,25 @@ def multiple(value: Decimal) -> str:
     return f"{value.quantize(Decimal('0.001')).normalize():f}x"
 
 
-def model_workspace(segment: Segment) -> str:
-    """The model / workspace label C2, C3 and C5 roll segments up under."""
-    model = segment.model or "unknown model"
-    workspace = segment.workspace_id or "default workspace"
-    return f"{model} / {workspace}"
+def describe(
+    frame: Frame,
+    segment: Segment,
+    dimensions: tuple[str, ...] = ("model", "workspace_id"),
+) -> str:
+    """A segment's label, e.g. ``claude-opus-5 / wrkspc_x``.
+
+    Reads each dimension through ``Frame.value_of``, so a null in a grouped
+    dimension and a dimension the export never carried get different words.
+    An export with no workspace column says "all workspaces", never "default
+    workspace"; one with no API key column never claims Console traffic.
+    """
+    parts = []
+    for dimension in dimensions:
+        value = frame.value_of(segment, dimension)
+        if value == NOT_GROUPED:
+            parts.append(_ABSENT_MEANS[dimension])
+        elif value is None:
+            parts.append(_NULL_MEANS[dimension])
+        else:
+            parts.append(value)
+    return " / ".join(parts)

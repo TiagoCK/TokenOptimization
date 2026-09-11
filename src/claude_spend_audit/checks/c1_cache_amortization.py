@@ -45,7 +45,7 @@ from typing import Iterable
 from ..frame import UNSPLIT_CACHE_WRITE, Frame, Segment, TokenBuckets
 from ..findings import Confidence, Evidence, Finding, Recoverable
 from ..pricing import PricingTable, Priced
-from ._format import short_tokens as _short
+from ._format import describe, short_tokens as _short
 
 MTOK = Decimal("1000000")
 
@@ -113,19 +113,6 @@ def _aggregate(frame: Frame) -> dict[Segment, TokenBuckets]:
     return totals
 
 
-def _describe(segment: Segment) -> str:
-    """The brief's (model, workspace, key) identity for display."""
-    parts = [segment.model or "unknown model"]
-    parts.append(
-        segment.workspace_id if segment.workspace_id else "default workspace"
-    )
-    if segment.api_key_id:
-        parts.append(segment.api_key_id)
-    else:
-        parts.append("no API key (Console)")
-    return " / ".join(parts)
-
-
 def run(frame: Frame, pricing: PricingTable, config) -> Iterable[Finding]:
     wasteful: list[tuple[Segment, TokenBuckets, _Rates, Decimal]] = []
 
@@ -185,7 +172,8 @@ def run(frame: Frame, pricing: PricingTable, config) -> Iterable[Finding]:
         columns=("model / workspace / key", "5m wr", "1h wr", "reads", "r:w", "waste"),
         rows=tuple(
             (
-                _describe(segment),
+                # The brief's (model, workspace, key) identity.
+                describe(frame, segment, ("model", "workspace_id", "api_key_id")),
                 _short(tokens.cache_write_5m),
                 _short(tokens.cache_write_1h),
                 _short(tokens.cache_read),

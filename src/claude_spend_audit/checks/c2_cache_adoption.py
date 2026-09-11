@@ -36,7 +36,7 @@ from ..frame import Frame, Segment, TokenBuckets
 from ..findings import Confidence, Evidence, Finding, Recoverable
 from ..pricing import PricingTable, Priced
 # The brief segments C2 by model and workspace.
-from ._format import model_workspace as _describe, short_tokens as _short
+from ._format import describe, short_tokens as _short
 
 MTOK = Decimal("1000000")
 
@@ -104,7 +104,7 @@ def run(frame: Frame, pricing: PricingTable, config) -> Iterable[Finding]:
     # two that differ only by geo or speed share a model/workspace label.
     rolled: dict[str, list] = {}
     for segment, tokens, rate, ceiling in candidates:
-        label = _describe(segment)
+        label = describe(frame, segment)
         if label in rolled:
             acc = rolled[label]
             acc[0] = acc[0] + tokens

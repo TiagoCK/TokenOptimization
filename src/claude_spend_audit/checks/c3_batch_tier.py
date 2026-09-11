@@ -29,7 +29,7 @@ from typing import Iterable
 from ..frame import Frame, Segment, TokenBuckets
 from ..findings import Confidence, Evidence, Finding, Recoverable
 from ..pricing import PricingTable
-from ._format import model_workspace as _describe
+from ._format import describe
 
 #: The one tier that can move to batch. Priority and flex are unpriceable;
 #: batch is already there.
@@ -99,7 +99,7 @@ def run(frame: Frame, pricing: PricingTable, config) -> Iterable[Finding]:
     # reads as a duplicate.
     by_label: dict[str, Decimal] = {}
     for segment, spend in eligible.items():
-        label = _describe(segment)
+        label = describe(frame, segment)
         by_label[label] = by_label.get(label, Decimal("0")) + spend
 
     rows = sorted(by_label.items(), key=lambda kv: kv[1], reverse=True)
