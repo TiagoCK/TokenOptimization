@@ -214,10 +214,11 @@ from .c4_long_context import CHECK as C4  # noqa: E402
 from .c5_output_share import CHECK as C5  # noqa: E402
 from .c6_anomalies import SPIKES as C6A, OFF_HOURS as C6B  # noqa: E402
 from .c7_attribution import CHECK as C7  # noqa: E402
+from .c8_model_mix import CHECK as C8  # noqa: E402
 
 #: §4 orders these by strength of inference. The registry order is the
 #: tie-breaker only -- actual report order comes from findings.rank().
-CHECKS: tuple[Check, ...] = (C1, C2, C3, C4, C5, C6A, C6B, C7)
+CHECKS: tuple[Check, ...] = (C1, C2, C3, C4, C5, C6A, C6B, C7, C8)
 
 __all__ = [
     "CHECKS",
