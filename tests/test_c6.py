@@ -203,15 +203,16 @@ def test_a_quiet_share_is_not_reported(pricing, usage_profile):
 
 
 def test_both_c6_checks_run_on_hourly_data(pricing, usage_profile):
-    """Hourly data satisfies every precondition, so nothing is skipped.
+    """Hourly data satisfies both C6 checks' preconditions.
 
-    Asserts C6a and C6b are among the findings rather than the only ones --
-    other checks legitimately fire on this fixture too, and pinning the exact
-    set would make this test fail every time a check is added.
+    Asserts on C6 alone, in both directions. Other checks fire on this fixture
+    and one (C4) is skipped because it has no context_window column; pinning
+    the whole registry's outcome would make this fail every time a check is
+    added.
     """
     run = run_checks(hourly_frame(usage_profile), pricing, CheckConfig())
     assert {"C6a", "C6b"} <= {f.check_id for f in run.findings}
-    assert run.skipped == ()
+    assert not [label for label, _ in run.skipped if "(C6" in label]
 
 
 def test_daily_data_runs_c6a_and_skips_c6b(pricing, usage_profile):

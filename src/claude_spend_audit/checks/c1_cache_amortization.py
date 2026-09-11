@@ -45,6 +45,7 @@ from typing import Iterable
 from ..frame import UNSPLIT_CACHE_WRITE, Frame, Segment, TokenBuckets
 from ..findings import Confidence, Evidence, Finding, Recoverable
 from ..pricing import PricingTable, Priced
+from ._format import short_tokens as _short
 
 MTOK = Decimal("1000000")
 
@@ -256,15 +257,6 @@ def run(frame: Frame, pricing: PricingTable, config) -> Iterable[Finding]:
             ),
         )
     ]
-
-
-def _short(count: int) -> str:
-    """Compact token counts so the evidence table fits a terminal width."""
-    if count >= 1_000_000:
-        return f"{count / 1_000_000:.1f}M"
-    if count >= 1_000:
-        return f"{count / 1_000:.0f}k"
-    return str(count)
 
 
 def _ratio(tokens: TokenBuckets) -> str:

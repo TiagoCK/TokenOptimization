@@ -35,6 +35,8 @@ from typing import Iterable
 from ..frame import Frame, Segment, TokenBuckets
 from ..findings import Confidence, Evidence, Finding, Recoverable
 from ..pricing import PricingTable, Priced
+# The brief segments C2 by model and workspace.
+from ._format import model_workspace as _describe, short_tokens as _short
 
 MTOK = Decimal("1000000")
 
@@ -54,21 +56,6 @@ def _aggregate(frame: Frame) -> dict[Segment, TokenBuckets]:
     for row in frame.usage:
         totals[row.segment] = totals.get(row.segment, TokenBuckets()) + row.tokens
     return totals
-
-
-def _describe(segment: Segment) -> str:
-    """The brief segments C2 by model and workspace."""
-    model = segment.model or "unknown model"
-    workspace = segment.workspace_id or "default workspace"
-    return f"{model} / {workspace}"
-
-
-def _short(count: int) -> str:
-    if count >= 1_000_000:
-        return f"{count / 1_000_000:.1f}M"
-    if count >= 1_000:
-        return f"{count / 1_000:.0f}k"
-    return str(count)
 
 
 def run(frame: Frame, pricing: PricingTable, config) -> Iterable[Finding]:
@@ -211,8 +198,10 @@ def run(frame: Frame, pricing: PricingTable, config) -> Iterable[Finding]:
                 "This check cannot see prompts. A segment flagged here may have "
                 "no reusable prefix at all, in which case the recoverable amount "
                 "is the floor of the range, not the ceiling.",
-                "C4 pulls the other way: pruning context to reduce tokens can "
-                "break the very prefix that makes caching work.",
+                "If you also prune context (see C4), each change to a cached "
+                "prefix costs one full cache write, once -- a transition cost, "
+                "not a recurring one. Frequent edits are what break caching; "
+                "C1 measures that.",
             ),
         )
     ]

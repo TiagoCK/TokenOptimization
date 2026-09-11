@@ -79,6 +79,16 @@ class CheckConfig:
     #: None floors the range at $0, for the same reason.
     batch_eligible_share: Decimal | None = None
 
+    # -- C4, long context ------------------------------------------------
+    #: Long-context spend must be at least this share of total to be shown.
+    long_context_min_share: Decimal = Decimal("0.10")
+
+    # -- C5, output share ------------------------------------------------
+    #: A segment is shown when output is at least this share of its tokens.
+    #: Tokens rather than spend, so caching input never raises it. At 0.25,
+    #: output is over 60% of spend at uncached rates on every current model.
+    output_min_token_share: Decimal = Decimal("0.25")
+
     # -- C7, attribution -------------------------------------------------
     #: Unattributed spend must be at least this share of total to be flagged.
     attribution_min_share: Decimal = Decimal("0.10")
@@ -200,12 +210,13 @@ def with_findings(frame: Frame, run: CheckRun) -> Frame:
 from .c1_cache_amortization import CHECK as C1  # noqa: E402
 from .c2_cache_adoption import CHECK as C2  # noqa: E402
 from .c3_batch_tier import CHECK as C3  # noqa: E402
+from .c4_long_context import CHECK as C4  # noqa: E402
 from .c6_anomalies import SPIKES as C6A, OFF_HOURS as C6B  # noqa: E402
 from .c7_attribution import CHECK as C7  # noqa: E402
 
 #: §4 orders these by strength of inference. The registry order is the
 #: tie-breaker only -- actual report order comes from findings.rank().
-CHECKS: tuple[Check, ...] = (C1, C2, C3, C6A, C6B, C7)
+CHECKS: tuple[Check, ...] = (C1, C2, C3, C4, C6A, C6B, C7)
 
 __all__ = [
     "CHECKS",

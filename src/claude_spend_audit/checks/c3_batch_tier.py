@@ -29,6 +29,7 @@ from typing import Iterable
 from ..frame import Frame, Segment, TokenBuckets
 from ..findings import Confidence, Evidence, Finding, Recoverable
 from ..pricing import PricingTable
+from ._format import model_workspace as _describe
 
 #: The one tier that can move to batch. Priority and flex are unpriceable;
 #: batch is already there.
@@ -36,12 +37,6 @@ _ELIGIBLE_TIER = "standard"
 
 #: Published: "Fast mode is not available with the Batch API."
 _INELIGIBLE_SPEED = "fast"
-
-
-def _describe(segment: Segment) -> str:
-    model = segment.model or "unknown model"
-    workspace = segment.workspace_id or "default workspace"
-    return f"{model} / {workspace}"
 
 
 def run(frame: Frame, pricing: PricingTable, config) -> Iterable[Finding]:
