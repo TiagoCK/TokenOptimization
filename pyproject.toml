@@ -10,10 +10,13 @@ readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
 
-# Intentionally empty. A security-conscious prospect should be able to audit
-# this project's entire dependency tree in five minutes; that is a feature, not
-# an aesthetic preference (PROJECT_BRIEF.md §7). `rich` arrives with the
-# terminal renderer in M2, `httpx` with the API path in M4. Nothing else.
+# Intentionally empty, and it stays that way. A security-conscious prospect
+# should be able to audit this project's entire dependency tree in five
+# minutes; that is a feature, not an aesthetic preference (PROJECT_BRIEF.md
+# §7). The brief named `rich` for the terminal renderer and `httpx` for the
+# API path. Both were declined: stdlib wrapping and urllib do the job, and an
+# empty list is a stronger version of the property than a short one -- which
+# matters most on the one path that asks for an org-wide admin key.
 dependencies = []
 
 [project.optional-dependencies]
