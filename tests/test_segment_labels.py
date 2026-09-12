@@ -102,9 +102,11 @@ def test_c1_does_not_invent_default_workspace_or_console_traffic(pricing):
     ]
 
 
-def test_c2_does_not_invent_a_default_workspace(pricing):
-    assert labels(C2, UNGROUPED, pricing) == ["claude-opus-5 / all workspaces"]
-    assert labels(C2, GROUPED, pricing) == ["claude-opus-5 / default workspace"]
+def test_c2_does_not_invent_a_default_workspace_or_console_traffic(pricing):
+    assert labels(C2, UNGROUPED, pricing) == ["claude-opus-5 / all workspaces / all keys"]
+    assert labels(C2, GROUPED, pricing) == [
+        "claude-opus-5 / default workspace / no API key (Console)"
+    ]
 
 
 def test_c3_does_not_invent_a_default_workspace(pricing):

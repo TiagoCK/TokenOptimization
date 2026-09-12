@@ -11,3 +11,8 @@ dist/
 # the data stays on the machine that produced it.
 *.csv
 !tests/fixtures/**/*.csv
+# The two exceptions are generated, not collected: tests/_sample.py writes them
+# from invented numbers, and `python -m tests.generate_sample` reproduces them
+# byte for byte. Keep this pattern narrow -- it is the one hole in the rule.
+!examples/sample-usage.csv
+!examples/sample-cost.csv

@@ -150,6 +150,48 @@ def test_confidence_outranks_dollars():
     assert [f.check_id for f in ordered] == ["C1", "CBIG"]
 
 
+def test_recoverable_waste_outranks_a_larger_exposure_in_the_same_tier():
+    """C1 and C6 are both `measured`. C6b can measure $12,000 of overnight
+    spend, none of it claimed as recoverable; C1 measures $1,600 that
+    provably was. Sorting on dollars within the tier put C6b first -- the
+    report opened with money merely spent, ahead of money wasted.
+
+    The sample month exposed this; the old four-row sample never ran C6.
+    """
+    exposure = make(
+        check_id="C6b",
+        measured_usd=Decimal("12560"),
+        measured_basis="spend outside business hours",
+    )
+    waste = make(
+        check_id="C1",
+        measured_usd=Decimal("1640"),
+        measured_basis="cache premium not recovered",
+        recoverable=Recoverable.exactly(Decimal("1640")),
+    )
+    assert [f.check_id for f in rank([exposure, waste])] == ["C1", "C6b"]
+
+
+def test_exposures_still_order_by_dollars_among_themselves():
+    c6a = make(check_id="C6a", measured_usd=Decimal("4396"), measured_basis="b")
+    c6b = make(check_id="C6b", measured_usd=Decimal("12560"), measured_basis="b")
+    assert [f.check_id for f in rank([c6a, c6b])] == ["C6b", "C6a"]
+
+
+def test_the_savings_split_never_crosses_tiers():
+    """A candidate's claimed range still ranks below any measured finding,
+    including one that claims nothing."""
+    exposure = make(check_id="C6b", measured_usd=Decimal("5"), measured_basis="b")
+    candidate = make(
+        check_id="C3",
+        confidence=Confidence.CANDIDATE,
+        measured_usd=Decimal("20000"),
+        measured_basis="b",
+        recoverable=Recoverable(low=Decimal("0"), high=Decimal("20000"), assumptions=("a",)),
+    )
+    assert [f.check_id for f in rank([candidate, exposure])] == ["C6b", "C3"]
+
+
 def test_dollars_order_within_a_tier():
     small = make(check_id="A", measured_usd=Decimal("10"), measured_basis="b")
     large = make(check_id="B", measured_usd=Decimal("999"), measured_basis="b")

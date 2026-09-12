@@ -179,14 +179,24 @@ class Finding:
 
 
 def rank(findings: Sequence[Finding]) -> list[Finding]:
-    """Measured before candidate before observation; dollars descending inside.
+    """Measured before candidate before observation; within each tier, a
+    savings claim before a bare measurement; dollars descending inside that.
 
     §5 asks for largest impact first and §4 says C1 should lead the report.
-    Those only conflict if unlike figures share one ranking: C6 can measure a
-    far larger number than C1 without any of it being recoverable. Sorting
-    within tier keeps both instructions true at once.
+    Those only conflict if unlike figures share one ranking -- and tier alone
+    does not keep them apart, because C1 and C6 are both `measured`. C6 can
+    measure a far larger number than C1 (a month of overnight spend) without
+    any of it being recoverable. Ranked on dollars alone, the report would
+    open with money that was merely spent, ahead of money that was provably
+    wasted. So within a tier, what could be saved ranks ahead of what was
+    only spent, and the two figures are never compared with each other.
     """
     return sorted(
         findings,
-        key=lambda f: (CONFIDENCE_RANK[f.confidence], -f.sort_value, f.check_id),
+        key=lambda f: (
+            CONFIDENCE_RANK[f.confidence],
+            not f.claims_savings,
+            -f.sort_value,
+            f.check_id,
+        ),
     )

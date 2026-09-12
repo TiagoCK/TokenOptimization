@@ -10,6 +10,7 @@ from decimal import Decimal
 
 from ..frame import NOT_GROUPED, Frame, Segment
 
+_BILLION = Decimal("1000000000")
 _MILLION = Decimal("1000000")
 _THOUSAND = Decimal("1000")
 
@@ -31,6 +32,8 @@ _ABSENT_MEANS = {
 
 def short_tokens(count: int) -> str:
     """Compact token counts so an evidence table fits a terminal width."""
+    if count >= 1_000_000_000:
+        return f"{Decimal(count) / _BILLION:.2f}B"
     if count >= 1_000_000:
         return f"{Decimal(count) / _MILLION:.1f}M"
     if count >= 1_000:

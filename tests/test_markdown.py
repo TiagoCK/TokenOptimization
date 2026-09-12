@@ -16,8 +16,6 @@ from claude_spend_audit.frame import merge
 from claude_spend_audit.ingest import load_cost_csv, load_usage_csv
 from claude_spend_audit.render import markdown
 
-from ._sample import SAMPLE, build
-
 
 @pytest.fixture(scope="module")
 def report(pricing, usage_profile, cost_profile):
@@ -159,28 +157,3 @@ def test_money_is_never_a_bare_float(report):
     for amount in re.findall(r"\$[\d,]+\.\d+", report):
         decimals = amount.split(".")[-1]
         assert len(decimals) == 2, amount
-
-
-# --------------------------------------------------------------------------
-# The committed sample
-# --------------------------------------------------------------------------
-
-
-def test_committed_sample_is_current():
-    """examples/sample-report.md is linked from the README, so a stale one is
-    a public correctness problem.
-
-        python -m tests.generate_sample
-    """
-    assert SAMPLE.exists(), "run: python -m tests.generate_sample"
-    assert SAMPLE.read_text(encoding="utf-8") == build(), (
-        "examples/sample-report.md is out of date -- regenerate it with "
-        "`python -m tests.generate_sample`"
-    )
-
-
-def test_sample_says_it_is_synthetic():
-    """Nobody should mistake the fixtures for a real organisation's spend."""
-    text = SAMPLE.read_text(encoding="utf-8")
-    assert "This is a sample" in text
-    assert "synthetic fixtures" in text

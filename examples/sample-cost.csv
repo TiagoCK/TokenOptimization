@@ -1,0 +1,583 @@
+start,end,workspace_id,cost_type,description,model,token_type,service_tier,context_window,inference_geo,amount,currency
+2026-08-01T00:00:00Z,2026-08-02T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Cache Read Tokens,claude-haiku-4-5,cache_read_input_tokens,batch,0-200k,global,180.00,USD
+2026-08-01T00:00:00Z,2026-08-02T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Output Tokens,claude-haiku-4-5,output_tokens,batch,0-200k,global,1500.00,USD
+2026-08-01T00:00:00Z,2026-08-02T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Input Tokens,claude-haiku-4-5,uncached_input_tokens,batch,0-200k,global,1200.00,USD
+2026-08-01T00:00:00Z,2026-08-02T00:00:00Z,wrkspc_data,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,11587.50,USD
+2026-08-01T00:00:00Z,2026-08-02T00:00:00Z,wrkspc_data,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,18540.00,USD
+2026-08-02T00:00:00Z,2026-08-03T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Cache Read Tokens,claude-haiku-4-5,cache_read_input_tokens,batch,0-200k,global,180.00,USD
+2026-08-02T00:00:00Z,2026-08-03T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Output Tokens,claude-haiku-4-5,output_tokens,batch,0-200k,global,1500.00,USD
+2026-08-02T00:00:00Z,2026-08-03T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Input Tokens,claude-haiku-4-5,uncached_input_tokens,batch,0-200k,global,1200.00,USD
+2026-08-02T00:00:00Z,2026-08-03T00:00:00Z,wrkspc_data,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,11520.00,USD
+2026-08-02T00:00:00Z,2026-08-03T00:00:00Z,wrkspc_data,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,18432.00,USD
+2026-08-03T00:00:00Z,2026-08-04T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Cache Read Tokens,claude-sonnet-5,cache_read_input_tokens,standard,0-200k,global,2042.88,USD
+2026-08-03T00:00:00Z,2026-08-04T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,10214.40,USD
+2026-08-03T00:00:00Z,2026-08-04T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,15321.60,USD
+2026-08-03T00:00:00Z,2026-08-04T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Cache Write Tokens (5m),claude-opus-5,cache_creation.ephemeral_5m_input_tokens,standard,0-200k,global,1197.00,USD
+2026-08-03T00:00:00Z,2026-08-04T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Cache Read Tokens,claude-opus-5,cache_read_input_tokens,standard,0-200k,global,957.60,USD
+2026-08-03T00:00:00Z,2026-08-04T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,0-200k,global,28728.00,USD
+2026-08-03T00:00:00Z,2026-08-04T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,0-200k,global,3830.40,USD
+2026-08-03T00:00:00Z,2026-08-04T00:00:00Z,wrkspc_data,code_execution,Code Execution Usage,,,,,,420.00,USD
+2026-08-03T00:00:00Z,2026-08-04T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Cache Read Tokens,claude-haiku-4-5,cache_read_input_tokens,batch,0-200k,global,180.00,USD
+2026-08-03T00:00:00Z,2026-08-04T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Output Tokens,claude-haiku-4-5,output_tokens,batch,0-200k,global,1500.00,USD
+2026-08-03T00:00:00Z,2026-08-04T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Input Tokens,claude-haiku-4-5,uncached_input_tokens,batch,0-200k,global,1200.00,USD
+2026-08-03T00:00:00Z,2026-08-04T00:00:00Z,wrkspc_data,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,11632.50,USD
+2026-08-03T00:00:00Z,2026-08-04T00:00:00Z,wrkspc_data,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,18612.00,USD
+2026-08-03T00:00:00Z,2026-08-04T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Cache Write Tokens (5m),claude-opus-5,cache_creation.ephemeral_5m_input_tokens,standard,200k-1M,global,3192.00,USD
+2026-08-03T00:00:00Z,2026-08-04T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Cache Read Tokens,claude-opus-5,cache_read_input_tokens,standard,200k-1M,global,1915.20,USD
+2026-08-03T00:00:00Z,2026-08-04T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,200k-1M,global,4788.00,USD
+2026-08-03T00:00:00Z,2026-08-04T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,200k-1M,global,31920.00,USD
+2026-08-03T00:00:00Z,2026-08-04T00:00:00Z,wrkspc_search,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,3830.40,USD
+2026-08-03T00:00:00Z,2026-08-04T00:00:00Z,wrkspc_search,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,15321.60,USD
+2026-08-03T00:00:00Z,2026-08-04T00:00:00Z,wrkspc_search,web_search,Web Search Usage,,,,,,507.00,USD
+2026-08-03T00:00:00Z,2026-08-04T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Cache Write Tokens (1h),claude-opus-5,cache_creation.ephemeral_1h_input_tokens,standard,0-200k,global,30643.20,USD
+2026-08-03T00:00:00Z,2026-08-04T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Cache Read Tokens,claude-opus-5,cache_read_input_tokens,standard,0-200k,global,766.08,USD
+2026-08-03T00:00:00Z,2026-08-04T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,0-200k,global,6384.00,USD
+2026-08-03T00:00:00Z,2026-08-04T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,0-200k,global,1915.20,USD
+2026-08-04T00:00:00Z,2026-08-05T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Cache Read Tokens,claude-sonnet-5,cache_read_input_tokens,standard,0-200k,global,1878.72,USD
+2026-08-04T00:00:00Z,2026-08-05T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,9393.60,USD
+2026-08-04T00:00:00Z,2026-08-05T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,14090.40,USD
+2026-08-04T00:00:00Z,2026-08-05T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Cache Write Tokens (5m),claude-opus-5,cache_creation.ephemeral_5m_input_tokens,standard,0-200k,global,1100.81,USD
+2026-08-04T00:00:00Z,2026-08-05T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Cache Read Tokens,claude-opus-5,cache_read_input_tokens,standard,0-200k,global,880.65,USD
+2026-08-04T00:00:00Z,2026-08-05T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,0-200k,global,26419.50,USD
+2026-08-04T00:00:00Z,2026-08-05T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,0-200k,global,3522.60,USD
+2026-08-04T00:00:00Z,2026-08-05T00:00:00Z,wrkspc_data,code_execution,Code Execution Usage,,,,,,420.00,USD
+2026-08-04T00:00:00Z,2026-08-05T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Cache Read Tokens,claude-haiku-4-5,cache_read_input_tokens,batch,0-200k,global,180.00,USD
+2026-08-04T00:00:00Z,2026-08-05T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Output Tokens,claude-haiku-4-5,output_tokens,batch,0-200k,global,1500.00,USD
+2026-08-04T00:00:00Z,2026-08-05T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Input Tokens,claude-haiku-4-5,uncached_input_tokens,batch,0-200k,global,1200.00,USD
+2026-08-04T00:00:00Z,2026-08-05T00:00:00Z,wrkspc_data,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,11542.50,USD
+2026-08-04T00:00:00Z,2026-08-05T00:00:00Z,wrkspc_data,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,18468.00,USD
+2026-08-04T00:00:00Z,2026-08-05T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Cache Write Tokens (5m),claude-opus-5,cache_creation.ephemeral_5m_input_tokens,standard,200k-1M,global,2935.50,USD
+2026-08-04T00:00:00Z,2026-08-05T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Cache Read Tokens,claude-opus-5,cache_read_input_tokens,standard,200k-1M,global,1761.30,USD
+2026-08-04T00:00:00Z,2026-08-05T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,0-200k,global,1500.00,USD
+2026-08-04T00:00:00Z,2026-08-05T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,200k-1M,global,4403.25,USD
+2026-08-04T00:00:00Z,2026-08-05T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,0-200k,global,1200.00,USD
+2026-08-04T00:00:00Z,2026-08-05T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,200k-1M,global,29355.00,USD
+2026-08-04T00:00:00Z,2026-08-05T00:00:00Z,wrkspc_search,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,3522.60,USD
+2026-08-04T00:00:00Z,2026-08-05T00:00:00Z,wrkspc_search,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,14090.40,USD
+2026-08-04T00:00:00Z,2026-08-05T00:00:00Z,wrkspc_search,web_search,Web Search Usage,,,,,,465.00,USD
+2026-08-04T00:00:00Z,2026-08-05T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Cache Write Tokens (1h),claude-opus-5,cache_creation.ephemeral_1h_input_tokens,standard,0-200k,global,28180.80,USD
+2026-08-04T00:00:00Z,2026-08-05T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Cache Read Tokens,claude-opus-5,cache_read_input_tokens,standard,0-200k,global,704.52,USD
+2026-08-04T00:00:00Z,2026-08-05T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,0-200k,global,5871.00,USD
+2026-08-04T00:00:00Z,2026-08-05T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,0-200k,global,1761.30,USD
+2026-08-05T00:00:00Z,2026-08-06T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Cache Read Tokens,claude-sonnet-5,cache_read_input_tokens,standard,0-200k,global,1769.28,USD
+2026-08-05T00:00:00Z,2026-08-06T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,8846.40,USD
+2026-08-05T00:00:00Z,2026-08-06T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,13269.60,USD
+2026-08-05T00:00:00Z,2026-08-06T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Cache Write Tokens (5m),claude-opus-5,cache_creation.ephemeral_5m_input_tokens,standard,0-200k,global,1036.69,USD
+2026-08-05T00:00:00Z,2026-08-06T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Cache Read Tokens,claude-opus-5,cache_read_input_tokens,standard,0-200k,global,829.35,USD
+2026-08-05T00:00:00Z,2026-08-06T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,0-200k,global,24880.50,USD
+2026-08-05T00:00:00Z,2026-08-06T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,0-200k,global,3317.40,USD
+2026-08-05T00:00:00Z,2026-08-06T00:00:00Z,wrkspc_data,code_execution,Code Execution Usage,,,,,,420.00,USD
+2026-08-05T00:00:00Z,2026-08-06T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Cache Read Tokens,claude-haiku-4-5,cache_read_input_tokens,batch,0-200k,global,180.00,USD
+2026-08-05T00:00:00Z,2026-08-06T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Output Tokens,claude-haiku-4-5,output_tokens,batch,0-200k,global,1500.00,USD
+2026-08-05T00:00:00Z,2026-08-06T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Input Tokens,claude-haiku-4-5,uncached_input_tokens,batch,0-200k,global,1200.00,USD
+2026-08-05T00:00:00Z,2026-08-06T00:00:00Z,wrkspc_data,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,11362.50,USD
+2026-08-05T00:00:00Z,2026-08-06T00:00:00Z,wrkspc_data,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,18180.00,USD
+2026-08-05T00:00:00Z,2026-08-06T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Cache Write Tokens (5m),claude-opus-5,cache_creation.ephemeral_5m_input_tokens,standard,200k-1M,global,2764.50,USD
+2026-08-05T00:00:00Z,2026-08-06T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Cache Read Tokens,claude-opus-5,cache_read_input_tokens,standard,200k-1M,global,1658.70,USD
+2026-08-05T00:00:00Z,2026-08-06T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,0-200k,global,1500.00,USD
+2026-08-05T00:00:00Z,2026-08-06T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,200k-1M,global,4146.75,USD
+2026-08-05T00:00:00Z,2026-08-06T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,0-200k,global,1200.00,USD
+2026-08-05T00:00:00Z,2026-08-06T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,200k-1M,global,27645.00,USD
+2026-08-05T00:00:00Z,2026-08-06T00:00:00Z,wrkspc_search,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,3317.40,USD
+2026-08-05T00:00:00Z,2026-08-06T00:00:00Z,wrkspc_search,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,13269.60,USD
+2026-08-05T00:00:00Z,2026-08-06T00:00:00Z,wrkspc_search,web_search,Web Search Usage,,,,,,438.00,USD
+2026-08-05T00:00:00Z,2026-08-06T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Cache Write Tokens (1h),claude-opus-5,cache_creation.ephemeral_1h_input_tokens,standard,0-200k,global,26539.20,USD
+2026-08-05T00:00:00Z,2026-08-06T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Cache Read Tokens,claude-opus-5,cache_read_input_tokens,standard,0-200k,global,663.48,USD
+2026-08-05T00:00:00Z,2026-08-06T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,0-200k,global,5529.00,USD
+2026-08-05T00:00:00Z,2026-08-06T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,0-200k,global,1658.70,USD
+2026-08-06T00:00:00Z,2026-08-07T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Cache Read Tokens,claude-sonnet-5,cache_read_input_tokens,standard,0-200k,global,1915.20,USD
+2026-08-06T00:00:00Z,2026-08-07T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,9576.00,USD
+2026-08-06T00:00:00Z,2026-08-07T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,14364.00,USD
+2026-08-06T00:00:00Z,2026-08-07T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Cache Write Tokens (5m),claude-opus-5,cache_creation.ephemeral_5m_input_tokens,standard,0-200k,global,1122.19,USD
+2026-08-06T00:00:00Z,2026-08-07T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Cache Read Tokens,claude-opus-5,cache_read_input_tokens,standard,0-200k,global,897.75,USD
+2026-08-06T00:00:00Z,2026-08-07T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,0-200k,global,26932.50,USD
+2026-08-06T00:00:00Z,2026-08-07T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,0-200k,global,3591.00,USD
+2026-08-06T00:00:00Z,2026-08-07T00:00:00Z,wrkspc_data,code_execution,Code Execution Usage,,,,,,420.00,USD
+2026-08-06T00:00:00Z,2026-08-07T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Cache Read Tokens,claude-haiku-4-5,cache_read_input_tokens,batch,0-200k,global,180.00,USD
+2026-08-06T00:00:00Z,2026-08-07T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Output Tokens,claude-haiku-4-5,output_tokens,batch,0-200k,global,1500.00,USD
+2026-08-06T00:00:00Z,2026-08-07T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Input Tokens,claude-haiku-4-5,uncached_input_tokens,batch,0-200k,global,1200.00,USD
+2026-08-06T00:00:00Z,2026-08-07T00:00:00Z,wrkspc_data,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,11700.00,USD
+2026-08-06T00:00:00Z,2026-08-07T00:00:00Z,wrkspc_data,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,18720.00,USD
+2026-08-06T00:00:00Z,2026-08-07T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Cache Write Tokens (5m),claude-opus-5,cache_creation.ephemeral_5m_input_tokens,standard,200k-1M,global,2992.50,USD
+2026-08-06T00:00:00Z,2026-08-07T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Cache Read Tokens,claude-opus-5,cache_read_input_tokens,standard,200k-1M,global,1795.50,USD
+2026-08-06T00:00:00Z,2026-08-07T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,200k-1M,global,4488.75,USD
+2026-08-06T00:00:00Z,2026-08-07T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,200k-1M,global,29925.00,USD
+2026-08-06T00:00:00Z,2026-08-07T00:00:00Z,wrkspc_search,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,3591.00,USD
+2026-08-06T00:00:00Z,2026-08-07T00:00:00Z,wrkspc_search,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,14364.00,USD
+2026-08-06T00:00:00Z,2026-08-07T00:00:00Z,wrkspc_search,web_search,Web Search Usage,,,,,,475.00,USD
+2026-08-06T00:00:00Z,2026-08-07T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Cache Write Tokens (1h),claude-opus-5,cache_creation.ephemeral_1h_input_tokens,standard,0-200k,global,28728.00,USD
+2026-08-06T00:00:00Z,2026-08-07T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Cache Read Tokens,claude-opus-5,cache_read_input_tokens,standard,0-200k,global,718.20,USD
+2026-08-06T00:00:00Z,2026-08-07T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,0-200k,global,5985.00,USD
+2026-08-06T00:00:00Z,2026-08-07T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,0-200k,global,1795.50,USD
+2026-08-07T00:00:00Z,2026-08-08T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Cache Read Tokens,claude-sonnet-5,cache_read_input_tokens,standard,0-200k,global,1824.00,USD
+2026-08-07T00:00:00Z,2026-08-08T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,9120.00,USD
+2026-08-07T00:00:00Z,2026-08-08T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,13680.00,USD
+2026-08-07T00:00:00Z,2026-08-08T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Cache Write Tokens (5m),claude-opus-5,cache_creation.ephemeral_5m_input_tokens,standard,0-200k,global,1068.75,USD
+2026-08-07T00:00:00Z,2026-08-08T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Cache Read Tokens,claude-opus-5,cache_read_input_tokens,standard,0-200k,global,855.00,USD
+2026-08-07T00:00:00Z,2026-08-08T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,0-200k,global,25650.00,USD
+2026-08-07T00:00:00Z,2026-08-08T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,0-200k,global,3420.00,USD
+2026-08-07T00:00:00Z,2026-08-08T00:00:00Z,wrkspc_data,code_execution,Code Execution Usage,,,,,,420.00,USD
+2026-08-07T00:00:00Z,2026-08-08T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Cache Read Tokens,claude-haiku-4-5,cache_read_input_tokens,batch,0-200k,global,180.00,USD
+2026-08-07T00:00:00Z,2026-08-08T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Output Tokens,claude-haiku-4-5,output_tokens,batch,0-200k,global,1500.00,USD
+2026-08-07T00:00:00Z,2026-08-08T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Input Tokens,claude-haiku-4-5,uncached_input_tokens,batch,0-200k,global,1200.00,USD
+2026-08-07T00:00:00Z,2026-08-08T00:00:00Z,wrkspc_data,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,11655.00,USD
+2026-08-07T00:00:00Z,2026-08-08T00:00:00Z,wrkspc_data,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,18648.00,USD
+2026-08-07T00:00:00Z,2026-08-08T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Cache Write Tokens (5m),claude-opus-5,cache_creation.ephemeral_5m_input_tokens,standard,200k-1M,global,2850.00,USD
+2026-08-07T00:00:00Z,2026-08-08T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Cache Read Tokens,claude-opus-5,cache_read_input_tokens,standard,200k-1M,global,1710.00,USD
+2026-08-07T00:00:00Z,2026-08-08T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,0-200k,global,1500.00,USD
+2026-08-07T00:00:00Z,2026-08-08T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,200k-1M,global,4275.00,USD
+2026-08-07T00:00:00Z,2026-08-08T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,0-200k,global,1200.00,USD
+2026-08-07T00:00:00Z,2026-08-08T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,200k-1M,global,28500.00,USD
+2026-08-07T00:00:00Z,2026-08-08T00:00:00Z,wrkspc_search,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,3420.00,USD
+2026-08-07T00:00:00Z,2026-08-08T00:00:00Z,wrkspc_search,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,13680.00,USD
+2026-08-07T00:00:00Z,2026-08-08T00:00:00Z,wrkspc_search,web_search,Web Search Usage,,,,,,456.00,USD
+2026-08-07T00:00:00Z,2026-08-08T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Cache Write Tokens (1h),claude-opus-5,cache_creation.ephemeral_1h_input_tokens,standard,0-200k,global,27360.00,USD
+2026-08-07T00:00:00Z,2026-08-08T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Cache Read Tokens,claude-opus-5,cache_read_input_tokens,standard,0-200k,global,684.00,USD
+2026-08-07T00:00:00Z,2026-08-08T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,0-200k,global,5700.00,USD
+2026-08-07T00:00:00Z,2026-08-08T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,0-200k,global,1710.00,USD
+2026-08-08T00:00:00Z,2026-08-09T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Cache Read Tokens,claude-haiku-4-5,cache_read_input_tokens,batch,0-200k,global,180.00,USD
+2026-08-08T00:00:00Z,2026-08-09T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Output Tokens,claude-haiku-4-5,output_tokens,batch,0-200k,global,1500.00,USD
+2026-08-08T00:00:00Z,2026-08-09T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Input Tokens,claude-haiku-4-5,uncached_input_tokens,batch,0-200k,global,1200.00,USD
+2026-08-08T00:00:00Z,2026-08-09T00:00:00Z,wrkspc_data,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,11587.50,USD
+2026-08-08T00:00:00Z,2026-08-09T00:00:00Z,wrkspc_data,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,18540.00,USD
+2026-08-09T00:00:00Z,2026-08-10T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Cache Read Tokens,claude-haiku-4-5,cache_read_input_tokens,batch,0-200k,global,180.00,USD
+2026-08-09T00:00:00Z,2026-08-10T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Output Tokens,claude-haiku-4-5,output_tokens,batch,0-200k,global,1500.00,USD
+2026-08-09T00:00:00Z,2026-08-10T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Input Tokens,claude-haiku-4-5,uncached_input_tokens,batch,0-200k,global,1200.00,USD
+2026-08-09T00:00:00Z,2026-08-10T00:00:00Z,wrkspc_data,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,11520.00,USD
+2026-08-09T00:00:00Z,2026-08-10T00:00:00Z,wrkspc_data,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,18432.00,USD
+2026-08-10T00:00:00Z,2026-08-11T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Cache Read Tokens,claude-sonnet-5,cache_read_input_tokens,standard,0-200k,global,2042.88,USD
+2026-08-10T00:00:00Z,2026-08-11T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,10214.40,USD
+2026-08-10T00:00:00Z,2026-08-11T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,15321.60,USD
+2026-08-10T00:00:00Z,2026-08-11T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Cache Write Tokens (5m),claude-opus-5,cache_creation.ephemeral_5m_input_tokens,standard,0-200k,global,1197.00,USD
+2026-08-10T00:00:00Z,2026-08-11T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Cache Read Tokens,claude-opus-5,cache_read_input_tokens,standard,0-200k,global,957.60,USD
+2026-08-10T00:00:00Z,2026-08-11T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,0-200k,global,28728.00,USD
+2026-08-10T00:00:00Z,2026-08-11T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,0-200k,global,3830.40,USD
+2026-08-10T00:00:00Z,2026-08-11T00:00:00Z,wrkspc_data,code_execution,Code Execution Usage,,,,,,420.00,USD
+2026-08-10T00:00:00Z,2026-08-11T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Cache Read Tokens,claude-haiku-4-5,cache_read_input_tokens,batch,0-200k,global,180.00,USD
+2026-08-10T00:00:00Z,2026-08-11T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Output Tokens,claude-haiku-4-5,output_tokens,batch,0-200k,global,1500.00,USD
+2026-08-10T00:00:00Z,2026-08-11T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Input Tokens,claude-haiku-4-5,uncached_input_tokens,batch,0-200k,global,1200.00,USD
+2026-08-10T00:00:00Z,2026-08-11T00:00:00Z,wrkspc_data,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,11632.50,USD
+2026-08-10T00:00:00Z,2026-08-11T00:00:00Z,wrkspc_data,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,18612.00,USD
+2026-08-10T00:00:00Z,2026-08-11T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Cache Write Tokens (5m),claude-opus-5,cache_creation.ephemeral_5m_input_tokens,standard,200k-1M,global,3192.00,USD
+2026-08-10T00:00:00Z,2026-08-11T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Cache Read Tokens,claude-opus-5,cache_read_input_tokens,standard,200k-1M,global,1915.20,USD
+2026-08-10T00:00:00Z,2026-08-11T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,0-200k,global,1500.00,USD
+2026-08-10T00:00:00Z,2026-08-11T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,200k-1M,global,4788.00,USD
+2026-08-10T00:00:00Z,2026-08-11T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,0-200k,global,1200.00,USD
+2026-08-10T00:00:00Z,2026-08-11T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,200k-1M,global,31920.00,USD
+2026-08-10T00:00:00Z,2026-08-11T00:00:00Z,wrkspc_search,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,3830.40,USD
+2026-08-10T00:00:00Z,2026-08-11T00:00:00Z,wrkspc_search,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,15321.60,USD
+2026-08-10T00:00:00Z,2026-08-11T00:00:00Z,wrkspc_search,web_search,Web Search Usage,,,,,,507.00,USD
+2026-08-10T00:00:00Z,2026-08-11T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Cache Write Tokens (1h),claude-opus-5,cache_creation.ephemeral_1h_input_tokens,standard,0-200k,global,30643.20,USD
+2026-08-10T00:00:00Z,2026-08-11T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Cache Read Tokens,claude-opus-5,cache_read_input_tokens,standard,0-200k,global,766.08,USD
+2026-08-10T00:00:00Z,2026-08-11T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,0-200k,global,6384.00,USD
+2026-08-10T00:00:00Z,2026-08-11T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,0-200k,global,1915.20,USD
+2026-08-11T00:00:00Z,2026-08-12T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Cache Read Tokens,claude-sonnet-5,cache_read_input_tokens,standard,0-200k,global,1878.72,USD
+2026-08-11T00:00:00Z,2026-08-12T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,9393.60,USD
+2026-08-11T00:00:00Z,2026-08-12T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,14090.40,USD
+2026-08-11T00:00:00Z,2026-08-12T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Cache Write Tokens (5m),claude-opus-5,cache_creation.ephemeral_5m_input_tokens,standard,0-200k,global,1100.81,USD
+2026-08-11T00:00:00Z,2026-08-12T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Cache Read Tokens,claude-opus-5,cache_read_input_tokens,standard,0-200k,global,880.65,USD
+2026-08-11T00:00:00Z,2026-08-12T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,0-200k,global,26419.50,USD
+2026-08-11T00:00:00Z,2026-08-12T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,0-200k,global,3522.60,USD
+2026-08-11T00:00:00Z,2026-08-12T00:00:00Z,wrkspc_data,code_execution,Code Execution Usage,,,,,,420.00,USD
+2026-08-11T00:00:00Z,2026-08-12T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Cache Read Tokens,claude-haiku-4-5,cache_read_input_tokens,batch,0-200k,global,180.00,USD
+2026-08-11T00:00:00Z,2026-08-12T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Output Tokens,claude-haiku-4-5,output_tokens,batch,0-200k,global,1500.00,USD
+2026-08-11T00:00:00Z,2026-08-12T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Input Tokens,claude-haiku-4-5,uncached_input_tokens,batch,0-200k,global,1200.00,USD
+2026-08-11T00:00:00Z,2026-08-12T00:00:00Z,wrkspc_data,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,11542.50,USD
+2026-08-11T00:00:00Z,2026-08-12T00:00:00Z,wrkspc_data,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,18468.00,USD
+2026-08-11T00:00:00Z,2026-08-12T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Cache Write Tokens (5m),claude-opus-5,cache_creation.ephemeral_5m_input_tokens,standard,200k-1M,global,2935.50,USD
+2026-08-11T00:00:00Z,2026-08-12T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Cache Read Tokens,claude-opus-5,cache_read_input_tokens,standard,200k-1M,global,1761.30,USD
+2026-08-11T00:00:00Z,2026-08-12T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,0-200k,global,1500.00,USD
+2026-08-11T00:00:00Z,2026-08-12T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,200k-1M,global,4403.25,USD
+2026-08-11T00:00:00Z,2026-08-12T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,0-200k,global,1200.00,USD
+2026-08-11T00:00:00Z,2026-08-12T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,200k-1M,global,29355.00,USD
+2026-08-11T00:00:00Z,2026-08-12T00:00:00Z,wrkspc_search,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,3522.60,USD
+2026-08-11T00:00:00Z,2026-08-12T00:00:00Z,wrkspc_search,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,14090.40,USD
+2026-08-11T00:00:00Z,2026-08-12T00:00:00Z,wrkspc_search,web_search,Web Search Usage,,,,,,465.00,USD
+2026-08-11T00:00:00Z,2026-08-12T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Cache Write Tokens (1h),claude-opus-5,cache_creation.ephemeral_1h_input_tokens,standard,0-200k,global,28180.80,USD
+2026-08-11T00:00:00Z,2026-08-12T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Cache Read Tokens,claude-opus-5,cache_read_input_tokens,standard,0-200k,global,704.52,USD
+2026-08-11T00:00:00Z,2026-08-12T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,0-200k,global,5871.00,USD
+2026-08-11T00:00:00Z,2026-08-12T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,0-200k,global,1761.30,USD
+2026-08-12T00:00:00Z,2026-08-13T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Cache Read Tokens,claude-sonnet-5,cache_read_input_tokens,standard,0-200k,global,1769.28,USD
+2026-08-12T00:00:00Z,2026-08-13T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,8846.40,USD
+2026-08-12T00:00:00Z,2026-08-13T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,13269.60,USD
+2026-08-12T00:00:00Z,2026-08-13T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Cache Write Tokens (5m),claude-opus-5,cache_creation.ephemeral_5m_input_tokens,standard,0-200k,global,1036.69,USD
+2026-08-12T00:00:00Z,2026-08-13T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Cache Read Tokens,claude-opus-5,cache_read_input_tokens,standard,0-200k,global,829.35,USD
+2026-08-12T00:00:00Z,2026-08-13T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,0-200k,global,24880.50,USD
+2026-08-12T00:00:00Z,2026-08-13T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,0-200k,global,3317.40,USD
+2026-08-12T00:00:00Z,2026-08-13T00:00:00Z,wrkspc_data,code_execution,Code Execution Usage,,,,,,420.00,USD
+2026-08-12T00:00:00Z,2026-08-13T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Cache Read Tokens,claude-haiku-4-5,cache_read_input_tokens,batch,0-200k,global,180.00,USD
+2026-08-12T00:00:00Z,2026-08-13T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Output Tokens,claude-haiku-4-5,output_tokens,batch,0-200k,global,1500.00,USD
+2026-08-12T00:00:00Z,2026-08-13T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Input Tokens,claude-haiku-4-5,uncached_input_tokens,batch,0-200k,global,1200.00,USD
+2026-08-12T00:00:00Z,2026-08-13T00:00:00Z,wrkspc_data,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,11362.50,USD
+2026-08-12T00:00:00Z,2026-08-13T00:00:00Z,wrkspc_data,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,18180.00,USD
+2026-08-12T00:00:00Z,2026-08-13T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Cache Write Tokens (5m),claude-opus-5,cache_creation.ephemeral_5m_input_tokens,standard,200k-1M,global,2764.50,USD
+2026-08-12T00:00:00Z,2026-08-13T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Cache Read Tokens,claude-opus-5,cache_read_input_tokens,standard,200k-1M,global,1658.70,USD
+2026-08-12T00:00:00Z,2026-08-13T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,200k-1M,global,4146.75,USD
+2026-08-12T00:00:00Z,2026-08-13T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,200k-1M,global,27645.00,USD
+2026-08-12T00:00:00Z,2026-08-13T00:00:00Z,wrkspc_search,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,3317.40,USD
+2026-08-12T00:00:00Z,2026-08-13T00:00:00Z,wrkspc_search,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,13269.60,USD
+2026-08-12T00:00:00Z,2026-08-13T00:00:00Z,wrkspc_search,web_search,Web Search Usage,,,,,,438.00,USD
+2026-08-12T00:00:00Z,2026-08-13T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Cache Write Tokens (1h),claude-opus-5,cache_creation.ephemeral_1h_input_tokens,standard,0-200k,global,26539.20,USD
+2026-08-12T00:00:00Z,2026-08-13T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Cache Read Tokens,claude-opus-5,cache_read_input_tokens,standard,0-200k,global,663.48,USD
+2026-08-12T00:00:00Z,2026-08-13T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,0-200k,global,5529.00,USD
+2026-08-12T00:00:00Z,2026-08-13T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,0-200k,global,1658.70,USD
+2026-08-13T00:00:00Z,2026-08-14T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Cache Read Tokens,claude-sonnet-5,cache_read_input_tokens,standard,0-200k,global,1915.20,USD
+2026-08-13T00:00:00Z,2026-08-14T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,9576.00,USD
+2026-08-13T00:00:00Z,2026-08-14T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,14364.00,USD
+2026-08-13T00:00:00Z,2026-08-14T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Cache Write Tokens (5m),claude-opus-5,cache_creation.ephemeral_5m_input_tokens,standard,0-200k,global,1122.19,USD
+2026-08-13T00:00:00Z,2026-08-14T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Cache Read Tokens,claude-opus-5,cache_read_input_tokens,standard,0-200k,global,897.75,USD
+2026-08-13T00:00:00Z,2026-08-14T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,0-200k,global,26932.50,USD
+2026-08-13T00:00:00Z,2026-08-14T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,0-200k,global,3591.00,USD
+2026-08-13T00:00:00Z,2026-08-14T00:00:00Z,wrkspc_data,code_execution,Code Execution Usage,,,,,,420.00,USD
+2026-08-13T00:00:00Z,2026-08-14T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Cache Read Tokens,claude-haiku-4-5,cache_read_input_tokens,batch,0-200k,global,180.00,USD
+2026-08-13T00:00:00Z,2026-08-14T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Output Tokens,claude-haiku-4-5,output_tokens,batch,0-200k,global,1500.00,USD
+2026-08-13T00:00:00Z,2026-08-14T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Input Tokens,claude-haiku-4-5,uncached_input_tokens,batch,0-200k,global,1200.00,USD
+2026-08-13T00:00:00Z,2026-08-14T00:00:00Z,wrkspc_data,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,11700.00,USD
+2026-08-13T00:00:00Z,2026-08-14T00:00:00Z,wrkspc_data,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,18720.00,USD
+2026-08-13T00:00:00Z,2026-08-14T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Cache Write Tokens (5m),claude-opus-5,cache_creation.ephemeral_5m_input_tokens,standard,200k-1M,global,2992.50,USD
+2026-08-13T00:00:00Z,2026-08-14T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Cache Read Tokens,claude-opus-5,cache_read_input_tokens,standard,200k-1M,global,1795.50,USD
+2026-08-13T00:00:00Z,2026-08-14T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,0-200k,global,1500.00,USD
+2026-08-13T00:00:00Z,2026-08-14T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,200k-1M,global,4488.75,USD
+2026-08-13T00:00:00Z,2026-08-14T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,0-200k,global,1200.00,USD
+2026-08-13T00:00:00Z,2026-08-14T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,200k-1M,global,29925.00,USD
+2026-08-13T00:00:00Z,2026-08-14T00:00:00Z,wrkspc_search,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,3591.00,USD
+2026-08-13T00:00:00Z,2026-08-14T00:00:00Z,wrkspc_search,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,14364.00,USD
+2026-08-13T00:00:00Z,2026-08-14T00:00:00Z,wrkspc_search,web_search,Web Search Usage,,,,,,475.00,USD
+2026-08-13T00:00:00Z,2026-08-14T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Cache Write Tokens (1h),claude-opus-5,cache_creation.ephemeral_1h_input_tokens,standard,0-200k,global,28728.00,USD
+2026-08-13T00:00:00Z,2026-08-14T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Cache Read Tokens,claude-opus-5,cache_read_input_tokens,standard,0-200k,global,718.20,USD
+2026-08-13T00:00:00Z,2026-08-14T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,0-200k,global,5985.00,USD
+2026-08-13T00:00:00Z,2026-08-14T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,0-200k,global,1795.50,USD
+2026-08-14T00:00:00Z,2026-08-15T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Cache Read Tokens,claude-sonnet-5,cache_read_input_tokens,standard,0-200k,global,1824.00,USD
+2026-08-14T00:00:00Z,2026-08-15T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,9120.00,USD
+2026-08-14T00:00:00Z,2026-08-15T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,13680.00,USD
+2026-08-14T00:00:00Z,2026-08-15T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Cache Write Tokens (5m),claude-opus-5,cache_creation.ephemeral_5m_input_tokens,standard,0-200k,global,1068.75,USD
+2026-08-14T00:00:00Z,2026-08-15T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Cache Read Tokens,claude-opus-5,cache_read_input_tokens,standard,0-200k,global,855.00,USD
+2026-08-14T00:00:00Z,2026-08-15T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,0-200k,global,25650.00,USD
+2026-08-14T00:00:00Z,2026-08-15T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,0-200k,global,3420.00,USD
+2026-08-14T00:00:00Z,2026-08-15T00:00:00Z,wrkspc_data,code_execution,Code Execution Usage,,,,,,420.00,USD
+2026-08-14T00:00:00Z,2026-08-15T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Cache Read Tokens,claude-haiku-4-5,cache_read_input_tokens,batch,0-200k,global,180.00,USD
+2026-08-14T00:00:00Z,2026-08-15T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Output Tokens,claude-haiku-4-5,output_tokens,batch,0-200k,global,1500.00,USD
+2026-08-14T00:00:00Z,2026-08-15T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Input Tokens,claude-haiku-4-5,uncached_input_tokens,batch,0-200k,global,1200.00,USD
+2026-08-14T00:00:00Z,2026-08-15T00:00:00Z,wrkspc_data,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,11655.00,USD
+2026-08-14T00:00:00Z,2026-08-15T00:00:00Z,wrkspc_data,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,18648.00,USD
+2026-08-14T00:00:00Z,2026-08-15T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Cache Write Tokens (5m),claude-opus-5,cache_creation.ephemeral_5m_input_tokens,standard,200k-1M,global,2850.00,USD
+2026-08-14T00:00:00Z,2026-08-15T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Cache Read Tokens,claude-opus-5,cache_read_input_tokens,standard,200k-1M,global,1710.00,USD
+2026-08-14T00:00:00Z,2026-08-15T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,0-200k,global,1500.00,USD
+2026-08-14T00:00:00Z,2026-08-15T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,200k-1M,global,4275.00,USD
+2026-08-14T00:00:00Z,2026-08-15T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,0-200k,global,1200.00,USD
+2026-08-14T00:00:00Z,2026-08-15T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,200k-1M,global,28500.00,USD
+2026-08-14T00:00:00Z,2026-08-15T00:00:00Z,wrkspc_search,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,3420.00,USD
+2026-08-14T00:00:00Z,2026-08-15T00:00:00Z,wrkspc_search,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,13680.00,USD
+2026-08-14T00:00:00Z,2026-08-15T00:00:00Z,wrkspc_search,web_search,Web Search Usage,,,,,,456.00,USD
+2026-08-14T00:00:00Z,2026-08-15T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Cache Write Tokens (1h),claude-opus-5,cache_creation.ephemeral_1h_input_tokens,standard,0-200k,global,27360.00,USD
+2026-08-14T00:00:00Z,2026-08-15T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Cache Read Tokens,claude-opus-5,cache_read_input_tokens,standard,0-200k,global,684.00,USD
+2026-08-14T00:00:00Z,2026-08-15T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,0-200k,global,5700.00,USD
+2026-08-14T00:00:00Z,2026-08-15T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,0-200k,global,1710.00,USD
+2026-08-15T00:00:00Z,2026-08-16T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Cache Read Tokens,claude-haiku-4-5,cache_read_input_tokens,batch,0-200k,global,180.00,USD
+2026-08-15T00:00:00Z,2026-08-16T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Output Tokens,claude-haiku-4-5,output_tokens,batch,0-200k,global,1500.00,USD
+2026-08-15T00:00:00Z,2026-08-16T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Input Tokens,claude-haiku-4-5,uncached_input_tokens,batch,0-200k,global,1200.00,USD
+2026-08-15T00:00:00Z,2026-08-16T00:00:00Z,wrkspc_data,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,11587.50,USD
+2026-08-15T00:00:00Z,2026-08-16T00:00:00Z,wrkspc_data,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,18540.00,USD
+2026-08-16T00:00:00Z,2026-08-17T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Cache Read Tokens,claude-haiku-4-5,cache_read_input_tokens,batch,0-200k,global,180.00,USD
+2026-08-16T00:00:00Z,2026-08-17T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Output Tokens,claude-haiku-4-5,output_tokens,batch,0-200k,global,1500.00,USD
+2026-08-16T00:00:00Z,2026-08-17T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Input Tokens,claude-haiku-4-5,uncached_input_tokens,batch,0-200k,global,1200.00,USD
+2026-08-16T00:00:00Z,2026-08-17T00:00:00Z,wrkspc_data,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,11520.00,USD
+2026-08-16T00:00:00Z,2026-08-17T00:00:00Z,wrkspc_data,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,18432.00,USD
+2026-08-17T00:00:00Z,2026-08-18T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Cache Read Tokens,claude-sonnet-5,cache_read_input_tokens,standard,0-200k,global,2042.88,USD
+2026-08-17T00:00:00Z,2026-08-18T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,10214.40,USD
+2026-08-17T00:00:00Z,2026-08-18T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,15321.60,USD
+2026-08-17T00:00:00Z,2026-08-18T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Cache Write Tokens (5m),claude-opus-5,cache_creation.ephemeral_5m_input_tokens,standard,0-200k,global,1197.00,USD
+2026-08-17T00:00:00Z,2026-08-18T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Cache Read Tokens,claude-opus-5,cache_read_input_tokens,standard,0-200k,global,957.60,USD
+2026-08-17T00:00:00Z,2026-08-18T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,0-200k,global,28728.00,USD
+2026-08-17T00:00:00Z,2026-08-18T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,0-200k,global,3830.40,USD
+2026-08-17T00:00:00Z,2026-08-18T00:00:00Z,wrkspc_data,code_execution,Code Execution Usage,,,,,,420.00,USD
+2026-08-17T00:00:00Z,2026-08-18T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Cache Read Tokens,claude-haiku-4-5,cache_read_input_tokens,batch,0-200k,global,180.00,USD
+2026-08-17T00:00:00Z,2026-08-18T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Output Tokens,claude-haiku-4-5,output_tokens,batch,0-200k,global,1500.00,USD
+2026-08-17T00:00:00Z,2026-08-18T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Input Tokens,claude-haiku-4-5,uncached_input_tokens,batch,0-200k,global,1200.00,USD
+2026-08-17T00:00:00Z,2026-08-18T00:00:00Z,wrkspc_data,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,11632.50,USD
+2026-08-17T00:00:00Z,2026-08-18T00:00:00Z,wrkspc_data,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,18612.00,USD
+2026-08-17T00:00:00Z,2026-08-18T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Cache Write Tokens (5m),claude-opus-5,cache_creation.ephemeral_5m_input_tokens,standard,200k-1M,global,3192.00,USD
+2026-08-17T00:00:00Z,2026-08-18T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Cache Read Tokens,claude-opus-5,cache_read_input_tokens,standard,200k-1M,global,1915.20,USD
+2026-08-17T00:00:00Z,2026-08-18T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,0-200k,global,1500.00,USD
+2026-08-17T00:00:00Z,2026-08-18T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,200k-1M,global,4788.00,USD
+2026-08-17T00:00:00Z,2026-08-18T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,0-200k,global,1200.00,USD
+2026-08-17T00:00:00Z,2026-08-18T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,200k-1M,global,31920.00,USD
+2026-08-17T00:00:00Z,2026-08-18T00:00:00Z,wrkspc_search,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,3830.40,USD
+2026-08-17T00:00:00Z,2026-08-18T00:00:00Z,wrkspc_search,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,15321.60,USD
+2026-08-17T00:00:00Z,2026-08-18T00:00:00Z,wrkspc_search,web_search,Web Search Usage,,,,,,507.00,USD
+2026-08-17T00:00:00Z,2026-08-18T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Cache Write Tokens (1h),claude-opus-5,cache_creation.ephemeral_1h_input_tokens,standard,0-200k,global,30643.20,USD
+2026-08-17T00:00:00Z,2026-08-18T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Cache Read Tokens,claude-opus-5,cache_read_input_tokens,standard,0-200k,global,766.08,USD
+2026-08-17T00:00:00Z,2026-08-18T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,0-200k,global,6384.00,USD
+2026-08-17T00:00:00Z,2026-08-18T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,0-200k,global,1915.20,USD
+2026-08-18T00:00:00Z,2026-08-19T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Cache Read Tokens,claude-sonnet-5,cache_read_input_tokens,standard,0-200k,global,1878.72,USD
+2026-08-18T00:00:00Z,2026-08-19T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,9393.60,USD
+2026-08-18T00:00:00Z,2026-08-19T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,14090.40,USD
+2026-08-18T00:00:00Z,2026-08-19T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Cache Write Tokens (5m),claude-opus-5,cache_creation.ephemeral_5m_input_tokens,standard,0-200k,global,1100.81,USD
+2026-08-18T00:00:00Z,2026-08-19T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Cache Read Tokens,claude-opus-5,cache_read_input_tokens,standard,0-200k,global,880.65,USD
+2026-08-18T00:00:00Z,2026-08-19T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,0-200k,global,26419.50,USD
+2026-08-18T00:00:00Z,2026-08-19T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,0-200k,global,3522.60,USD
+2026-08-18T00:00:00Z,2026-08-19T00:00:00Z,wrkspc_data,code_execution,Code Execution Usage,,,,,,420.00,USD
+2026-08-18T00:00:00Z,2026-08-19T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Cache Read Tokens,claude-haiku-4-5,cache_read_input_tokens,batch,0-200k,global,180.00,USD
+2026-08-18T00:00:00Z,2026-08-19T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Output Tokens,claude-haiku-4-5,output_tokens,batch,0-200k,global,1500.00,USD
+2026-08-18T00:00:00Z,2026-08-19T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Input Tokens,claude-haiku-4-5,uncached_input_tokens,batch,0-200k,global,1200.00,USD
+2026-08-18T00:00:00Z,2026-08-19T00:00:00Z,wrkspc_data,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,11542.50,USD
+2026-08-18T00:00:00Z,2026-08-19T00:00:00Z,wrkspc_data,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,18468.00,USD
+2026-08-18T00:00:00Z,2026-08-19T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Cache Write Tokens (5m),claude-opus-5,cache_creation.ephemeral_5m_input_tokens,standard,200k-1M,global,2935.50,USD
+2026-08-18T00:00:00Z,2026-08-19T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Cache Read Tokens,claude-opus-5,cache_read_input_tokens,standard,200k-1M,global,1761.30,USD
+2026-08-18T00:00:00Z,2026-08-19T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,200k-1M,global,4403.25,USD
+2026-08-18T00:00:00Z,2026-08-19T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,200k-1M,global,29355.00,USD
+2026-08-18T00:00:00Z,2026-08-19T00:00:00Z,wrkspc_search,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,3522.60,USD
+2026-08-18T00:00:00Z,2026-08-19T00:00:00Z,wrkspc_search,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,14090.40,USD
+2026-08-18T00:00:00Z,2026-08-19T00:00:00Z,wrkspc_search,web_search,Web Search Usage,,,,,,465.00,USD
+2026-08-18T00:00:00Z,2026-08-19T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Cache Write Tokens (1h),claude-opus-5,cache_creation.ephemeral_1h_input_tokens,standard,0-200k,global,28180.80,USD
+2026-08-18T00:00:00Z,2026-08-19T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Cache Read Tokens,claude-opus-5,cache_read_input_tokens,standard,0-200k,global,704.52,USD
+2026-08-18T00:00:00Z,2026-08-19T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,0-200k,global,5871.00,USD
+2026-08-18T00:00:00Z,2026-08-19T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,0-200k,global,1761.30,USD
+2026-08-19T00:00:00Z,2026-08-20T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Cache Read Tokens,claude-sonnet-5,cache_read_input_tokens,standard,0-200k,global,1769.28,USD
+2026-08-19T00:00:00Z,2026-08-20T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,8846.40,USD
+2026-08-19T00:00:00Z,2026-08-20T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,13269.60,USD
+2026-08-19T00:00:00Z,2026-08-20T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Cache Write Tokens (5m),claude-opus-5,cache_creation.ephemeral_5m_input_tokens,standard,0-200k,global,1036.69,USD
+2026-08-19T00:00:00Z,2026-08-20T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Cache Read Tokens,claude-opus-5,cache_read_input_tokens,standard,0-200k,global,829.35,USD
+2026-08-19T00:00:00Z,2026-08-20T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,0-200k,global,24880.50,USD
+2026-08-19T00:00:00Z,2026-08-20T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,0-200k,global,3317.40,USD
+2026-08-19T00:00:00Z,2026-08-20T00:00:00Z,wrkspc_data,code_execution,Code Execution Usage,,,,,,420.00,USD
+2026-08-19T00:00:00Z,2026-08-20T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Cache Read Tokens,claude-haiku-4-5,cache_read_input_tokens,batch,0-200k,global,180.00,USD
+2026-08-19T00:00:00Z,2026-08-20T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Output Tokens,claude-haiku-4-5,output_tokens,batch,0-200k,global,1500.00,USD
+2026-08-19T00:00:00Z,2026-08-20T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Input Tokens,claude-haiku-4-5,uncached_input_tokens,batch,0-200k,global,1200.00,USD
+2026-08-19T00:00:00Z,2026-08-20T00:00:00Z,wrkspc_data,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,182362.50,USD
+2026-08-19T00:00:00Z,2026-08-20T00:00:00Z,wrkspc_data,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,291780.00,USD
+2026-08-19T00:00:00Z,2026-08-20T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Cache Write Tokens (5m),claude-opus-5,cache_creation.ephemeral_5m_input_tokens,standard,200k-1M,global,2764.50,USD
+2026-08-19T00:00:00Z,2026-08-20T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Cache Read Tokens,claude-opus-5,cache_read_input_tokens,standard,200k-1M,global,1658.70,USD
+2026-08-19T00:00:00Z,2026-08-20T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,0-200k,global,1500.00,USD
+2026-08-19T00:00:00Z,2026-08-20T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,200k-1M,global,4146.75,USD
+2026-08-19T00:00:00Z,2026-08-20T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,0-200k,global,1200.00,USD
+2026-08-19T00:00:00Z,2026-08-20T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,200k-1M,global,27645.00,USD
+2026-08-19T00:00:00Z,2026-08-20T00:00:00Z,wrkspc_search,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,3317.40,USD
+2026-08-19T00:00:00Z,2026-08-20T00:00:00Z,wrkspc_search,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,13269.60,USD
+2026-08-19T00:00:00Z,2026-08-20T00:00:00Z,wrkspc_search,web_search,Web Search Usage,,,,,,438.00,USD
+2026-08-19T00:00:00Z,2026-08-20T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Cache Write Tokens (1h),claude-opus-5,cache_creation.ephemeral_1h_input_tokens,standard,0-200k,global,26539.20,USD
+2026-08-19T00:00:00Z,2026-08-20T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Cache Read Tokens,claude-opus-5,cache_read_input_tokens,standard,0-200k,global,663.48,USD
+2026-08-19T00:00:00Z,2026-08-20T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,0-200k,global,5529.00,USD
+2026-08-19T00:00:00Z,2026-08-20T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,0-200k,global,1658.70,USD
+2026-08-20T00:00:00Z,2026-08-21T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Cache Read Tokens,claude-sonnet-5,cache_read_input_tokens,standard,0-200k,global,1915.20,USD
+2026-08-20T00:00:00Z,2026-08-21T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,9576.00,USD
+2026-08-20T00:00:00Z,2026-08-21T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,14364.00,USD
+2026-08-20T00:00:00Z,2026-08-21T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Cache Write Tokens (5m),claude-opus-5,cache_creation.ephemeral_5m_input_tokens,standard,0-200k,global,1122.19,USD
+2026-08-20T00:00:00Z,2026-08-21T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Cache Read Tokens,claude-opus-5,cache_read_input_tokens,standard,0-200k,global,897.75,USD
+2026-08-20T00:00:00Z,2026-08-21T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,0-200k,global,26932.50,USD
+2026-08-20T00:00:00Z,2026-08-21T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,0-200k,global,3591.00,USD
+2026-08-20T00:00:00Z,2026-08-21T00:00:00Z,wrkspc_data,code_execution,Code Execution Usage,,,,,,420.00,USD
+2026-08-20T00:00:00Z,2026-08-21T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Cache Read Tokens,claude-haiku-4-5,cache_read_input_tokens,batch,0-200k,global,180.00,USD
+2026-08-20T00:00:00Z,2026-08-21T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Output Tokens,claude-haiku-4-5,output_tokens,batch,0-200k,global,1500.00,USD
+2026-08-20T00:00:00Z,2026-08-21T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Input Tokens,claude-haiku-4-5,uncached_input_tokens,batch,0-200k,global,1200.00,USD
+2026-08-20T00:00:00Z,2026-08-21T00:00:00Z,wrkspc_data,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,11700.00,USD
+2026-08-20T00:00:00Z,2026-08-21T00:00:00Z,wrkspc_data,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,18720.00,USD
+2026-08-20T00:00:00Z,2026-08-21T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Cache Write Tokens (5m),claude-opus-5,cache_creation.ephemeral_5m_input_tokens,standard,200k-1M,global,2992.50,USD
+2026-08-20T00:00:00Z,2026-08-21T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Cache Read Tokens,claude-opus-5,cache_read_input_tokens,standard,200k-1M,global,1795.50,USD
+2026-08-20T00:00:00Z,2026-08-21T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,0-200k,global,1500.00,USD
+2026-08-20T00:00:00Z,2026-08-21T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,200k-1M,global,4488.75,USD
+2026-08-20T00:00:00Z,2026-08-21T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,0-200k,global,1200.00,USD
+2026-08-20T00:00:00Z,2026-08-21T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,200k-1M,global,29925.00,USD
+2026-08-20T00:00:00Z,2026-08-21T00:00:00Z,wrkspc_search,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,3591.00,USD
+2026-08-20T00:00:00Z,2026-08-21T00:00:00Z,wrkspc_search,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,14364.00,USD
+2026-08-20T00:00:00Z,2026-08-21T00:00:00Z,wrkspc_search,web_search,Web Search Usage,,,,,,475.00,USD
+2026-08-20T00:00:00Z,2026-08-21T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Cache Write Tokens (1h),claude-opus-5,cache_creation.ephemeral_1h_input_tokens,standard,0-200k,global,28728.00,USD
+2026-08-20T00:00:00Z,2026-08-21T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Cache Read Tokens,claude-opus-5,cache_read_input_tokens,standard,0-200k,global,718.20,USD
+2026-08-20T00:00:00Z,2026-08-21T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,0-200k,global,5985.00,USD
+2026-08-20T00:00:00Z,2026-08-21T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,0-200k,global,1795.50,USD
+2026-08-21T00:00:00Z,2026-08-22T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Cache Read Tokens,claude-sonnet-5,cache_read_input_tokens,standard,0-200k,global,1824.00,USD
+2026-08-21T00:00:00Z,2026-08-22T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,9120.00,USD
+2026-08-21T00:00:00Z,2026-08-22T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,13680.00,USD
+2026-08-21T00:00:00Z,2026-08-22T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Cache Write Tokens (5m),claude-opus-5,cache_creation.ephemeral_5m_input_tokens,standard,0-200k,global,1068.75,USD
+2026-08-21T00:00:00Z,2026-08-22T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Cache Read Tokens,claude-opus-5,cache_read_input_tokens,standard,0-200k,global,855.00,USD
+2026-08-21T00:00:00Z,2026-08-22T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,0-200k,global,25650.00,USD
+2026-08-21T00:00:00Z,2026-08-22T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,0-200k,global,3420.00,USD
+2026-08-21T00:00:00Z,2026-08-22T00:00:00Z,wrkspc_data,code_execution,Code Execution Usage,,,,,,420.00,USD
+2026-08-21T00:00:00Z,2026-08-22T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Cache Read Tokens,claude-haiku-4-5,cache_read_input_tokens,batch,0-200k,global,180.00,USD
+2026-08-21T00:00:00Z,2026-08-22T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Output Tokens,claude-haiku-4-5,output_tokens,batch,0-200k,global,1500.00,USD
+2026-08-21T00:00:00Z,2026-08-22T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Input Tokens,claude-haiku-4-5,uncached_input_tokens,batch,0-200k,global,1200.00,USD
+2026-08-21T00:00:00Z,2026-08-22T00:00:00Z,wrkspc_data,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,11655.00,USD
+2026-08-21T00:00:00Z,2026-08-22T00:00:00Z,wrkspc_data,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,18648.00,USD
+2026-08-21T00:00:00Z,2026-08-22T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Cache Write Tokens (5m),claude-opus-5,cache_creation.ephemeral_5m_input_tokens,standard,200k-1M,global,2850.00,USD
+2026-08-21T00:00:00Z,2026-08-22T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Cache Read Tokens,claude-opus-5,cache_read_input_tokens,standard,200k-1M,global,1710.00,USD
+2026-08-21T00:00:00Z,2026-08-22T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,200k-1M,global,4275.00,USD
+2026-08-21T00:00:00Z,2026-08-22T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,200k-1M,global,28500.00,USD
+2026-08-21T00:00:00Z,2026-08-22T00:00:00Z,wrkspc_search,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,3420.00,USD
+2026-08-21T00:00:00Z,2026-08-22T00:00:00Z,wrkspc_search,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,13680.00,USD
+2026-08-21T00:00:00Z,2026-08-22T00:00:00Z,wrkspc_search,web_search,Web Search Usage,,,,,,456.00,USD
+2026-08-21T00:00:00Z,2026-08-22T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Cache Write Tokens (1h),claude-opus-5,cache_creation.ephemeral_1h_input_tokens,standard,0-200k,global,27360.00,USD
+2026-08-21T00:00:00Z,2026-08-22T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Cache Read Tokens,claude-opus-5,cache_read_input_tokens,standard,0-200k,global,684.00,USD
+2026-08-21T00:00:00Z,2026-08-22T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,0-200k,global,5700.00,USD
+2026-08-21T00:00:00Z,2026-08-22T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,0-200k,global,1710.00,USD
+2026-08-22T00:00:00Z,2026-08-23T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Cache Read Tokens,claude-haiku-4-5,cache_read_input_tokens,batch,0-200k,global,180.00,USD
+2026-08-22T00:00:00Z,2026-08-23T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Output Tokens,claude-haiku-4-5,output_tokens,batch,0-200k,global,1500.00,USD
+2026-08-22T00:00:00Z,2026-08-23T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Input Tokens,claude-haiku-4-5,uncached_input_tokens,batch,0-200k,global,1200.00,USD
+2026-08-22T00:00:00Z,2026-08-23T00:00:00Z,wrkspc_data,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,11587.50,USD
+2026-08-22T00:00:00Z,2026-08-23T00:00:00Z,wrkspc_data,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,18540.00,USD
+2026-08-23T00:00:00Z,2026-08-24T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Cache Read Tokens,claude-haiku-4-5,cache_read_input_tokens,batch,0-200k,global,180.00,USD
+2026-08-23T00:00:00Z,2026-08-24T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Output Tokens,claude-haiku-4-5,output_tokens,batch,0-200k,global,1500.00,USD
+2026-08-23T00:00:00Z,2026-08-24T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Input Tokens,claude-haiku-4-5,uncached_input_tokens,batch,0-200k,global,1200.00,USD
+2026-08-23T00:00:00Z,2026-08-24T00:00:00Z,wrkspc_data,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,11520.00,USD
+2026-08-23T00:00:00Z,2026-08-24T00:00:00Z,wrkspc_data,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,18432.00,USD
+2026-08-24T00:00:00Z,2026-08-25T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Cache Read Tokens,claude-sonnet-5,cache_read_input_tokens,standard,0-200k,global,2042.88,USD
+2026-08-24T00:00:00Z,2026-08-25T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,10214.40,USD
+2026-08-24T00:00:00Z,2026-08-25T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,15321.60,USD
+2026-08-24T00:00:00Z,2026-08-25T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Cache Write Tokens (5m),claude-opus-5,cache_creation.ephemeral_5m_input_tokens,standard,0-200k,global,1197.00,USD
+2026-08-24T00:00:00Z,2026-08-25T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Cache Read Tokens,claude-opus-5,cache_read_input_tokens,standard,0-200k,global,957.60,USD
+2026-08-24T00:00:00Z,2026-08-25T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,0-200k,global,28728.00,USD
+2026-08-24T00:00:00Z,2026-08-25T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,0-200k,global,3830.40,USD
+2026-08-24T00:00:00Z,2026-08-25T00:00:00Z,wrkspc_data,code_execution,Code Execution Usage,,,,,,420.00,USD
+2026-08-24T00:00:00Z,2026-08-25T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Cache Read Tokens,claude-haiku-4-5,cache_read_input_tokens,batch,0-200k,global,180.00,USD
+2026-08-24T00:00:00Z,2026-08-25T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Output Tokens,claude-haiku-4-5,output_tokens,batch,0-200k,global,1500.00,USD
+2026-08-24T00:00:00Z,2026-08-25T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Input Tokens,claude-haiku-4-5,uncached_input_tokens,batch,0-200k,global,1200.00,USD
+2026-08-24T00:00:00Z,2026-08-25T00:00:00Z,wrkspc_data,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,11632.50,USD
+2026-08-24T00:00:00Z,2026-08-25T00:00:00Z,wrkspc_data,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,18612.00,USD
+2026-08-24T00:00:00Z,2026-08-25T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Cache Write Tokens (5m),claude-opus-5,cache_creation.ephemeral_5m_input_tokens,standard,200k-1M,global,3192.00,USD
+2026-08-24T00:00:00Z,2026-08-25T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Cache Read Tokens,claude-opus-5,cache_read_input_tokens,standard,200k-1M,global,1915.20,USD
+2026-08-24T00:00:00Z,2026-08-25T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,200k-1M,global,4788.00,USD
+2026-08-24T00:00:00Z,2026-08-25T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,200k-1M,global,31920.00,USD
+2026-08-24T00:00:00Z,2026-08-25T00:00:00Z,wrkspc_search,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,3830.40,USD
+2026-08-24T00:00:00Z,2026-08-25T00:00:00Z,wrkspc_search,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,15321.60,USD
+2026-08-24T00:00:00Z,2026-08-25T00:00:00Z,wrkspc_search,web_search,Web Search Usage,,,,,,507.00,USD
+2026-08-24T00:00:00Z,2026-08-25T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Cache Write Tokens (1h),claude-opus-5,cache_creation.ephemeral_1h_input_tokens,standard,0-200k,global,30643.20,USD
+2026-08-24T00:00:00Z,2026-08-25T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Cache Read Tokens,claude-opus-5,cache_read_input_tokens,standard,0-200k,global,766.08,USD
+2026-08-24T00:00:00Z,2026-08-25T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,0-200k,global,6384.00,USD
+2026-08-24T00:00:00Z,2026-08-25T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,0-200k,global,1915.20,USD
+2026-08-25T00:00:00Z,2026-08-26T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Cache Read Tokens,claude-sonnet-5,cache_read_input_tokens,standard,0-200k,global,1878.72,USD
+2026-08-25T00:00:00Z,2026-08-26T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,9393.60,USD
+2026-08-25T00:00:00Z,2026-08-26T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,14090.40,USD
+2026-08-25T00:00:00Z,2026-08-26T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Cache Write Tokens (5m),claude-opus-5,cache_creation.ephemeral_5m_input_tokens,standard,0-200k,global,1100.81,USD
+2026-08-25T00:00:00Z,2026-08-26T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Cache Read Tokens,claude-opus-5,cache_read_input_tokens,standard,0-200k,global,880.65,USD
+2026-08-25T00:00:00Z,2026-08-26T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,0-200k,global,26419.50,USD
+2026-08-25T00:00:00Z,2026-08-26T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,0-200k,global,3522.60,USD
+2026-08-25T00:00:00Z,2026-08-26T00:00:00Z,wrkspc_data,code_execution,Code Execution Usage,,,,,,420.00,USD
+2026-08-25T00:00:00Z,2026-08-26T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Cache Read Tokens,claude-haiku-4-5,cache_read_input_tokens,batch,0-200k,global,180.00,USD
+2026-08-25T00:00:00Z,2026-08-26T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Output Tokens,claude-haiku-4-5,output_tokens,batch,0-200k,global,1500.00,USD
+2026-08-25T00:00:00Z,2026-08-26T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Input Tokens,claude-haiku-4-5,uncached_input_tokens,batch,0-200k,global,1200.00,USD
+2026-08-25T00:00:00Z,2026-08-26T00:00:00Z,wrkspc_data,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,11542.50,USD
+2026-08-25T00:00:00Z,2026-08-26T00:00:00Z,wrkspc_data,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,18468.00,USD
+2026-08-25T00:00:00Z,2026-08-26T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Cache Write Tokens (5m),claude-opus-5,cache_creation.ephemeral_5m_input_tokens,standard,200k-1M,global,2935.50,USD
+2026-08-25T00:00:00Z,2026-08-26T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Cache Read Tokens,claude-opus-5,cache_read_input_tokens,standard,200k-1M,global,1761.30,USD
+2026-08-25T00:00:00Z,2026-08-26T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,0-200k,global,1500.00,USD
+2026-08-25T00:00:00Z,2026-08-26T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,200k-1M,global,4403.25,USD
+2026-08-25T00:00:00Z,2026-08-26T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,0-200k,global,1200.00,USD
+2026-08-25T00:00:00Z,2026-08-26T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,200k-1M,global,29355.00,USD
+2026-08-25T00:00:00Z,2026-08-26T00:00:00Z,wrkspc_search,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,3522.60,USD
+2026-08-25T00:00:00Z,2026-08-26T00:00:00Z,wrkspc_search,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,14090.40,USD
+2026-08-25T00:00:00Z,2026-08-26T00:00:00Z,wrkspc_search,web_search,Web Search Usage,,,,,,465.00,USD
+2026-08-25T00:00:00Z,2026-08-26T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Cache Write Tokens (1h),claude-opus-5,cache_creation.ephemeral_1h_input_tokens,standard,0-200k,global,28180.80,USD
+2026-08-25T00:00:00Z,2026-08-26T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Cache Read Tokens,claude-opus-5,cache_read_input_tokens,standard,0-200k,global,704.52,USD
+2026-08-25T00:00:00Z,2026-08-26T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,0-200k,global,5871.00,USD
+2026-08-25T00:00:00Z,2026-08-26T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,0-200k,global,1761.30,USD
+2026-08-26T00:00:00Z,2026-08-27T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Cache Read Tokens,claude-sonnet-5,cache_read_input_tokens,standard,0-200k,global,1769.28,USD
+2026-08-26T00:00:00Z,2026-08-27T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,8846.40,USD
+2026-08-26T00:00:00Z,2026-08-27T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,13269.60,USD
+2026-08-26T00:00:00Z,2026-08-27T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Cache Write Tokens (5m),claude-opus-5,cache_creation.ephemeral_5m_input_tokens,standard,0-200k,global,1036.69,USD
+2026-08-26T00:00:00Z,2026-08-27T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Cache Read Tokens,claude-opus-5,cache_read_input_tokens,standard,0-200k,global,829.35,USD
+2026-08-26T00:00:00Z,2026-08-27T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,0-200k,global,24880.50,USD
+2026-08-26T00:00:00Z,2026-08-27T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,0-200k,global,3317.40,USD
+2026-08-26T00:00:00Z,2026-08-27T00:00:00Z,wrkspc_data,code_execution,Code Execution Usage,,,,,,420.00,USD
+2026-08-26T00:00:00Z,2026-08-27T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Cache Read Tokens,claude-haiku-4-5,cache_read_input_tokens,batch,0-200k,global,180.00,USD
+2026-08-26T00:00:00Z,2026-08-27T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Output Tokens,claude-haiku-4-5,output_tokens,batch,0-200k,global,1500.00,USD
+2026-08-26T00:00:00Z,2026-08-27T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Input Tokens,claude-haiku-4-5,uncached_input_tokens,batch,0-200k,global,1200.00,USD
+2026-08-26T00:00:00Z,2026-08-27T00:00:00Z,wrkspc_data,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,11362.50,USD
+2026-08-26T00:00:00Z,2026-08-27T00:00:00Z,wrkspc_data,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,18180.00,USD
+2026-08-26T00:00:00Z,2026-08-27T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Cache Write Tokens (5m),claude-opus-5,cache_creation.ephemeral_5m_input_tokens,standard,200k-1M,global,2764.50,USD
+2026-08-26T00:00:00Z,2026-08-27T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Cache Read Tokens,claude-opus-5,cache_read_input_tokens,standard,200k-1M,global,1658.70,USD
+2026-08-26T00:00:00Z,2026-08-27T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,0-200k,global,1500.00,USD
+2026-08-26T00:00:00Z,2026-08-27T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,200k-1M,global,4146.75,USD
+2026-08-26T00:00:00Z,2026-08-27T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,0-200k,global,1200.00,USD
+2026-08-26T00:00:00Z,2026-08-27T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,200k-1M,global,27645.00,USD
+2026-08-26T00:00:00Z,2026-08-27T00:00:00Z,wrkspc_search,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,3317.40,USD
+2026-08-26T00:00:00Z,2026-08-27T00:00:00Z,wrkspc_search,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,13269.60,USD
+2026-08-26T00:00:00Z,2026-08-27T00:00:00Z,wrkspc_search,web_search,Web Search Usage,,,,,,438.00,USD
+2026-08-26T00:00:00Z,2026-08-27T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Cache Write Tokens (1h),claude-opus-5,cache_creation.ephemeral_1h_input_tokens,standard,0-200k,global,26539.20,USD
+2026-08-26T00:00:00Z,2026-08-27T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Cache Read Tokens,claude-opus-5,cache_read_input_tokens,standard,0-200k,global,663.48,USD
+2026-08-26T00:00:00Z,2026-08-27T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,0-200k,global,5529.00,USD
+2026-08-26T00:00:00Z,2026-08-27T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,0-200k,global,1658.70,USD
+2026-08-27T00:00:00Z,2026-08-28T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Cache Read Tokens,claude-sonnet-5,cache_read_input_tokens,standard,0-200k,global,1915.20,USD
+2026-08-27T00:00:00Z,2026-08-28T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,9576.00,USD
+2026-08-27T00:00:00Z,2026-08-28T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,14364.00,USD
+2026-08-27T00:00:00Z,2026-08-28T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Cache Write Tokens (5m),claude-opus-5,cache_creation.ephemeral_5m_input_tokens,standard,0-200k,global,1122.19,USD
+2026-08-27T00:00:00Z,2026-08-28T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Cache Read Tokens,claude-opus-5,cache_read_input_tokens,standard,0-200k,global,897.75,USD
+2026-08-27T00:00:00Z,2026-08-28T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,0-200k,global,26932.50,USD
+2026-08-27T00:00:00Z,2026-08-28T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,0-200k,global,3591.00,USD
+2026-08-27T00:00:00Z,2026-08-28T00:00:00Z,wrkspc_data,code_execution,Code Execution Usage,,,,,,420.00,USD
+2026-08-27T00:00:00Z,2026-08-28T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Cache Read Tokens,claude-haiku-4-5,cache_read_input_tokens,batch,0-200k,global,180.00,USD
+2026-08-27T00:00:00Z,2026-08-28T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Output Tokens,claude-haiku-4-5,output_tokens,batch,0-200k,global,1500.00,USD
+2026-08-27T00:00:00Z,2026-08-28T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Input Tokens,claude-haiku-4-5,uncached_input_tokens,batch,0-200k,global,1200.00,USD
+2026-08-27T00:00:00Z,2026-08-28T00:00:00Z,wrkspc_data,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,11700.00,USD
+2026-08-27T00:00:00Z,2026-08-28T00:00:00Z,wrkspc_data,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,18720.00,USD
+2026-08-27T00:00:00Z,2026-08-28T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Cache Write Tokens (5m),claude-opus-5,cache_creation.ephemeral_5m_input_tokens,standard,200k-1M,global,2992.50,USD
+2026-08-27T00:00:00Z,2026-08-28T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Cache Read Tokens,claude-opus-5,cache_read_input_tokens,standard,200k-1M,global,1795.50,USD
+2026-08-27T00:00:00Z,2026-08-28T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,200k-1M,global,4488.75,USD
+2026-08-27T00:00:00Z,2026-08-28T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,200k-1M,global,29925.00,USD
+2026-08-27T00:00:00Z,2026-08-28T00:00:00Z,wrkspc_search,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,3591.00,USD
+2026-08-27T00:00:00Z,2026-08-28T00:00:00Z,wrkspc_search,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,14364.00,USD
+2026-08-27T00:00:00Z,2026-08-28T00:00:00Z,wrkspc_search,web_search,Web Search Usage,,,,,,475.00,USD
+2026-08-27T00:00:00Z,2026-08-28T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Cache Write Tokens (1h),claude-opus-5,cache_creation.ephemeral_1h_input_tokens,standard,0-200k,global,28728.00,USD
+2026-08-27T00:00:00Z,2026-08-28T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Cache Read Tokens,claude-opus-5,cache_read_input_tokens,standard,0-200k,global,718.20,USD
+2026-08-27T00:00:00Z,2026-08-28T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,0-200k,global,5985.00,USD
+2026-08-27T00:00:00Z,2026-08-28T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,0-200k,global,1795.50,USD
+2026-08-28T00:00:00Z,2026-08-29T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Cache Read Tokens,claude-sonnet-5,cache_read_input_tokens,standard,0-200k,global,1824.00,USD
+2026-08-28T00:00:00Z,2026-08-29T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,9120.00,USD
+2026-08-28T00:00:00Z,2026-08-29T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,13680.00,USD
+2026-08-28T00:00:00Z,2026-08-29T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Cache Write Tokens (5m),claude-opus-5,cache_creation.ephemeral_5m_input_tokens,standard,0-200k,global,1068.75,USD
+2026-08-28T00:00:00Z,2026-08-29T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Cache Read Tokens,claude-opus-5,cache_read_input_tokens,standard,0-200k,global,855.00,USD
+2026-08-28T00:00:00Z,2026-08-29T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,0-200k,global,25650.00,USD
+2026-08-28T00:00:00Z,2026-08-29T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,0-200k,global,3420.00,USD
+2026-08-28T00:00:00Z,2026-08-29T00:00:00Z,wrkspc_data,code_execution,Code Execution Usage,,,,,,420.00,USD
+2026-08-28T00:00:00Z,2026-08-29T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Cache Read Tokens,claude-haiku-4-5,cache_read_input_tokens,batch,0-200k,global,180.00,USD
+2026-08-28T00:00:00Z,2026-08-29T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Output Tokens,claude-haiku-4-5,output_tokens,batch,0-200k,global,1500.00,USD
+2026-08-28T00:00:00Z,2026-08-29T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Input Tokens,claude-haiku-4-5,uncached_input_tokens,batch,0-200k,global,1200.00,USD
+2026-08-28T00:00:00Z,2026-08-29T00:00:00Z,wrkspc_data,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,11655.00,USD
+2026-08-28T00:00:00Z,2026-08-29T00:00:00Z,wrkspc_data,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,18648.00,USD
+2026-08-28T00:00:00Z,2026-08-29T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Cache Write Tokens (5m),claude-opus-5,cache_creation.ephemeral_5m_input_tokens,standard,200k-1M,global,2850.00,USD
+2026-08-28T00:00:00Z,2026-08-29T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Cache Read Tokens,claude-opus-5,cache_read_input_tokens,standard,200k-1M,global,1710.00,USD
+2026-08-28T00:00:00Z,2026-08-29T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,0-200k,global,1500.00,USD
+2026-08-28T00:00:00Z,2026-08-29T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,200k-1M,global,4275.00,USD
+2026-08-28T00:00:00Z,2026-08-29T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,0-200k,global,1200.00,USD
+2026-08-28T00:00:00Z,2026-08-29T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,200k-1M,global,28500.00,USD
+2026-08-28T00:00:00Z,2026-08-29T00:00:00Z,wrkspc_search,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,3420.00,USD
+2026-08-28T00:00:00Z,2026-08-29T00:00:00Z,wrkspc_search,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,13680.00,USD
+2026-08-28T00:00:00Z,2026-08-29T00:00:00Z,wrkspc_search,web_search,Web Search Usage,,,,,,456.00,USD
+2026-08-28T00:00:00Z,2026-08-29T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Cache Write Tokens (1h),claude-opus-5,cache_creation.ephemeral_1h_input_tokens,standard,0-200k,global,27360.00,USD
+2026-08-28T00:00:00Z,2026-08-29T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Cache Read Tokens,claude-opus-5,cache_read_input_tokens,standard,0-200k,global,684.00,USD
+2026-08-28T00:00:00Z,2026-08-29T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,0-200k,global,5700.00,USD
+2026-08-28T00:00:00Z,2026-08-29T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,0-200k,global,1710.00,USD
+2026-08-29T00:00:00Z,2026-08-30T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Cache Read Tokens,claude-haiku-4-5,cache_read_input_tokens,batch,0-200k,global,180.00,USD
+2026-08-29T00:00:00Z,2026-08-30T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Output Tokens,claude-haiku-4-5,output_tokens,batch,0-200k,global,1500.00,USD
+2026-08-29T00:00:00Z,2026-08-30T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Input Tokens,claude-haiku-4-5,uncached_input_tokens,batch,0-200k,global,1200.00,USD
+2026-08-29T00:00:00Z,2026-08-30T00:00:00Z,wrkspc_data,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,11587.50,USD
+2026-08-29T00:00:00Z,2026-08-30T00:00:00Z,wrkspc_data,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,18540.00,USD
+2026-08-30T00:00:00Z,2026-08-31T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Cache Read Tokens,claude-haiku-4-5,cache_read_input_tokens,batch,0-200k,global,180.00,USD
+2026-08-30T00:00:00Z,2026-08-31T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Output Tokens,claude-haiku-4-5,output_tokens,batch,0-200k,global,1500.00,USD
+2026-08-30T00:00:00Z,2026-08-31T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Input Tokens,claude-haiku-4-5,uncached_input_tokens,batch,0-200k,global,1200.00,USD
+2026-08-30T00:00:00Z,2026-08-31T00:00:00Z,wrkspc_data,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,11520.00,USD
+2026-08-30T00:00:00Z,2026-08-31T00:00:00Z,wrkspc_data,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,18432.00,USD
+2026-08-31T00:00:00Z,2026-09-01T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Cache Read Tokens,claude-sonnet-5,cache_read_input_tokens,standard,0-200k,global,2042.88,USD
+2026-08-31T00:00:00Z,2026-09-01T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,10214.40,USD
+2026-08-31T00:00:00Z,2026-09-01T00:00:00Z,,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,15321.60,USD
+2026-08-31T00:00:00Z,2026-09-01T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Cache Write Tokens (5m),claude-opus-5,cache_creation.ephemeral_5m_input_tokens,standard,0-200k,global,1197.00,USD
+2026-08-31T00:00:00Z,2026-09-01T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Cache Read Tokens,claude-opus-5,cache_read_input_tokens,standard,0-200k,global,957.60,USD
+2026-08-31T00:00:00Z,2026-09-01T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,0-200k,global,28728.00,USD
+2026-08-31T00:00:00Z,2026-09-01T00:00:00Z,wrkspc_content,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,0-200k,global,3830.40,USD
+2026-08-31T00:00:00Z,2026-09-01T00:00:00Z,wrkspc_data,code_execution,Code Execution Usage,,,,,,420.00,USD
+2026-08-31T00:00:00Z,2026-09-01T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Cache Read Tokens,claude-haiku-4-5,cache_read_input_tokens,batch,0-200k,global,180.00,USD
+2026-08-31T00:00:00Z,2026-09-01T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Output Tokens,claude-haiku-4-5,output_tokens,batch,0-200k,global,1500.00,USD
+2026-08-31T00:00:00Z,2026-09-01T00:00:00Z,wrkspc_data,tokens,Claude Haiku 4.5 Usage - Input Tokens,claude-haiku-4-5,uncached_input_tokens,batch,0-200k,global,1200.00,USD
+2026-08-31T00:00:00Z,2026-09-01T00:00:00Z,wrkspc_data,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,11632.50,USD
+2026-08-31T00:00:00Z,2026-09-01T00:00:00Z,wrkspc_data,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,18612.00,USD
+2026-08-31T00:00:00Z,2026-09-01T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Cache Write Tokens (5m),claude-opus-5,cache_creation.ephemeral_5m_input_tokens,standard,200k-1M,global,3192.00,USD
+2026-08-31T00:00:00Z,2026-09-01T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Cache Read Tokens,claude-opus-5,cache_read_input_tokens,standard,200k-1M,global,1915.20,USD
+2026-08-31T00:00:00Z,2026-09-01T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,0-200k,global,1500.00,USD
+2026-08-31T00:00:00Z,2026-09-01T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,200k-1M,global,4788.00,USD
+2026-08-31T00:00:00Z,2026-09-01T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,0-200k,global,1200.00,USD
+2026-08-31T00:00:00Z,2026-09-01T00:00:00Z,wrkspc_research,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,200k-1M,global,31920.00,USD
+2026-08-31T00:00:00Z,2026-09-01T00:00:00Z,wrkspc_search,tokens,Claude Sonnet 5 Usage - Output Tokens,claude-sonnet-5,output_tokens,standard,0-200k,global,3830.40,USD
+2026-08-31T00:00:00Z,2026-09-01T00:00:00Z,wrkspc_search,tokens,Claude Sonnet 5 Usage - Input Tokens,claude-sonnet-5,uncached_input_tokens,standard,0-200k,global,15321.60,USD
+2026-08-31T00:00:00Z,2026-09-01T00:00:00Z,wrkspc_search,web_search,Web Search Usage,,,,,,507.00,USD
+2026-08-31T00:00:00Z,2026-09-01T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Cache Write Tokens (1h),claude-opus-5,cache_creation.ephemeral_1h_input_tokens,standard,0-200k,global,30643.20,USD
+2026-08-31T00:00:00Z,2026-09-01T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Cache Read Tokens,claude-opus-5,cache_read_input_tokens,standard,0-200k,global,766.08,USD
+2026-08-31T00:00:00Z,2026-09-01T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Output Tokens,claude-opus-5,output_tokens,standard,0-200k,global,6384.00,USD
+2026-08-31T00:00:00Z,2026-09-01T00:00:00Z,wrkspc_support,tokens,Claude Opus 5 Usage - Input Tokens,claude-opus-5,uncached_input_tokens,standard,0-200k,global,1915.20,USD

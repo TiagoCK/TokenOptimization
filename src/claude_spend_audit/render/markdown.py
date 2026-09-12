@@ -151,9 +151,11 @@ def render(
         out.append("")
     else:
         out.append(
-            "Ranked by confidence first, then by size. A `measured` finding is "
-            "arithmetic on your data; a `candidate` is a pattern the data cannot "
-            "confirm; an `observation` makes no savings claim at all."
+            "Ranked by confidence first. Within each level, a finding that "
+            "claims a saving comes before one that only measures spend, and "
+            "then the larger figure first. A `measured` finding is arithmetic "
+            "on your data; a `candidate` is a pattern the data cannot confirm; "
+            "an `observation` makes no savings claim at all."
         )
         out.append("")
         summary_rows = [

@@ -100,11 +100,14 @@ def run(frame: Frame, pricing: PricingTable, config) -> Iterable[Finding]:
     candidates.sort(key=lambda item: item[3], reverse=True)
     total_ceiling = sum((item[3] for item in candidates), Decimal("0"))
 
-    # Roll up for display, as C3 does: segments are priced individually but
-    # two that differ only by geo or speed share a model/workspace label.
+    # Roll up for display: segments are priced individually, but two that
+    # differ only by geo or speed share a label. The label carries the key,
+    # as C1's does: one key that never caches can sit inside a workspace that
+    # caches well, and "model / workspace, 0% hit rate" would then contradict
+    # every other finding about that workspace.
     rolled: dict[str, list] = {}
     for segment, tokens, rate, ceiling in candidates:
-        label = describe(frame, segment)
+        label = describe(frame, segment, ("model", "workspace_id", "api_key_id"))
         if label in rolled:
             acc = rolled[label]
             acc[0] = acc[0] + tokens
@@ -163,7 +166,7 @@ def run(frame: Frame, pricing: PricingTable, config) -> Iterable[Finding]:
             ),
             evidence=Evidence(
                 columns=(
-                    "model / workspace",
+                    "model / workspace / key",
                     "uncached",
                     "reads",
                     "hit rate",
