@@ -2,6 +2,7 @@
 
 import json
 from decimal import Decimal
+from pathlib import Path
 
 import pytest
 
@@ -289,6 +290,25 @@ def test_inspect_reports_which_checks_the_export_supports(capsys):
     _, out, _ = run(capsys, "inspect", str(FIXTURE_USAGE))
     assert "CHECKS THAT COULD NOT RUN" in out
     assert "use `audit`" in out
+
+
+def test_a_long_source_path_stays_within_the_width(capsys, tmp_path):
+    """The 78-column promise has to survive a deep checkout directory.
+
+    Every other test ran the CLI on a short relative path, so the header's
+    unwrapped source line never overran. A path is a single unbreakable
+    word, so wrapping cannot help: the middle goes and the filename -- the
+    part a reader needs -- stays.
+    """
+    nested = tmp_path.joinpath(*["a-fairly-long-directory-name"] * 4)
+    nested.mkdir(parents=True)
+    target = nested / "usage_console.csv"
+    target.write_text(Path(FIXTURE_USAGE).read_text(encoding="utf-8"), encoding="utf-8")
+
+    _, out, _ = run(capsys, "inspect", str(target))
+    assert not [ln for ln in out.splitlines() if len(ln) > 78]
+    assert "usage_console.csv" in out
+    assert "..." in out
 
 
 def test_output_stays_within_terminal_width(capsys):

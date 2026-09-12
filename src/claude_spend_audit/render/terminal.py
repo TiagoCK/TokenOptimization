@@ -61,6 +61,24 @@ def wrap(text: str, width: int, indent: str) -> str:
     return f"\n{indent}".join(lines)
 
 
+def elide(text: str, width: int) -> str:
+    """Shorten a single unbreakable token to `width`, losing its middle.
+
+    ``wrap`` splits on whitespace, so it cannot help with a filesystem path:
+    one long word either fits or overruns. A path that overruns breaks the
+    78-column promise in the one place it is most likely to -- a deep
+    checkout directory -- so the middle goes and both ends stay, keeping the
+    filename, which is the part a reader needs.
+    """
+    if len(text) <= width:
+        return text
+    if width <= 3:  # pragma: no cover - callers pass real column widths
+        return text[:width]
+    keep = width - 3
+    head = (keep + 1) // 2
+    return f"{text[:head]}...{text[len(text) - (keep - head):]}"
+
+
 def _table(evidence: Evidence, indent: str = "    ") -> list[str]:
     """A plain aligned table, kept inside WIDTH.
 
@@ -81,13 +99,7 @@ def _table(evidence: Evidence, indent: str = "    ") -> list[str]:
         widths[widths.index(max(widths))] -= 1
 
     def clip(cell: str, width: int) -> str:
-        if len(cell) <= width:
-            return cell.ljust(width)
-        if width <= 3:  # pragma: no cover - guarded by the min width above
-            return cell[:width]
-        keep = width - 3
-        head = (keep + 1) // 2
-        return f"{cell[:head]}...{cell[len(cell) - (keep - head):]}"
+        return elide(cell, width).ljust(width)
 
     def line(cells: Sequence[str]) -> str:
         return indent + "  ".join(
@@ -124,7 +136,8 @@ def render_header(frame: Frame, pricing: PricingTable, estimate, *, title: str) 
     for source in frame.sources:
         label = source.profile or source.ingest_path
         status = f" [{source.profile_status}]" if source.profile_status else ""
-        out.append(f"  source           {source.path}")
+        prefix = "  source           "
+        out.append(prefix + elide(str(source.path), WIDTH - len(prefix)))
         out.append(f"                   via {label}{status}")
 
     out.append("")
