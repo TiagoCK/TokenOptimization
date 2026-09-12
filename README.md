@@ -18,7 +18,15 @@ going, with dollar estimates you can trace to a file you control.
 ---
 
 See [`examples/sample-report.md`](examples/sample-report.md) for what the output
-looks like, generated from synthetic data.
+looks like. It comes from a synthetic month that ships with the repo, so you can
+reproduce it before pointing anything at your own data:
+
+```bash
+claude-spend-audit audit examples/sample-usage.csv --cost examples/sample-cost.csv
+```
+
+The organisation in it is invented, and the numbers are chosen so that every
+check has something to say.
 
 ## What it checks
 
@@ -27,15 +35,21 @@ looks like, generated from synthetic data.
 | **C1** | Cache writes not read back often enough to pay for themselves | `measured` |
 | **C2** | High uncached input with almost no cache reads | `candidate` |
 | **C3** | Standard-tier spend that could take the 50% batch discount | `candidate` |
+| **C4** | Long-context composition, and what a token removed there is worth | `observation` |
+| **C5** | Segments where output is most of the bill | `observation` |
 | **C6a** | Daily spend spikes above the recent baseline | `measured` |
 | **C6b** | Spend falling outside business hours | `measured` |
 | **C7** | Spend that cannot be allocated to a named workspace or key | `observation` |
+| **C8** | Model mix across frontier, mid and small models | `observation` |
 
 A `measured` finding is arithmetic on your data. A `candidate` is a pattern the
 data cannot confirm, and always carries a range with its assumptions attached
 rather than a single number. An `observation` makes no savings claim at all.
 
-The remaining checks (C4, C5, C8) are not built yet.
+Findings are ranked by confidence first; within a level, one that claims a
+saving comes before one that only measures spend, then the larger figure first.
+That keeps a month of overnight spend from displacing the smaller sum that was
+provably wasted.
 
 ## Two ways in
 

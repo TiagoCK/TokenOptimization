@@ -135,9 +135,9 @@ their case.
 ### 6. A check whose preconditions the data cannot meet is skipped, not approximated
 
 Every check declares what it needs: which dimensions the data must be grouped
-by, which time granularity, and which token buckets would make it unsound. When
-the data cannot support a check, it does not run, and the report says which
-check was skipped and why.
+by, which time granularity, how many days of history, and which token buckets
+would make it unsound. When the data cannot support a check, it does not run,
+and the report says which check was skipped and why.
 
 The sharpest case is C1. Its entire value is that the two prompt-cache TTLs are
 priced differently — 1.25× base input for the 5-minute cache, 2× for the
@@ -150,13 +150,21 @@ and still priced, at the cheaper of the two rates, so the spend figure is an
 explicit floor rather than a guess in an unknown direction — and the caveat
 says so, and by how much it could understate.
 
+C6a is the same argument about time rather than content. Its baseline is the
+median of the preceding week, so that every baseline spans both weekdays and a
+weekend — with three days, data starting on a Saturday judges Tuesday against a
+weekend median and reports a spike that never happened. That makes a seven-day
+export (the API's own default page) one baseline with no day left to judge, so
+the check is skipped rather than run: it could only report nothing, and nothing
+reads as a clean bill of health.
+
 A tool that quietly produces a number for every input looks more capable and is
 worth less.
 
 ## The confidence model
 
 Every finding carries one of three levels, and the report is ranked by
-confidence first, dollars second.
+confidence first, then by whether a saving is claimed, then by size.
 
 | level | meaning | savings claim |
 |---|---|---|
@@ -167,6 +175,11 @@ confidence first, dollars second.
 Ranking within tier rather than purely by size is deliberate. An un-sizeable
 exposure can be numerically larger than a recoverable waste, and sorting them
 into one list would imply a priority the data does not support.
+
+The tier alone does not finish the job, because C1 and C6 are both `measured`:
+a month of overnight spend easily dwarfs the cache premium C1 proves was
+wasted. So within a level, a finding that claims a saving sorts ahead of one
+that only measures spend. The two numbers are never compared with each other.
 
 ## Handling the admin credential
 
@@ -275,17 +288,20 @@ CHECK = Check(
     needs_dimensions=frozenset({"model"}),         # optional
     needs_bucket_width=frozenset({"1h"}),          # optional
     blocked_by_tokens=frozenset({"cache_write_unsplit"}),  # optional
+    needs_days=lambda config: config.my_window + 1,        # optional
 )
 ```
 
 Then add it to `CHECKS` in `checks/__init__.py`, and add any thresholds to
 `CheckConfig` so they are settable from the command line.
 
-The three preconditions are the important part, and they answer different
-questions: `needs_dimensions` is about how the data is grouped,
-`needs_bucket_width` about its time granularity, and `blocked_by_tokens` about
-its *content* — a source can have every dimension and the right granularity
-while having destroyed the one distinction a check is built on.
+The preconditions are the important part, and they answer different questions:
+`needs_dimensions` is about how the data is grouped, `needs_bucket_width` about
+its time granularity, `needs_days` about how much of it there is (a callable,
+because the answer usually depends on a threshold the user can change), and
+`blocked_by_tokens` about its *content* — a source can have every dimension and
+the right granularity while having destroyed the one distinction a check is
+built on.
 
 A check that declares what it needs will be skipped on data that cannot support
 it, and the report will say which check was skipped and why. A check that does
@@ -293,7 +309,7 @@ not declare its needs will silently compute something meaningless.
 
 ## Known limitations
 
-Two are worth knowing before you rely on the output.
+Three are worth knowing before you rely on the output.
 
 **The Console CSV column mapping is unverified.** Anthropic publishes the Usage
 & Cost API's field names but not the Console export's column headers — they are
@@ -323,6 +339,22 @@ Platform on AWS has no programmatic Usage/Cost API at all, so Bedrock-routed
 traffic is invisible here — and no signal in aggregate data would reveal its
 absence, so the tool states this as a standing caveat rather than pretending to
 detect it.
+
+Long context is a narrower case of the same thing. The pricing page confirms
+that the full 1M window bills at standard rates on Claude 4.6 and later, and
+says nothing about earlier models that offered it in beta. Traffic in the
+200k-1M window on one of those is priced at the standard rate — the only figure
+the rate card supports — and reported as unconfirmed rather than presented as
+settled.
+
+**Some questions this data shape cannot answer at all.** The usage report
+carries no request counts, so C5 cannot tell ten long responses from a thousand
+short ones, which is the distinction `max_tokens` discipline is actually about.
+Thinking tokens are billed as output and are not broken out anywhere in the
+report, so an output-heavy segment may be reasoning rather than verbosity. And
+the frontier/mid/small tiers C8 groups by are this tool's classification,
+recorded in the pricing file rather than published by Anthropic — the file says
+so, and you can edit it to match how your organisation thinks about its models.
 
 Every limitation that applies to a given dataset is listed in that report's
 caveats section, with what to re-export to remove it where that is possible.
