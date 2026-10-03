@@ -58,9 +58,22 @@ figure.** Cost units differ by source, and one of them is an assumption:
 
 If the "billed" line in the report is 100 times larger or smaller than the
 figure in your Console or invoice, the unit assumption is wrong for your
-export -- every cost in the report is off by the same factor. `inspect` shows
-billed beside estimated cost, where a gap that size is easy to see. Please
-report it.
+export -- every cost in the report is off by the same factor. The report also
+raises a critical caveat (and exits `1`) when billed and estimated cost are
+20x or more apart. Please report it.
+
+Because the exact formats are unknown, some files are refused rather than
+guessed at. What you might see, and what to do:
+
+| Refused or flagged | Why | What to do |
+|---|---|---|
+| A cost CSV that fits two profiles equally, one reading cents and one dollars | the file gives no evidence for either, and a wrong pick is 100x | pass `--cost-profile schemas/console_cost_csv.json` (cents) or `schemas/cookbook_cost_csv.json` (dollars) |
+| Slash dates that could be either order (every day and month 12 or less) | 03/08/2026 could be March or August | pass `--date-order mdy` or `--date-order dmy` |
+| Any currency other than USD | the tool reports dollars and converts nothing | export in USD |
+| Decimal commas (`10,00`, `1.200,50`) | stripping the comma would read 100x too large | re-export with `.` as the decimal point |
+| A file that is not UTF-8 or UTF-16 | a guessed code page garbles names silently | save as "CSV UTF-8" |
+| A missing token column (for example no cache-read column) | a missing column is not zero tokens | the checks that need it are skipped, with a caveat naming the column |
+| Rows labelled "Total", per-user subtotals, rows with no date | counting them would double the figures | they are excluded and counted in a caveat |
 
 Every path fails loudly rather than guessing. An export that does not match
 prints its real header row; an API response that does not make sense raises
@@ -304,6 +317,10 @@ it can support. For the shareable version, add `--format markdown -o report.md`.
 Useful flags:
 
 - `--explain-schema` — print exactly which CSV column mapped to which field
+- `--date-order mdy|dmy` — how to read slash dates when the file cannot settle
+  it; only needed if the tool asks
+- `--cost-profile` / `--usage-profile` — force a schema profile, for example
+  when a cost file's cents-or-dollars reading is ambiguous
 - `--json` — machine-readable output
 - `--anonymize` — replace user emails with `user-001`... (per-user data only)
 - `--pricing pricing/2026-09.json` — use a specific rate card

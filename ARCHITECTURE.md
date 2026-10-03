@@ -140,6 +140,20 @@ Without this, an export that simply was not grouped by workspace would report as
 100% unattributed spend. That would be a fabricated finding, on precisely the
 check where a fabrication is most damaging.
 
+Token columns follow the same rule. A CSV with no cache-read column parses to
+zero cache reads in every row, which C2 would report as "almost no cache
+reads". `Frame.token_fields` records which token buckets the source carried
+(`None` for the API paths, which always report all five), and a check lists
+the ones it needs in `Check.needs_tokens`. A missing one skips the check with
+a `token_column_absent` gap rather than letting a zero stand in for a column
+that was never there.
+
+The same principle covers values whose format is unknown. Slash dates are
+resolved once per file (`resolve_slash_order`) and refused when nothing in the
+file settles day versus month; decimal commas, non-USD currencies and a cost
+file that two profiles read in different units are refused outright. Each
+refusal says which flag or re-export resolves it.
+
 ### 4. A `candidate` never carries a point estimate
 
 Any finding whose savings the data cannot confirm must present a **range**, with
