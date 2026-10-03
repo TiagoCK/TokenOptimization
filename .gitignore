@@ -7,6 +7,10 @@ venv/
 build/
 dist/
 
+# Local clutter that should never reach the repository.
+.DS_Store
+node_modules/
+
 # Never commit a real customer export. The whole premise of this tool is that
 # the data stays on the machine that produced it.
 *.csv

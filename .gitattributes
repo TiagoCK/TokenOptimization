@@ -1,2 +1,4 @@
 # Auto detect text files and perform LF normalization
-* text=auto
+# eol=lf keeps working copies LF on Windows too, so the byte-for-byte sample
+# report test compares like with like.
+* text=auto eol=lf

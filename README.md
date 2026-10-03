@@ -1,5 +1,10 @@
 # claude-spend-audit
 
+> **Version 0.1.0, beta.** An independent open-source project. It is not
+> affiliated with, endorsed by, or supported by Anthropic. "Claude" is a
+> trademark of Anthropic, used here only to say which product's usage data
+> the tool reads.
+
 **Everything runs on your machine. No data leaves it.** There is no hosted
 service, no telemetry, and no uploads. All analysis is local: your usage data
 is read, priced and reported without ever being sent anywhere.
@@ -74,6 +79,12 @@ guessed at. What you might see, and what to do:
 | A file that is not UTF-8 or UTF-16 | a guessed code page garbles names silently | save as "CSV UTF-8" |
 | A missing token column (for example no cache-read column) | a missing column is not zero tokens | the checks that need it are skipped, with a caveat naming the column |
 | Rows labelled "Total", per-user subtotals, rows with no date | counting them would double the figures | they are excluded and counted in a caveat |
+
+**If a file is refused or looks mis-read**, run
+`claude-spend-audit describe YOUR_FILE`. It prints the file's columns, how they
+were mapped and the shape of their values -- never the values themselves --
+and is what to paste into a
+[format mismatch issue](https://github.com/TiagoCK/TokenOptimization/issues/new?template=format-mismatch.md).
 
 Every path fails loudly rather than guessing. An export that does not match
 prints its real header row; an API response that does not make sense raises
@@ -294,11 +305,23 @@ skipped, and the report names it and says why.
 
 ## Install
 
+Python 3.11 or newer. No runtime dependencies.
+
 ```bash
-pip install -e .
+git clone https://github.com/TiagoCK/TokenOptimization.git
 ```
 
-Python 3.11 or newer. No runtime dependencies.
+```bash
+cd TokenOptimization
+```
+
+```bash
+python -m pip install -e .
+```
+
+On Windows, use `py -m pip install -e .` if `python` is not on your PATH.
+That puts a `claude-spend-audit` command on your PATH; `python -m
+claude_spend_audit` works the same way.
 
 Install editable, or run from a checkout. The rate card (`pricing/`) and the CSV
 schema profiles (`schemas/`) deliberately live at the repo root rather than
@@ -316,6 +339,8 @@ it can support. For the shareable version, add `--format markdown -o report.md`.
 
 Useful flags:
 
+- `describe FILE` — a command of its own: the file's format with none of its
+  data, for reporting a mismatch
 - `--explain-schema` — print exactly which CSV column mapped to which field
 - `--date-order mdy|dmy` — how to read slash dates when the file cannot settle
   it; only needed if the tool asks
