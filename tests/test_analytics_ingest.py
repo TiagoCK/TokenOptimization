@@ -28,7 +28,7 @@ def _codes(frame):
 
 
 def test_usage_series_reads_like_the_usage_api_plus_product():
-    frame, _ = load_analytics(A.fetched())
+    frame, _, _ = load_analytics(A.fetched())
     assert len(frame.usage) == 20
     assert frame.grouped_by == frozenset(A.GROUP_BY)
     assert frame.bucket_width == "1d"
@@ -47,7 +47,7 @@ def test_usage_series_reads_like_the_usage_api_plus_product():
 
 def test_billed_and_list_totals():
     """$16.00 billed and $20.00 list a day, for ten days."""
-    frame, _ = load_analytics(A.fetched())
+    frame, _, _ = load_analytics(A.fetched())
     assert frame.billed_total_usd == Decimal("160")
     assert frame.list_total_usd == Decimal("200")
     basis = next(g for g in frame.gaps if g.code is GapCode.LIST_PRICE_BASIS)
@@ -56,14 +56,14 @@ def test_billed_and_list_totals():
 
 
 def test_plan_context_replaces_the_usage_api_bedrock_note():
-    frame, _ = load_analytics(A.fetched())
+    frame, _, _ = load_analytics(A.fetched())
     codes = _codes(frame)
     assert GapCode.ANALYTICS_PLAN_CONTEXT in codes
     assert GapCode.BEDROCK_NOT_VISIBLE not in codes
 
 
 def test_a_clean_fetch_raises_no_freshness_or_truncation_gap():
-    frame, _ = load_analytics(A.fetched())
+    frame, _, _ = load_analytics(A.fetched())
     codes = _codes(frame)
     assert GapCode.ANALYTICS_GROUPS_TRUNCATED not in codes
     assert GapCode.ANALYTICS_INCOMPLETE_TAIL not in codes
@@ -81,7 +81,7 @@ def test_group_cap_truncation_is_detected_against_the_total():
         total 10 x 2,300,000           = 23,000,000 tokens
         1.2M / 23M                     = 5.2%
     """
-    frame, _ = load_analytics(A.fetched(drop_sonnet_on=(3, 7)))
+    frame, _, _ = load_analytics(A.fetched(drop_sonnet_on=(3, 7)))
     gap = next(g for g in frame.gaps if g.code is GapCode.ANALYTICS_GROUPS_TRUNCATED)
     assert gap.scope == "2 bucket(s)"
     assert "1,200,000 tokens (5.2% of the total)" in gap.message
@@ -89,20 +89,20 @@ def test_group_cap_truncation_is_detected_against_the_total():
 
 
 def test_a_range_past_the_refresh_watermark_is_incomplete():
-    frame, _ = load_analytics(A.fetched(refreshed="2026-08-09T00:00:00Z"))
+    frame, _, _ = load_analytics(A.fetched(refreshed="2026-08-09T00:00:00Z"))
     gap = next(g for g in frame.gaps if g.code is GapCode.ANALYTICS_INCOMPLETE_TAIL)
     assert gap.scope == "2026-08-09 00:00 UTC"
     assert gap.invalidates_total
 
 
 def test_a_page_with_no_export_is_incomplete_too():
-    frame, _ = load_analytics(A.fetched(refreshed=None))
+    frame, _, _ = load_analytics(A.fetched(refreshed=None))
     assert GapCode.ANALYTICS_INCOMPLETE_TAIL in _codes(frame)
 
 
 def test_recent_days_are_flagged_as_not_final():
     """Fetched 2026-08-20: all ten days (08-01 to 08-11) are inside 30 days."""
-    frame, _ = load_analytics(
+    frame, _, _ = load_analytics(
         A.fetched(fetched_at=datetime(2026, 8, 20, tzinfo=timezone.utc))
     )
     gap = next(g for g in frame.gaps if g.code is GapCode.ANALYTICS_NOT_FINAL)
@@ -133,7 +133,7 @@ def test_per_user_rows_are_summed_across_windows():
         net        2 x $80.00                  =    $160.00
         gross      2 x $100.00                 =    $200.00
     """
-    _, report = load_analytics(A.fetched())
+    _, report, _ = load_analytics(A.fetched())
     alice = next(r for r in report.rows if r.user_email == "a@example.com")
     assert alice.prompt_tokens == 15_000_000
     assert alice.completion_tokens == 2_000_000
@@ -146,25 +146,25 @@ def test_per_user_rows_are_summed_across_windows():
 
 def test_deleted_users_are_labelled_by_name_and_id():
     """Every deleted user is named "Deleted User"; the id keeps them apart."""
-    _, report = load_analytics(A.fetched())
+    _, report, _ = load_analytics(A.fetched())
     assert "Deleted User (user_02)" in report.distinct("user_email")
 
 
 def test_report_knows_what_prompt_tokens_mean():
-    _, report = load_analytics(A.fetched())
+    _, report, _ = load_analytics(A.fetched())
     assert report.prompt_includes_cache is True
     assert report.spend_field == "net_spend_usd"
     assert report.total("net_spend_usd") == Decimal("170")
 
 
 def test_no_users_means_no_report():
-    _, report = load_analytics(A.fetched(users=False))
+    _, report, _ = load_analytics(A.fetched(users=False))
     assert report is None
 
 
 def test_e_checks_run_on_api_data(pricing):
     """Net: a@example.com $160, the deleted user $10. Top 1 of 2 = 94%."""
-    _, report = load_analytics(A.fetched())
+    _, report, _ = load_analytics(A.fetched())
     run = run_enterprise_checks(report, pricing)
     e1 = next(f for f in run.findings if f.check_id == "E1")
     assert e1.measured_usd == Decimal("160")
@@ -172,3 +172,23 @@ def test_e_checks_run_on_api_data(pricing):
     assert {f.check_id for f in run.findings} == {"E1", "E2", "E3"}
     # Neither segment's output reaches 25% of tokens (2/17 and 1/6).
     assert "Output token share (E4)" in run.clean
+
+
+# -- RBAC group coverage ---------------------------------------------------------
+
+
+def test_group_coverage_is_loaded():
+    """Null row $4.00 a day for ten days, against the $160.00 total."""
+    _, _, coverage = load_analytics(A.fetched())
+    assert coverage.unassigned_usd == Decimal("40")
+    assert coverage.total_usd == Decimal("160")
+    assert coverage.named == {
+        "rbac_group_eng": Decimal("120"),
+        "rbac_group_sales": Decimal("30"),
+    }
+    assert coverage.capped_buckets == 0
+
+
+def test_a_fetch_without_the_groups_series_has_no_coverage():
+    _, _, coverage = load_analytics(A.fetched(groups=False))
+    assert coverage is None

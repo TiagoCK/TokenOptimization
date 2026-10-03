@@ -55,6 +55,7 @@ def _pages():
         ok(A.page(A.grouped_usage())),
         ok(A.page(A.total_usage())),
         ok(A.page(A.total_cost())),
+        ok(A.groups_cost_pages()[0]),
         ok(A.user_usage_pages()[1]),
         ok(A.user_cost_pages()[1]),
     ]
@@ -71,18 +72,21 @@ def test_fetch_writes_every_series_without_the_key(tmp_path, monkeypatch, capsys
         capsys, "fetch", "--source", "analytics", "--from", "2026-08-01", "--to", "2026-08-11", "-o", str(out)
     )
     assert code == 0, err
-    assert transport.calls == 5
+    assert transport.calls == 6
     text = out.read_text(encoding="utf-8")
     assert KEY not in text
     payload = json.loads(text)
     assert is_analytics_envelope(payload)
-    assert set(payload["series"]) == {"usage", "usage_total", "cost_total", "user_usage", "user_cost"}
+    assert set(payload["series"]) == {
+        "usage", "usage_total", "cost_total", "groups_cost", "user_usage", "user_cost"
+    }
+    assert payload["series"]["groups_cost"]["group_by"] == ["rbac_group_id"]
     assert payload["series"]["usage"]["group_by"] == list(DEFAULT_ANALYTICS_GROUP_BY)
     assert payload["series"]["usage_total"]["group_by"] == []
 
 
 def test_no_users_saves_no_per_user_series(tmp_path, monkeypatch, capsys, patched_client):
-    transport = patched_client(*_pages()[:3])
+    transport = patched_client(*_pages()[:4])
     monkeypatch.setenv("ANTHROPIC_ANALYTICS_KEY", KEY)
     out = tmp_path / "raw.json"
     code, _, _ = run(
@@ -90,9 +94,10 @@ def test_no_users_saves_no_per_user_series(tmp_path, monkeypatch, capsys, patche
         "--from", "2026-08-01", "--to", "2026-08-11", "-o", str(out),
     )
     assert code == 0
-    assert transport.calls == 3
+    assert transport.calls == 4
     payload = json.loads(out.read_text(encoding="utf-8"))
     assert "user_usage" not in payload["series"]
+    assert "groups_cost" in payload["series"]
     assert "@" not in json.dumps(payload)
 
 
@@ -127,7 +132,7 @@ def test_audit_runs_usage_and_per_user_checks(tmp_path, capsys):
     assert payload["source"] == "enterprise_analytics"
     assert payload["per_user"] is True
     found = {f["check_id"] for f in payload["findings"]}
-    assert {"C1", "C2", "C8", "E1", "E2", "E3"} <= found
+    assert {"C1", "C2", "C7r", "C8", "E1", "E2", "E3"} <= found
     assert "Batch tier adoption (C3)" in payload["checks_blocked"]
     assert "Attribution coverage (C7)" in payload["checks_blocked"]
     assert "Day-over-day spend spikes (C6a)" in payload["checks_clean"]
@@ -177,12 +182,28 @@ def test_truncation_sets_the_exit_code(tmp_path, capsys):
 def test_inspect_counts_checks_across_both_registries(tmp_path, capsys):
     code, out, _ = run(capsys, "inspect", saved(tmp_path))
     assert code == 0
-    # 9 usage checks + 4 per-user; C3, C6b and C7 cannot run on daily data
-    # without tier or workspace.
-    assert "No checks run. 10 of 13 would run" in out
+    # 9 usage checks + C7r + 4 per-user; C3, C6b and C7 cannot run on daily
+    # data without tier or workspace.
+    assert "No checks run. 11 of 14 would run" in out
 
 
 def test_cost_flag_is_refused(tmp_path, capsys):
     code, _, err = run(capsys, "audit", saved(tmp_path), "--cost", "x.csv")
     assert code == 2
     assert "already carries cost data" in err
+
+
+def test_an_old_fetch_skips_c7r_and_says_why(tmp_path, capsys):
+    _, out, _ = run(capsys, "audit", saved(tmp_path, groups=False), "--json")
+    payload = json.loads(out)
+    assert "RBAC group coverage (C7r)" in payload["checks_blocked"]
+    assert "rbac_groups_not_fetched" in {g["code"] for g in payload["gaps"]}
+    assert "C7r" not in {f["check_id"] for f in payload["findings"]}
+
+
+def test_c7r_in_the_audit(tmp_path, capsys):
+    _, out, _ = run(capsys, "audit", saved(tmp_path), "--json")
+    c7r = next(f for f in json.loads(out)["findings"] if f["check_id"] == "C7r")
+    assert Decimal(c7r["measured_usd"]) == Decimal("40")
+    assert c7r["confidence"] == "observation"
+    assert c7r["recoverable"] is None

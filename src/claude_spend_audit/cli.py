@@ -34,6 +34,7 @@ from . import gaps as gapmod
 from .checks import CHECKS, CheckConfig, CheckRun, run_checks
 from .findings import rank
 from .enterprise import ENTERPRISE_CHECKS, EnterpriseConfig, run_enterprise_checks
+from .enterprise import groups as rbac
 from .enterprise.report import INT_FIELDS, SpendReport
 from .frame import Frame, merge
 from .ingest import load_cost_csv, load_usage_csv
@@ -850,6 +851,17 @@ def _fetch_analytics(args, key: str) -> int:
             "group_by": [],
             "pages": client.analytics_cost(args.start, args.end, bucket_width="1d"),
         }
+        # Spend by RBAC group, for C7r. Group ids are not personal data, so
+        # this is fetched even with --no-users. Never fed into the Frame: its
+        # named-group rows overlap.
+        series["groups_cost"] = {
+            "endpoint": ANALYTICS_COST_PATH,
+            "bucket_width": "1d",
+            "group_by": ["rbac_group_id"],
+            "pages": client.analytics_cost(
+                args.start, args.end, bucket_width="1d", group_by=["rbac_group_id"]
+            ),
+        }
         if not args.no_users:
             per_user = ["product", "model"]
             series["user_usage"] = {
@@ -907,7 +919,7 @@ def _analytics(args, saved: dict, *, mode: str) -> int:
         print(f"error: {exc}", file=sys.stderr)
         return 2
     try:
-        frame, report = load_analytics(saved, source=str(args.usage))
+        frame, report, coverage = load_analytics(saved, source=str(args.usage))
     except AnalyticsFileError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
@@ -922,7 +934,15 @@ def _analytics(args, saved: dict, *, mode: str) -> int:
         report = report.anonymized()
 
     extra = {"source": "enterprise_analytics", "per_user": report is not None}
-    checks_total = len(CHECKS) + (len(ENTERPRISE_CHECKS) if report is not None else 0)
+    # C7r always counts: when the file lacks its series it is skipped, and
+    # the report says so, rather than silently left out of the tally.
+    checks_total = len(CHECKS) + 1 + (len(ENTERPRISE_CHECKS) if report is not None else 0)
+    if coverage is None:
+        group_gaps = [gapmod.rbac_groups_not_fetched()]
+    elif coverage.capped_buckets:
+        group_gaps = [gapmod.rbac_unassigned_row_missing(coverage.capped_buckets)]
+    else:
+        group_gaps = []
 
     if mode == "inspect":
         blocked: list[tuple[str, str]] = []
@@ -937,6 +957,9 @@ def _analytics(args, saved: dict, *, mode: str) -> int:
                 if unmet:
                     frame = frame.with_gaps(unmet)
                     blocked.append((check.label, "; ".join(g.message for g in unmet)))
+        frame = frame.with_gaps(group_gaps)
+        if coverage is None:
+            blocked.append((rbac.LABEL, group_gaps[0].message))
         frame = replace(frame, gaps=tuple(_analytics_gaps(frame.gaps, frame)))
         if args.json:
             payload = _as_json(frame, pricing, estimate)
@@ -972,6 +995,14 @@ def _analytics(args, saved: dict, *, mode: str) -> int:
         gaps += per_user.gaps
         skipped += per_user.skipped
         clean += per_user.clean
+    gaps += group_gaps
+    if coverage is None:
+        skipped.append((rbac.LABEL, group_gaps[0].message))
+    else:
+        produced = rbac.run_group_coverage(coverage, _check_config(args))
+        findings += produced
+        if not produced:
+            clean.append(rbac.LABEL)
     combined = CheckRun(
         findings=tuple(rank(findings)),
         gaps=tuple(_analytics_gaps(gaps, frame)),

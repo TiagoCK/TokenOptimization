@@ -17,7 +17,7 @@ Every field name here is from Anthropic's published API reference.
 
 from __future__ import annotations
 
-from dataclasses import replace
+from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Any, Iterable, Mapping
@@ -41,10 +41,32 @@ class AnalyticsFileError(ValueError):
     """A saved analytics fetch is missing something it must contain."""
 
 
+#: The API's documented cap on groups per time bucket.
+_GROUP_CAP = 100
+
+
+@dataclass(frozen=True, slots=True)
+class GroupCoverage:
+    """Billed spend from users in no RBAC group, against the account total.
+
+    Named-group rows overlap -- a user in two groups is counted in both -- so
+    ``named`` is for display only and is never summed. The only arithmetic is
+    the null row (users in no group) against the ungrouped cost total.
+    """
+
+    total_usd: Decimal
+    unassigned_usd: Decimal
+    #: Spend per named group, overlapping. Display only.
+    named: dict[str, Decimal] = field(default_factory=dict)
+    #: Buckets that hit the group cap without carrying the unassigned row.
+    capped_buckets: int = 0
+
+
 def load_analytics(
     envelope: Mapping[str, Any], *, source: str = "<analytics>"
-) -> tuple[Frame, SpendReport | None]:
-    """A Frame from the bucketed series, and a SpendReport from the per-user ones."""
+) -> tuple[Frame, SpendReport | None, GroupCoverage | None]:
+    """A Frame from the bucketed series, a SpendReport from the per-user ones,
+    and RBAC group coverage when the fetch carries it."""
     series: Mapping[str, Mapping[str, Any]] = envelope.get("series") or {}
     usage = series.get("usage")
     if not usage:
@@ -121,7 +143,8 @@ def load_analytics(
         start=requested_start,
         end=requested_end,
     )
-    return frame.with_gaps(found), report
+    coverage = _group_coverage(series.get("groups_cost"), frame.billed_total_usd)
+    return frame.with_gaps(found), report, coverage
 
 
 # --------------------------------------------------------------------------
@@ -288,4 +311,32 @@ def _spend_report(
         period_end=end,
         sources=(info,),
         prompt_includes_cache=True if user_usage else None,
+    )
+
+
+def _group_coverage(
+    groups_cost: Mapping[str, Any] | None, total: Decimal | None
+) -> GroupCoverage | None:
+    """Unassigned spend from a cost series grouped by rbac_group_id."""
+    if not groups_cost or total is None:
+        return None
+    unassigned = Decimal("0")
+    named: dict[str, Decimal] = {}
+    capped = 0
+    for page in groups_cost.get("pages") or []:
+        for bucket in page.get("data", ()):
+            results = bucket.get("results", ())
+            saw_null = False
+            for row in results:
+                group = row.get("rbac_group_id")
+                amount = _cents(row.get("amount"))
+                if group is None:
+                    saw_null = True
+                    unassigned += amount
+                else:
+                    named[group] = named.get(group, Decimal("0")) + amount
+            if len(results) >= _GROUP_CAP and not saw_null:
+                capped += 1
+    return GroupCoverage(
+        total_usd=total, unassigned_usd=unassigned, named=named, capped_buckets=capped
     )

@@ -17,6 +17,11 @@ The month, ten days from 2026-08-01, identical every day:
 
 Billed $16.00 a day against a $20.00 list price: $160.00 of $200.00, 80.0%.
 
+Spend by RBAC group, per day: rbac_group_eng $12.00, rbac_group_sales $3.00,
+users in no group $4.00. Unassigned: $40.00 of $160.00, 25%. The named rows
+plus the null row come to $19.00 a day, more than the $16.00 billed --
+deliberately, because a user in two groups counts in both.
+
 Per user (two windows of the user endpoints, so summing across them is
 exercised):
 
@@ -197,12 +202,34 @@ def user_cost_pages() -> list[dict]:
     ]
 
 
+def groups_cost_pages(*, capped_on: tuple[int, ...] = (), null_cents: str = "400.000000") -> list[dict]:
+    """Cost grouped by rbac_group_id. ``capped_on`` days carry 100 named rows
+    and no null row, as the API's group cap would leave them."""
+
+    def rows(day):
+        if day in capped_on:
+            return [
+                {"rbac_group_id": f"rbac_group_{i:03d}", "amount": "10.000000",
+                 "list_amount": "12.500000", "currency": "USD"}
+                for i in range(100)
+            ]
+        return [
+            {"rbac_group_id": "rbac_group_eng", "amount": "1200.000000", "list_amount": "1500.000000", "currency": "USD"},
+            {"rbac_group_id": "rbac_group_sales", "amount": "300.000000", "list_amount": "375.000000", "currency": "USD"},
+            {"rbac_group_id": None, "amount": null_cents, "list_amount": "500.000000", "currency": "USD"},
+        ]
+
+    return [page(_days(rows))]
+
+
 def fetched(
     *,
     drop_sonnet_on: tuple[int, ...] = (),
     refreshed: str | None = REFRESHED,
     fetched_at: datetime = FETCHED,
     users: bool = True,
+    groups: bool = True,
+    groups_capped_on: tuple[int, ...] = (),
     group_by: list[str] | None = None,
 ) -> dict[str, Any]:
     """A whole saved fetch, as `fetch --source analytics` would write it."""
@@ -226,6 +253,13 @@ def fetched(
             "pages": [page(total_cost(), refreshed)],
         },
     }
+    if groups:
+        series["groups_cost"] = {
+            "endpoint": "/v1/organizations/analytics/cost_report",
+            "bucket_width": "1d",
+            "group_by": ["rbac_group_id"],
+            "pages": groups_cost_pages(capped_on=groups_capped_on),
+        }
     if users:
         series["user_usage"] = {
             "endpoint": "/v1/organizations/analytics/user_usage_report",

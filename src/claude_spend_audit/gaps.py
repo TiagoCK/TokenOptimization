@@ -47,6 +47,8 @@ class GapCode(StrEnum):
     ANALYTICS_NOT_FINAL = "analytics_not_final"
     ANALYTICS_PLAN_CONTEXT = "analytics_plan_context"
     LIST_PRICE_BASIS = "list_price_basis"
+    RBAC_GROUPS_NOT_FETCHED = "rbac_groups_not_fetched"
+    RBAC_UNASSIGNED_ROW_MISSING = "rbac_unassigned_row_missing"
 
     # Shape of the export limits what can be concluded
     DIMENSION_NOT_GROUPED = "dimension_not_grouped"
@@ -636,5 +638,35 @@ def analytics_plan_context() -> Gap:
             "cost reflects usage credits only. Claude Code routed through "
             "Amazon Bedrock is not included, and per-user figures cover seat "
             "users only, not direct API-key or automation traffic."
+        ),
+    )
+
+
+def rbac_groups_not_fetched() -> Gap:
+    """A saved analytics fetch from before the RBAC series was added."""
+    return Gap(
+        code=GapCode.RBAC_GROUPS_NOT_FETCHED,
+        severity=Severity.WARNING,
+        scope="rbac_group_id",
+        message=(
+            "This analytics fetch has no spend broken out by RBAC group, so "
+            "RBAC group coverage (C7r) cannot be evaluated. This is a property "
+            "of the saved file, not a finding about the spend."
+        ),
+        remedy="Fetch again with `fetch --source analytics` from this version.",
+    )
+
+
+def rbac_unassigned_row_missing(buckets: int) -> Gap:
+    """Buckets where the 100-group cap may have cut the unassigned row."""
+    return Gap(
+        code=GapCode.RBAC_UNASSIGNED_ROW_MISSING,
+        severity=Severity.WARNING,
+        scope=f"{buckets} bucket(s)",
+        message=(
+            f"In {buckets} day(s) the RBAC breakdown hit the API's limit of 100 "
+            "groups per bucket and carried no row for users in no group. That "
+            "row may have been cut, so the unassigned spend reported by C7r is "
+            "a lower bound."
         ),
     )

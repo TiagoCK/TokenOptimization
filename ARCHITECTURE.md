@@ -77,6 +77,10 @@ Each grouped time bucket holds at most 100 groups and no remainder row, so
 bucket, raising a gap that invalidates the total when they differ. And RBAC
 group rows overlap -- a user in two groups counts in both -- so grouping a
 Frame by `rbac_group_id` is refused outright: it would count tokens twice.
+RBAC coverage (C7r) is computed from a separate cost series grouped by group,
+and uses only the row for users in no group against the ungrouped cost total
+-- the one comparison the overlap cannot corrupt. If a day's breakdown hits
+the 100-group cap without that row, the figure is reported as a lower bound.
 
 **More than one tool produces these CSVs**, and they disagree. The Console UI
 export and Anthropic's published cookbook exporter use different column names
