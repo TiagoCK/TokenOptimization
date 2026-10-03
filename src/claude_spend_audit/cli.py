@@ -7,6 +7,10 @@ Three commands:
 * ``fetch``   -- downloads usage or cost from the Admin API to a file, and
   stops. Analysis then runs on that file, offline.
 
+``inspect`` and ``audit`` also accept a Team/Enterprise plan spend report.
+It is recognised by its columns and routed to its own pipeline -- its own data
+model and its own descriptive checks -- because it is not usage data.
+
 Rendering lives in ``render.terminal``; this module handles arguments, loading,
 and exit codes only.
 """
@@ -23,6 +27,8 @@ from pathlib import Path
 from . import __version__
 from . import gaps as gapmod
 from .checks import CHECKS, CheckConfig, run_checks
+from .enterprise import ENTERPRISE_CHECKS, EnterpriseConfig, run_enterprise_checks
+from .enterprise.report import INT_FIELDS, SpendReport
 from .frame import Frame, merge
 from .ingest import load_cost_csv, load_usage_csv
 from .ingest.api_client import (
@@ -34,6 +40,7 @@ from .ingest.api_client import (
     is_envelope,
 )
 from .ingest.api_json import load_cost_json, load_usage_json
+from .ingest.enterprise_csv import ENTERPRISE_KIND, detect_enterprise, load_enterprise_csv
 from .ingest.schema import Profile, SchemaError, SchemaMismatch
 from .pricing import PricingError, PricingTable
 from .render import markdown, terminal
@@ -64,7 +71,14 @@ DEFAULT_FETCH_GROUP_BY: tuple[str, ...] = (
 
 
 def _add_data_args(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument("usage", type=Path, help="Console Usage page CSV export")
+    parser.add_argument(
+        "usage",
+        type=Path,
+        help=(
+            "Console Usage page CSV export, a file saved by `fetch`, or a "
+            "Team/Enterprise plan spend report"
+        ),
+    )
     parser.add_argument(
         "--cost", type=Path, default=None, help="Console Cost page CSV export"
     )
@@ -86,6 +100,14 @@ def _add_data_args(parser: argparse.ArgumentParser) -> None:
         help="print which CSV column mapped to which field, then continue",
     )
     parser.add_argument("--json", action="store_true", help="emit JSON instead of text")
+    parser.add_argument(
+        "--anonymize",
+        action="store_true",
+        help=(
+            "Team/Enterprise spend reports only: replace user emails with "
+            "user-001, user-002... (largest spender first) in every output"
+        ),
+    )
 
 
 def _business_hours(text: str) -> tuple[int, int]:
@@ -463,7 +485,7 @@ def _load(args) -> tuple[Frame, PricingTable, object]:
     return frame, pricing, estimate
 
 
-def _exit_code(frame: Frame) -> int:
+def _exit_code(frame: Frame | SpendReport) -> int:
     """1 when a gap means the headline total understates the real bill.
 
     Findings do not affect this: "we found something" is the tool working, not
@@ -478,6 +500,9 @@ def _exit_code(frame: Frame) -> int:
 
 
 def _inspect(args) -> int:
+    routed = _enterprise_profile(args)
+    if routed is not None:
+        return _enterprise(args, routed, mode="inspect")
     try:
         frame, pricing, estimate = _load(args)
     except _LoadFailed as exc:
@@ -522,6 +547,9 @@ def _inspect(args) -> int:
 
 
 def _audit(args) -> int:
+    routed = _enterprise_profile(args)
+    if routed is not None:
+        return _enterprise(args, routed, mode="audit")
     try:
         frame, pricing, estimate = _load(args)
     except _LoadFailed as exc:
@@ -760,18 +788,193 @@ def _as_json(frame: Frame, pricing: PricingTable, estimate) -> dict:
         "tokens": frame.tokens.as_dict() | {"total": frame.tokens.total},
         "web_search_requests": frame.web_search_requests,
         "grouped_by": sorted(frame.grouped_by),
-        "gaps": [
-            {
-                "code": str(g.code),
-                "severity": str(g.severity),
-                "scope": g.scope,
-                "message": g.message,
-                "invalidates_total": g.invalidates_total,
-                "remedy": g.remedy,
-            }
-            for g in sorted(frame.gaps, key=lambda g: _SEVERITY_ORDER[str(g.severity)])
-        ],
+        "gaps": _gaps_json(frame.gaps),
     }
+
+
+# --------------------------------------------------------------------------
+# Team/Enterprise spend report
+# --------------------------------------------------------------------------
+
+
+def _enterprise_profile(args) -> Profile | None:
+    """The spend-report profile to route this run to, or None for usage data.
+
+    An explicit --usage-profile of the enterprise kind routes; any other
+    explicit profile does not. Otherwise the file decides by its columns, and
+    only a file no usage profile matches can be claimed -- so a Console or
+    cookbook export can never be taken away from the usage path.
+    """
+    if args.usage_profile:
+        try:
+            explicit = Profile.load(args.usage_profile)
+        except SchemaError:
+            return None  # the usage path reports the profile error itself
+        return explicit if explicit.kind == ENTERPRISE_KIND else None
+    if _read_saved(args.usage) is not None:
+        return None
+    return detect_enterprise(args.usage)
+
+
+def _enterprise(args, profile: Profile, *, mode: str) -> int:
+    """inspect or audit, for a Team/Enterprise spend report."""
+    if args.cost:
+        print(
+            "error: this is a Team/Enterprise spend report, which already "
+            "carries spend. --cost applies only to Developer Console usage "
+            "exports.",
+            file=sys.stderr,
+        )
+        return 2
+    try:
+        pricing = (
+            PricingTable.load(args.pricing) if args.pricing else PricingTable.load_default()
+        )
+    except PricingError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    try:
+        report, mapping = load_enterprise_csv(args.usage, profile)
+    except SchemaMismatch as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    except (SchemaError, FileNotFoundError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+
+    if args.explain_schema:
+        print(mapping.explain(profile))
+        print()
+    if args.anonymize:
+        report = report.anonymized()
+
+    if mode == "inspect":
+        blocked: list[tuple[str, str]] = []
+        for check in ENTERPRISE_CHECKS:
+            unmet = check.unmet(report)
+            if unmet:
+                report = report.with_gaps(unmet)
+                blocked.append((check.label, "; ".join(g.message for g in unmet)))
+        if args.json:
+            payload = _enterprise_json(report, pricing)
+            payload["checks_blocked"] = [label for label, _ in blocked]
+            print(json.dumps(payload, indent=2))
+            return _exit_code(report)
+        out = terminal.render_enterprise_header(report, pricing, title="spend report summary")
+        out.extend(terminal.render_gaps(report.gaps))
+        out.extend(terminal.render_skipped(blocked))
+        out.extend(
+            terminal.footer(
+                [
+                    f"No checks run. {len(ENTERPRISE_CHECKS) - len(blocked)} of "
+                    f"{len(ENTERPRISE_CHECKS)} would run on this data -- use `audit`.",
+                ]
+            )
+        )
+        print("\n".join(out))
+        return _exit_code(report)
+
+    run = run_enterprise_checks(
+        report, pricing, EnterpriseConfig(min_impact_usd=args.min_impact)
+    )
+    report = report.with_gaps(run.gaps)
+
+    if args.json:
+        payload = _enterprise_json(report, pricing)
+        payload["findings"] = [_finding_json(f) for f in run.findings]
+        payload["checks_blocked"] = [label for label, _ in run.skipped]
+        payload["checks_clean"] = list(run.clean)
+        print(json.dumps(payload, indent=2))
+        return _exit_code(report)
+
+    if args.format == "markdown":
+        text = markdown.render_enterprise(
+            report, pricing, run.findings, skipped=run.skipped, version=__version__
+        )
+    else:
+        out = terminal.render_enterprise_header(report, pricing, title="spend report audit")
+        out.extend(terminal.render_findings(run.findings))
+        out.extend(terminal.render_skipped(run.skipped))
+        out.extend(terminal.render_gaps(report.gaps))
+        out.extend(
+            terminal.footer(
+                [
+                    f"{len(run.findings)} descriptive finding(s) from "
+                    f"{len(ENTERPRISE_CHECKS) - len(run.skipped)} of "
+                    f"{len(ENTERPRISE_CHECKS)} checks. None claims a saving.",
+                ]
+            )
+        )
+        text = "\n".join(out)
+
+    if args.output:
+        args.output.write_text(text + "\n", encoding="utf-8")
+        print(f"wrote {args.output}", file=sys.stderr)
+    else:
+        print(text)
+    return _exit_code(report)
+
+
+def _enterprise_json(report: SpendReport, pricing: PricingTable) -> dict:
+    net = report.total("net_spend_usd")
+    gross = report.total("gross_spend_usd")
+    return {
+        "report_type": ENTERPRISE_KIND,
+        # Stated in the payload so a consumer cannot mistake an observation
+        # for a savings figure: no finding in this report claims one.
+        "descriptive_only": True,
+        "period": {
+            "start": report.period_start.isoformat() if report.period_start else None,
+            "end": report.period_end.isoformat() if report.period_end else None,
+        },
+        "pricing": {
+            "version": pricing.version,
+            "fetched_at": pricing.fetched_at,
+            "source_url": pricing.source_url,
+            "used_for": "model tiers and list prices only",
+        },
+        "sources": [
+            {
+                "path": s.path,
+                "ingest_path": s.ingest_path,
+                "profile": s.profile,
+                "profile_status": s.profile_status,
+                "unmapped_columns": list(s.unmapped_columns),
+            }
+            for s in report.sources
+        ],
+        "spend": {
+            # Money as strings: a JSON float would round it.
+            "net_usd": str(net) if net is not None else None,
+            "gross_usd": str(gross) if gross is not None else None,
+            "analysed_column": report.spend_field,
+        },
+        "totals": {
+            name: (report.total(name) if report.has(name) else None) for name in INT_FIELDS
+        },
+        "counts": {
+            "rows": len(report.rows),
+            "users": len(report.distinct("user_email")) if report.has("user_email") else None,
+            "products": len(report.distinct("product")) if report.has("product") else None,
+            "models": len(report.distinct("model")) if report.has("model") else None,
+        },
+        "present_fields": sorted(report.present),
+        "gaps": _gaps_json(report.gaps),
+    }
+
+
+def _gaps_json(gaps) -> list[dict]:
+    return [
+        {
+            "code": str(g.code),
+            "severity": str(g.severity),
+            "scope": g.scope,
+            "message": g.message,
+            "invalidates_total": g.invalidates_total,
+            "remedy": g.remedy,
+        }
+        for g in sorted(gaps, key=lambda g: _SEVERITY_ORDER[str(g.severity)])
+    ]
 
 
 if __name__ == "__main__":  # pragma: no cover

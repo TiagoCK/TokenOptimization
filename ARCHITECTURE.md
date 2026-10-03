@@ -33,6 +33,10 @@ Usage & Cost API ───┘                                             markdo
 
 Alongside, at every stage:  Gap (gaps.py) -- what this data cannot show
 Alongside, at pricing:      PricingTable  <-- pricing/<version>.json
+
+Team/Enterprise spend report ──→  SpendReport ──→ enterprise/checks.py ──→ Finding[] ──→ render/
+  ingest/enterprise_csv.py        enterprise/      E1-E4, descriptive only   (observations)
+  (schemas/enterprise_spend_csv.json)  report.py
 ```
 
 Two ingest paths normalise into one `Frame`. Checks are pure functions of
@@ -44,6 +48,20 @@ The CSV path is the one that matters in practice — it needs no admin key and n
 security review — but the API path is what the data model is built around,
 because that is the surface Anthropic documents. A test asserts both paths
 produce an identical `Frame` from the same data.
+
+**A third path does not feed the Frame at all.** A Team or Enterprise plan's
+spend report is one row per person per model, summed over the export's range:
+no time buckets, no cache-write split, no service tier. Normalised into a
+Frame, every missing bucket would read as zero -- C1 would report a clean
+result, C2 would flag every model as never caching, C6 would see a flat
+month. So it loads into its own `SpendReport`, where a column the export lacks
+is `None` rather than `0` (`SpendReport.present` is the counterpart of
+`Frame.grouped_by`), and runs its own four checks. They reuse the `Finding`
+contract, the renderers' finding and caveat sections, and C5's and C8's
+helpers, and they are **descriptive only**: each is an `observation`, and
+`run_enterprise_checks` raises if any check returns anything else. `cli.py`
+routes a file there by its columns, and only a file no usage profile matches
+can be claimed.
 
 **More than one tool produces these CSVs**, and they disagree. The Console UI
 export and Anthropic's published cookbook exporter use different column names
@@ -309,7 +327,7 @@ not declare its needs will silently compute something meaningless.
 
 ## Known limitations
 
-Three are worth knowing before you rely on the output.
+Four are worth knowing before you rely on the output.
 
 **The Console CSV column mapping is unverified.** Anthropic publishes the Usage
 & Cost API's field names but not the Console export's column headers — they are
@@ -355,6 +373,14 @@ report, so an output-heavy segment may be reasoning rather than verbosity. And
 the frontier/mid/small tiers C8 groups by are this tool's classification,
 recorded in the pricing file rather than published by Anthropic — the file says
 so, and you can edit it to match how your organisation thinks about its models.
+
+**The Team/Enterprise spend report supports description, not diagnosis.** It
+carries no dates, so nothing about spikes or off-hours; no cache breakdown, so
+nothing about caching; and its documentation does not say whether prompt
+tokens include cache reads. Its column names are only partly documented, so
+`schemas/enterprise_spend_csv.json` is a provisional set of many candidate
+spellings per field. Spend is the report's own figure and is never re-priced:
+the pricing file supplies only model tiers and list prices on this path.
 
 Every limitation that applies to a given dataset is listed in that report's
 caveats section, with what to re-export to remove it where that is possible.

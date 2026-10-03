@@ -36,6 +36,11 @@ class GapCode(StrEnum):
     BEDROCK_NOT_VISIBLE = "bedrock_not_visible"
     ENTERPRISE_ANALYTICS_SOURCE = "enterprise_analytics_source"
 
+    # A Team/Enterprise spend report lacks something a check needs
+    ENTERPRISE_FIELD_ABSENT = "enterprise_field_absent"
+    ENTERPRISE_MODEL_UNCLASSIFIED = "enterprise_model_unclassified"
+    ENTERPRISE_ROWS_EXCLUDED = "enterprise_rows_excluded"
+
     # Shape of the export limits what can be concluded
     DIMENSION_NOT_GROUPED = "dimension_not_grouped"
     GRANULARITY_TOO_COARSE = "granularity_too_coarse"
@@ -387,15 +392,17 @@ def pricing_dimension_not_grouped(dimensions: tuple[str, ...]) -> Gap:
     )
 
 
-def provisional_csv_schema(profile: str) -> Gap:
+def provisional_csv_schema(
+    profile: str, unpublished: str = "the Console export's column headers"
+) -> Gap:
     return Gap(
         code=GapCode.PROVISIONAL_CSV_SCHEMA,
         severity=Severity.WARNING,
         scope=profile,
         message=(
             f"CSV schema profile {profile!r} is marked provisional: Anthropic "
-            "does not publish the Console export's column headers, so the "
-            "header mapping has not been verified against a real export."
+            f"does not publish {unpublished}, so the header mapping has not "
+            "been verified against a real export."
         ),
         remedy=(
             "Run with --explain-schema to see exactly which column mapped to "
@@ -417,5 +424,100 @@ def unmapped_csv_columns(columns: tuple[str, ...]) -> Gap:
         remedy=(
             "If any of these carry data the analysis needs, add them to the "
             "schema profile's aliases."
+        ),
+    )
+
+
+# --------------------------------------------------------------------------
+# Team / Enterprise spend report. None of these set invalidates_total: the
+# spend in that report is Anthropic's own figure, read rather than estimated,
+# so nothing here means a total is known to understate the bill.
+# --------------------------------------------------------------------------
+
+
+def enterprise_analytics_source() -> Gap:
+    """What a Team/Enterprise spend report is, and what it cannot show."""
+    return Gap(
+        code=GapCode.ENTERPRISE_ANALYTICS_SOURCE,
+        severity=Severity.INFO,
+        message=(
+            "This is a Team/Enterprise plan spend report. It covers seat-plan "
+            "usage -- chat, Claude Code and Cowork -- and not Developer "
+            "Platform API traffic, which has its own Usage and Cost exports. "
+            "Each row is one person's usage of one model summed across the "
+            "export's whole date range, so there is no daily or hourly "
+            "breakdown: spikes, off-hours volume, caching efficiency, batch "
+            "eligibility and context length cannot be analysed from it. Spend "
+            "is the report's own figure, not re-priced by this tool."
+        ),
+        remedy=(
+            "For API traffic, run this tool on a Developer Console export or "
+            "an Admin API fetch instead."
+        ),
+    )
+
+
+def enterprise_field_absent(field: str, blocks: str) -> Gap:
+    """A column a check needs is not in the spend report as matched."""
+    return Gap(
+        code=GapCode.ENTERPRISE_FIELD_ABSENT,
+        severity=Severity.WARNING,
+        scope=field,
+        message=(
+            f"No {field!r} column was recognised in this spend report, so "
+            f"{blocks} cannot be evaluated. This is a property of the export "
+            "(or of the column mapping), not a finding about the spend."
+        ),
+        remedy=(
+            "If the export does carry this column under another name, add that "
+            "header to the field's aliases in schemas/enterprise_spend_csv.json "
+            "and re-run. --explain-schema shows what each column mapped to."
+        ),
+    )
+
+
+def enterprise_model_unclassified(model: str) -> Gap:
+    """A model in the spend report that the pricing file cannot resolve.
+
+    Unlike ``unknown_model``, this does not invalidate a total: the report's
+    spend is already in dollars. All that is lost is the model's tier and list
+    price in the model-mix observation.
+    """
+    return Gap(
+        code=GapCode.ENTERPRISE_MODEL_UNCLASSIFIED,
+        severity=Severity.INFO,
+        scope=model,
+        message=(
+            f"Model {model!r} is not in the pricing file, so the model-mix "
+            "observation shows it as unclassified and without a list price. "
+            "Its spend is still counted: the report supplies it in dollars."
+        ),
+        remedy=(
+            f"Add a {model!r} entry (or an alias) to the pricing file to "
+            "classify it."
+        ),
+    )
+
+
+def enterprise_rows_excluded(count: int) -> Gap:
+    """Rows with neither a user nor a model, left out of every figure.
+
+    The one place this path drops rows, and the reason it is reported rather
+    than done quietly. A row naming no person and no model is most likely a
+    totals line a spreadsheet added; counting it would double the spend.
+    """
+    return Gap(
+        code=GapCode.ENTERPRISE_ROWS_EXCLUDED,
+        severity=Severity.WARNING,
+        scope=f"{count} row(s)",
+        message=(
+            f"{count} row(s) in the spend report name neither a user nor a "
+            "model and were left out of every figure. Rows like that are "
+            "usually a totals line, which would double the spend if counted."
+        ),
+        remedy=(
+            "Check the export for a summary row. If these rows carry real "
+            "usage, the user or model column is probably mis-mapped: run with "
+            "--explain-schema."
         ),
     )

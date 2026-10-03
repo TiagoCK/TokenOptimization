@@ -183,6 +183,65 @@ def render_header(frame: Frame, pricing: PricingTable, estimate, *, title: str) 
     return out
 
 
+def render_enterprise_header(report, pricing: PricingTable, *, title: str) -> list[str]:
+    """The header block for a Team/Enterprise spend report.
+
+    Its own function rather than a branch in ``render_header``: there is no
+    time granularity, no billed-versus-estimated pair and no five token
+    buckets, and pretending otherwise would print zeros the data never gave.
+    Every count the export does not carry says so instead.
+    """
+    from ..enterprise import REPORT_BANNER
+    from ..enterprise.report import FIELD_LABELS, INT_FIELDS
+
+    out = [RULE, f"claude-spend-audit -- {title}", RULE]
+    out.append("  report type      Team/Enterprise spend report")
+    start, end = report.period_start, report.period_end
+    if start and end:
+        period = f"{start:%Y-%m-%d} to {end:%Y-%m-%d} UTC"
+    else:
+        period = "the range chosen at export (not stated in the file)"
+    out.append(f"  period covered   {period}")
+    out.append(f"  rows             {len(report.rows):,}")
+    for name, label in (("user_email", "users"), ("product", "products"), ("model", "models")):
+        if report.has(name):
+            out.append(f"  {label:<16} {len(report.distinct(name)):,}")
+        else:
+            out.append(f"  {label:<16} not in export")
+    out.append(
+        f"  pricing file     {pricing.version} (fetched {pricing.fetched_at}), "
+        "for tiers only"
+    )
+    for source in report.sources:
+        label = source.profile or source.ingest_path
+        status = f" [{source.profile_status}]" if source.profile_status else ""
+        prefix = "  source           "
+        out.append(prefix + elide(str(source.path), WIDTH - len(prefix)))
+        out.append(f"                   via {label}{status}")
+
+    out.append("")
+    out.append(f"  {wrap(REPORT_BANNER, WIDTH - 4, '  ')}")
+
+    out.append("")
+    out.append("SPEND (as the report states it; not re-priced)")
+    net = report.total("net_spend_usd")
+    gross = report.total("gross_spend_usd")
+    out.append(f"  net spend                    {usd(net) if net is not None else 'not in export':>16}")
+    out.append(f"  gross spend                  {usd(gross) if gross is not None else 'not in export':>16}")
+    if net is not None and gross:
+        delta = net - gross
+        pct = (-delta / gross * 100).quantize(Decimal("0.1"))
+        out.append(f"  difference                   {usd(delta):>16}  ({pct}% below gross)")
+
+    out.append("")
+    out.append("TOKENS AND REQUESTS")
+    for name in INT_FIELDS:
+        value = report.total(name)
+        shown = f"{value:,}" if value is not None else "not in export"
+        out.append(f"  {FIELD_LABELS[name]:<18} {shown:>16}")
+    return out
+
+
 def render_dimensions(frame: Frame) -> list[str]:
     out = ["", "DIMENSIONS PRESENT"]
     if not frame.grouped_by:

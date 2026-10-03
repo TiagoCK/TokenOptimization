@@ -1,0 +1,4 @@
+﻿Email,Product Name,Model Name,Requests,Input Tokens,Output Tokens,Net Spend (USD),Gross Spend (USD),Team
+erin@example.com,Claude Code,Claude Opus 5,"1,200","40,000,000","5,000,000","$1,234.50","$1,543.13",Platform
+frank@example.com,Chat,claude-sonnet-5,80,"600,000","200,000",$15.50,$19.38,Sales
+

@@ -73,6 +73,46 @@ saved file is an artifact you can read before deciding whether to share it.
 `--api-key` flag, deliberately: an argument lands in shell history and is
 visible to every user on the machine through `ps`.
 
+## Team and Enterprise plans
+
+If your organisation uses Claude through a Team or Enterprise plan -- chat,
+Claude Code, Cowork -- the export you have is the **spend report**, not the
+Developer Console's Usage and Cost exports. Download it from Settings >
+Analytics > "Export spend report", then run the same command:
+
+```bash
+claude-spend-audit audit spend-report.csv
+claude-spend-audit audit spend-report.csv --format markdown --anonymize -o overview.md
+```
+
+The file is recognised by its columns and routed to its own checks. **This
+report is descriptive only.** It is one row per person per model, summed over
+the range you exported, so it shows where the money went across the account
+but cannot support a savings claim. Every finding is an `observation`, and the
+tool refuses to produce anything else from this data.
+
+| | check | what it describes |
+|---|---|---|
+| **E1** | Spend concentration by user | how much of the spend the top 10% of users account for, and who they are |
+| **E2** | Spend by product | the split across chat, Claude Code, Cowork and any other product |
+| **E3** | Model mix | spend across frontier, mid and small models, with list prices |
+| **E4** | Output token share | product/model groups where completion tokens are a large share |
+
+Each finding names the admin control it relates to -- spend limits, product
+access per group, the default model, effort levels -- without claiming what
+changing it would save. The usage checks C1-C8 do not run on this report: it
+has no dates, cache breakdown, service tier, workspace or context window.
+
+`--anonymize` replaces every email with `user-001`, `user-002`... (largest
+spender first) in every output format, for a report you intend to forward.
+
+**The column mapping is a guess.** Anthropic documents five of the report's
+column names and describes the rest in prose, and no real export has been
+checked against this tool. So `schemas/enterprise_spend_csv.json` carries many
+candidate spellings per field and is marked `provisional`. If your export does
+not parse, the error prints its header row: add the right spelling to that
+file, and please open an issue with the header row (not the data).
+
 ## Install
 
 ```bash

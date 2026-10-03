@@ -1,0 +1,212 @@
+{
+  "profile": "enterprise_spend",
+  "kind": "enterprise_spend",
+  "status": "provisional",
+  "verified_against": null,
+
+  "amount_units": "dollars",
+
+  "_readme": [
+    "The spend report a Claude Team or Enterprise plan exports from",
+    "Settings > Analytics > 'Export spend report'. This is not the Developer",
+    "Console's Usage or Cost export: it covers seat-plan usage (chat, Claude",
+    "Code, Cowork), one row per person per model, summed across the date range",
+    "chosen when exporting. There is no date column and no time breakdown.",
+    "",
+    "Source: Anthropic support article 12883420, 'View usage analytics for Team",
+    "and Enterprise plans', read 2026-10-03. It names these columns verbatim:",
+    "",
+    "  total_requests, total_prompt_tokens, total_completion_tokens,",
+    "  total_net_spend_usd, total_gross_spend_usd",
+    "",
+    "and describes the rest only in prose: the user's email, account UUID,",
+    "product, and model and model family. A third-party write-up also mentions",
+    "total_cache_read_tokens and total_web_search_count. No genuine export has",
+    "been seen, so every alias below the verbatim names is a guess. That is why",
+    "each field carries many of them, and why this profile is provisional.",
+    "",
+    "The usual rules still hold. A missing required column fails with the real",
+    "header row printed. Two columns claiming one field is an error, never a",
+    "coin flip. An unrecognised column is reported, never silently dropped.",
+    "Run with --explain-schema to see the mapping that was applied.",
+    "",
+    "Spend columns are read as dollars: their documented names end in _usd.",
+    "Generic spellings ('spend', 'cost', 'amount') map to net spend, since net",
+    "is what is actually paid. A file carrying both a generic column and a net",
+    "one stops with an ambiguity error rather than picking one.",
+    "",
+    "When you have a real export: correct the aliases, set 'status' to",
+    "'verified', and record the export date in 'verified_against'. No code",
+    "change is needed."
+  ],
+
+  "matching": {
+    "case_sensitive": false,
+    "normalize": "lowercase, strip whitespace, collapse spaces/underscores/hyphens/slashes/dots",
+    "on_ambiguous_match": "error",
+    "on_unmapped_column": "report",
+    "on_missing_required": "error"
+  },
+
+  "columns": {
+    "user_email": {
+      "type": "string",
+      "required": true,
+      "dimension": true,
+      "aliases": [
+        "user email", "email", "email address", "e mail", "user email address",
+        "member email", "member", "member email address", "user", "account email",
+        "account email address", "login", "login email", "username", "user login",
+        "seat", "seat email"
+      ]
+    },
+    "account_uuid": {
+      "type": "string",
+      "required": false,
+      "dimension": true,
+      "aliases": [
+        "account uuid", "account id", "account", "user uuid", "user id",
+        "member uuid", "member id", "uuid", "account identifier", "user identifier"
+      ]
+    },
+    "user_name": {
+      "type": "string",
+      "required": false,
+      "dimension": true,
+      "aliases": [
+        "user name", "name", "full name", "member name", "display name",
+        "user full name", "user display name", "account name"
+      ]
+    },
+    "product": {
+      "type": "string",
+      "required": false,
+      "dimension": true,
+      "aliases": [
+        "product", "product name", "products", "surface", "product surface",
+        "app", "application", "client", "source", "platform", "product type",
+        "tool", "feature"
+      ]
+    },
+    "model": {
+      "type": "string",
+      "required": true,
+      "dimension": true,
+      "aliases": [
+        "model", "model name", "model id", "model display name", "model identifier",
+        "claude model", "model used"
+      ]
+    },
+    "model_family": {
+      "type": "string",
+      "required": false,
+      "dimension": true,
+      "aliases": [
+        "model family", "family", "model group", "model family name", "model class",
+        "model series"
+      ]
+    },
+
+    "requests": {
+      "type": "int",
+      "required": false,
+      "aliases": [
+        "total requests", "requests", "request count", "total request count",
+        "number of requests", "num requests", "requests count", "messages",
+        "total messages", "message count", "total message count", "number of messages"
+      ]
+    },
+    "prompt_tokens": {
+      "type": "int",
+      "required": false,
+      "aliases": [
+        "total prompt tokens", "prompt tokens", "prompt token count",
+        "total prompt token count", "input tokens", "total input tokens",
+        "input token count", "total input token count", "input"
+      ]
+    },
+    "completion_tokens": {
+      "type": "int",
+      "required": false,
+      "aliases": [
+        "total completion tokens", "completion tokens", "completion token count",
+        "total completion token count", "output tokens", "total output tokens",
+        "output token count", "total output token count", "output"
+      ]
+    },
+    "cache_read_tokens": {
+      "type": "int",
+      "required": false,
+      "aliases": [
+        "total cache read tokens", "cache read tokens", "cache read input tokens",
+        "total cache read input tokens", "cached input tokens", "total cached input tokens",
+        "cache reads", "cache read", "cache hit tokens"
+      ]
+    },
+    "cache_write_tokens": {
+      "type": "int",
+      "required": false,
+      "aliases": [
+        "total cache write tokens", "cache write tokens", "total cache creation tokens",
+        "cache creation tokens", "cache creation input tokens",
+        "total cache creation input tokens", "cache writes", "cache write"
+      ]
+    },
+    "web_search_count": {
+      "type": "int",
+      "required": false,
+      "aliases": [
+        "total web search count", "web search count", "web searches",
+        "total web searches", "web search requests", "total web search requests",
+        "web search"
+      ]
+    },
+
+    "net_spend_usd": {
+      "type": "decimal",
+      "required": false,
+      "aliases": [
+        "total net spend usd", "net spend usd", "total net spend", "net spend",
+        "net spend (usd)", "total net spend (usd)", "net spend ($)", "net cost",
+        "net cost usd", "net cost (usd)", "net amount", "net amount usd",
+        "spend", "spend usd", "spend (usd)", "total spend", "total spend usd",
+        "total spend (usd)", "cost", "cost usd", "cost (usd)", "total cost",
+        "total cost usd", "total cost (usd)", "amount", "amount usd",
+        "estimated spend", "estimated spend usd", "estimated cost", "estimated cost usd"
+      ]
+    },
+    "gross_spend_usd": {
+      "type": "decimal",
+      "required": false,
+      "aliases": [
+        "total gross spend usd", "gross spend usd", "total gross spend", "gross spend",
+        "gross spend (usd)", "total gross spend (usd)", "gross spend ($)", "gross cost",
+        "gross cost usd", "gross cost (usd)", "gross amount", "gross amount usd",
+        "list spend", "list price spend", "undiscounted spend", "spend before discounts"
+      ]
+    },
+    "currency": {
+      "type": "string",
+      "required": false,
+      "aliases": ["currency", "currency code"]
+    },
+
+    "period_start": {
+      "type": "datetime",
+      "required": false,
+      "aliases": [
+        "period start", "start", "start date", "starting at", "from", "date from",
+        "range start", "date"
+      ]
+    },
+    "period_end": {
+      "type": "datetime",
+      "required": false,
+      "aliases": [
+        "period end", "end", "end date", "ending at", "to", "date to", "range end"
+      ]
+    }
+  },
+
+  "null_tokens": ["", "-", "n/a", "na", "null", "none", "(none)"]
+}
