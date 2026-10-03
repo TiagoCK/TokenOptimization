@@ -166,9 +166,9 @@ def cents(value: object, where: str) -> Decimal:
     try:
         amount = Decimal(str(value))
     except InvalidOperation as exc:
-        raise ResponseShapeError(f"a {where} reads {value!r}, not a number") from exc
+        raise ResponseShapeError(f"a {where} is not a number") from exc
     if not amount.is_finite():
-        raise ResponseShapeError(f"a {where} reads {value!r}, not a finite number")
+        raise ResponseShapeError(f"a {where} is not a finite number")
     return amount / Decimal("100")
 
 

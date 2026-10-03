@@ -32,6 +32,7 @@ from pathlib import Path
 from . import __version__
 from . import gaps as gapmod
 from .checks import CHECKS, CheckConfig, CheckRun, run_checks
+from .describe import describe as describe_file
 from .findings import rank
 from .enterprise import ENTERPRISE_CHECKS, EnterpriseConfig, run_enterprise_checks
 from .enterprise import groups as rbac
@@ -280,6 +281,25 @@ def build_parser() -> argparse.ArgumentParser:
             "savings floor above $0 -- your estimate, not a measurement"
         ),
     )
+    describe = sub.add_parser(
+        "describe",
+        help="print a file's format -- columns, mappings, value shapes -- with none of its data",
+        description=(
+            "Describe a usage, cost or spend-report CSV, or a file saved by "
+            "`fetch`, without printing any of its contents: which profile "
+            "matched, which column maps to which field, the shape of each "
+            "column's values, and what audit would do with it. Safe to paste "
+            "into an issue when a file is refused or mis-read."
+        ),
+    )
+    describe.add_argument("file", type=Path, help="the file to describe")
+    describe.add_argument(
+        "--date-order",
+        choices=("mdy", "dmy"),
+        default=None,
+        help="as for audit: how to read ambiguous slash dates in the dry run",
+    )
+
     fetch = sub.add_parser(
         "fetch",
         # allow_abbrev=False is load-bearing here, not tidiness. With argparse's
@@ -415,6 +435,9 @@ def main(argv: list[str] | None = None) -> int:
         return _audit(args)
     if args.command == "fetch":
         return _fetch(args)
+    if args.command == "describe":
+        print(describe_file(args.file, date_order=args.date_order))
+        return 0
     return 2  # pragma: no cover - argparse rejects unknown commands first
 
 

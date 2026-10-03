@@ -81,7 +81,9 @@ class ValueMismatch(SchemaMismatch):
     message: the header-alias advice would send the user to the wrong file.
     """
 
-    def __init__(self, message: str, *, profile: str, hint: str = ""):
+    def __init__(self, message: str, *, profile: str, hint: str = "", raw: str | None = None):
+        #: The offending cell, so `describe` can print its shape instead.
+        self.raw = raw
         self.headers = ()
         self.profile = profile
         self.profile_path = None
@@ -353,6 +355,7 @@ class Profile:
             raise ValueMismatch(
                 f"Row {row_no}: {raw!r} in field {spec.name!r} {exc}",
                 profile=self.name,
+                raw=raw,
                 hint=(
                     "Numbers are read with '.' as the decimal point and ',' "
                     "only as a thousands separator (1,234.56). Re-export with "
@@ -363,6 +366,7 @@ class Profile:
             raise ValueMismatch(
                 f"Row {row_no}: {exc}",
                 profile=self.name,
+                raw=raw,
                 hint="Pass --date-order mdy or --date-order dmy.",
             ) from exc
         except (ValueError, InvalidOperation, ArithmeticError) as exc:
@@ -370,6 +374,7 @@ class Profile:
                 f"Row {row_no}: could not read {raw!r} as {spec.type} for field "
                 f"{spec.name!r}.",
                 profile=self.name,
+                raw=raw,
                 hint=(
                     "The column was recognised; this value is in a format "
                     "the tool does not read. Dates are read as ISO "
