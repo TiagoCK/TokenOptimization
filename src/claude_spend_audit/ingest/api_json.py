@@ -16,7 +16,7 @@ Field names follow the response schema exactly. Nothing here is inferred.
 from __future__ import annotations
 
 import json
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any, Iterable, Mapping, Sequence
 
@@ -112,15 +112,15 @@ def load_cost_json(
                 cost_type = result.get("cost_type")
                 saw_code_execution |= cost_type == "code_execution"
                 saw_session_usage |= cost_type == "session_usage"
+                currency = require_usd(result.get("currency"), "cost_report")
                 rows.append(
                     CostRow(
                         start=start,
                         end=end,
                         # amount is a decimal string in the lowest currency
                         # unit: "123.45" USD is $1.23.
-                        amount_usd=Decimal(str(result.get("amount", "0")))
-                        / Decimal("100"),
-                        currency=result.get("currency") or "USD",
+                        amount_usd=cents(result.get("amount"), "cost_report amount"),
+                        currency=currency,
                         cost_type=cost_type,
                         description=result.get("description"),
                         token_type=result.get("token_type"),
@@ -133,7 +133,7 @@ def load_cost_json(
                         # these two; on the Usage & Cost API they stay None.
                         product=result.get("product"),
                         list_amount_usd=(
-                            Decimal(str(result["list_amount"])) / Decimal("100")
+                            cents(result["list_amount"], "cost_report list_amount")
                             if result.get("list_amount") is not None
                             else None
                         ),
@@ -150,6 +150,38 @@ def load_cost_json(
     if saw_session_usage:
         found.append(gapmod.session_usage_cost_only())
     return frame.with_gaps(found)
+
+
+class ResponseShapeError(ValueError):
+    """A saved API response holds a value this tool will not guess at."""
+
+
+def cents(value: object, where: str) -> Decimal:
+    """An amount in the lowest currency unit, as dollars.
+
+    A missing or unreadable amount is an error, never $0: a cost row that
+    silently counted as nothing would understate the bill with no sign.
+    """
+    if value is None:
+        raise ResponseShapeError(f"a {where} is null; the response is incomplete")
+    try:
+        amount = Decimal(str(value))
+    except InvalidOperation as exc:
+        raise ResponseShapeError(f"a {where} reads {value!r}, not a number") from exc
+    if not amount.is_finite():
+        raise ResponseShapeError(f"a {where} reads {value!r}, not a finite number")
+    return amount / Decimal("100")
+
+
+def require_usd(currency: object, where: str) -> str:
+    """The currency, which must be USD (or absent, which the API means as USD)."""
+    code = str(currency or "USD")
+    if code.strip().upper() != "USD":
+        raise ResponseShapeError(
+            f"the {where} reports amounts in {code!r}. Every figure this tool "
+            "produces is in US dollars, and it does not convert currencies."
+        )
+    return code
 
 
 # --------------------------------------------------------------------------

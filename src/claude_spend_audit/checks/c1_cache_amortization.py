@@ -293,4 +293,7 @@ CHECK = Check(
     # only their sum it would have to assume a TTL, and would understate waste
     # on 1h-heavy workloads with no visible sign that it had guessed.
     blocked_by_tokens=frozenset({UNSPLIT_CACHE_WRITE}),
+    # And it needs the columns at all: an export with no cache columns has
+    # zero writes in every row, which is not the same as writing nothing.
+    needs_tokens=frozenset({"cache_read", "cache_write_5m", "cache_write_1h"}),
 )

@@ -17,6 +17,7 @@ Every field name here is from Anthropic's published API reference.
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta
 from decimal import Decimal
@@ -26,7 +27,7 @@ from .. import gaps as gapmod
 from ..enterprise.report import SpendReport, SpendRow
 from ..frame import Frame, SourceInfo, merge
 from ..gaps import GapCode
-from .api_json import load_cost_json, load_usage_json
+from .api_json import cents, load_cost_json, load_usage_json, require_usd
 from .schema import parse_datetime
 
 #: Named-group rows overlap -- a user in two groups counts in both -- so a
@@ -115,7 +116,11 @@ def load_analytics(
 
     pages = [p for s in series.values() for p in (s.get("pages") or [])]
     stamps = [p.get("data_refreshed_at") for p in pages]
-    if any(stamp is None for stamp in stamps):
+    if pages and not any("data_refreshed_at" in p for p in pages):
+        # The field is absent altogether, not null: nothing says whether the
+        # last days were complete, but nothing says they were not, either.
+        found.append(gapmod.analytics_freshness_unknown())
+    elif any(stamp is None for stamp in stamps):
         found.append(gapmod.analytics_incomplete_tail(None))
     else:
         known = [_parse(stamp) for stamp in stamps if stamp]
@@ -143,6 +148,13 @@ def load_analytics(
         start=requested_start,
         end=requested_end,
     )
+    if report is not None and "product" not in report.present and "model" not in report.present:
+        if any(
+            name in ((series.get(part) or {}).get("group_by") or ())
+            for part in ("user_usage", "user_cost")
+            for name in ("product", "model")
+        ):
+            report = report.with_gaps([gapmod.analytics_user_join_coarsened()])
     coverage = _group_coverage(series.get("groups_cost"), frame.billed_total_usd)
     return frame.with_gaps(found), report, coverage
 
@@ -199,18 +211,36 @@ def _truncation(grouped_pages, total_pages):
     return gapmod.analytics_groups_truncated(missing, share, short)
 
 
+def _actor_key(actor: Mapping[str, Any]) -> str:
+    """A key that never merges two different actors.
+
+    Seat users carry a user_id. Anything else -- an API key, a service
+    account, a shape not yet documented -- is keyed on its whole actor
+    object, so two of them can never collapse into one "unknown user".
+    """
+    if actor.get("user_id"):
+        return f"user:{actor['user_id']}"
+    return "actor:" + json.dumps(actor, sort_keys=True, default=str)
+
+
 def _label(actor: Mapping[str, Any]) -> str:
-    """Email, else name with id (deleted users all share a name), else id."""
-    user_id = str(actor.get("user_id") or "unknown user")
+    """Email, else name with id (deleted users all share a name), else the
+    actor's type with whatever identifies it."""
+    user_id = actor.get("user_id")
     if actor.get("email_address"):
         return str(actor["email_address"])
-    if actor.get("name"):
-        return f"{actor['name']} ({user_id})"
-    return user_id
-
-
-def _cents(value: object) -> Decimal:
-    return Decimal(str(value)) / Decimal("100") if value is not None else Decimal("0")
+    if user_id:
+        return f"{actor['name']} ({user_id})" if actor.get("name") else str(user_id)
+    ident = next(
+        (
+            str(actor[k])
+            for k in ("api_key_name", "name", "api_key_id", "id")
+            if actor.get(k)
+        ),
+        None,
+    )
+    kind = str(actor.get("type") or "unknown actor")
+    return f"{kind}: {ident}" if ident else kind
 
 
 def _spend_report(
@@ -221,15 +251,43 @@ def _spend_report(
     start: datetime | None,
     end: datetime | None,
 ) -> SpendReport | None:
-    """Per-user rows, joined on (user, product, model) and summed across windows."""
+    """Per-user rows, joined on (user, product, model) and summed across windows.
+
+    If some user's usage and cost rows are split by product or model in ways
+    that do not line up -- cost rows with a null product beside usage rows
+    with one, say -- joining on the finer key would leave that user as one
+    row of tokens with $0 and another of dollars with no tokens. Both series
+    are then combined per user instead, and product and model are dropped.
+    """
     if not user_usage and not user_cost:
         return None
 
-    acc: dict[tuple[str, str | None, str | None], dict[str, Any]] = {}
+    usage_rows = [r for page in (user_usage or {}).get("pages") or [] for r in page.get("data", ())]
+    cost_rows = [r for page in (user_cost or {}).get("pages") or [] for r in page.get("data", ())]
+    for row in cost_rows:
+        require_usd(row.get("currency"), "user_cost_report")
+
+    grouped: set[str] = set()
+    for part in (user_usage, user_cost):
+        if part:
+            grouped |= set(part.get("group_by") or ())
+    split_by = tuple(name for name in ("product", "model") if name in grouped)
+
+    def keys(rows, fields):
+        return {(_actor_key(r.get("actor") or {}),) + tuple(r.get(f) for f in fields) for r in rows}
+
+    if user_usage and user_cost and split_by:
+        usage_keys, cost_keys = keys(usage_rows, split_by), keys(cost_rows, split_by)
+        both = {k[0] for k in usage_keys} & {k[0] for k in cost_keys}
+        mismatched = {k[0] for k in usage_keys ^ cost_keys} & both
+        if mismatched:
+            split_by = ()
+
+    acc: dict[tuple, dict[str, Any]] = {}
 
     def entry(row: Mapping[str, Any]) -> dict[str, Any]:
         actor = row.get("actor") or {}
-        key = (str(actor.get("user_id")), row.get("product"), row.get("model"))
+        key = (_actor_key(actor),) + tuple(row.get(f) for f in split_by)
         if key not in acc:
             acc[key] = {
                 "user_email": _label(actor),
@@ -246,31 +304,29 @@ def _spend_report(
             }
         return acc[key]
 
-    for page in (user_usage or {}).get("pages") or []:
-        for row in page.get("data", ()):
-            e = entry(row)
-            creation = row.get("cache_creation") or {}
-            e["requests"] += int(row.get("requests") or 0)
-            e["uncached"] += int(row.get("uncached_input_tokens") or 0)
-            e["cache_read"] += int(row.get("cache_read_input_tokens") or 0)
-            e["cache_write"] += int(creation.get("ephemeral_5m_input_tokens") or 0) + int(
-                creation.get("ephemeral_1h_input_tokens") or 0
-            )
-            e["output"] += int(row.get("output_tokens") or 0)
-            e["web_search"] += int((row.get("server_tool_use") or {}).get("web_search_requests") or 0)
+    for row in usage_rows:
+        e = entry(row)
+        creation = row.get("cache_creation") or {}
+        e["requests"] += int(row.get("requests") or 0)
+        e["uncached"] += int(row.get("uncached_input_tokens") or 0)
+        e["cache_read"] += int(row.get("cache_read_input_tokens") or 0)
+        e["cache_write"] += int(creation.get("ephemeral_5m_input_tokens") or 0) + int(
+            creation.get("ephemeral_1h_input_tokens") or 0
+        )
+        e["output"] += int(row.get("output_tokens") or 0)
+        e["web_search"] += int((row.get("server_tool_use") or {}).get("web_search_requests") or 0)
 
-    for page in (user_cost or {}).get("pages") or []:
-        for row in page.get("data", ()):
-            e = entry(row)
-            e["net"] += _cents(row.get("amount"))
-            e["gross"] += _cents(row.get("list_amount"))
+    gross_known = True
+    for row in cost_rows:
+        e = entry(row)
+        e["net"] += cents(row.get("amount"), "user_cost_report amount")
+        if row.get("list_amount") is None:
+            # A missing list price is unknown, not $0.
+            gross_known = False
+        else:
+            e["gross"] += cents(row["list_amount"], "user_cost_report list_amount")
 
-    present = {"user_email"}
-    grouped: set[str] = set()
-    for part in (user_usage, user_cost):
-        if part:
-            grouped |= set(part.get("group_by") or ())
-    present |= {name for name in ("product", "model") if name in grouped}
+    present = {"user_email"} | set(split_by)
     if user_usage:
         present |= {
             "requests",
@@ -281,7 +337,9 @@ def _spend_report(
             "web_search_count",
         }
     if user_cost:
-        present |= {"net_spend_usd", "gross_spend_usd"}
+        present |= {"net_spend_usd"}
+        if gross_known:
+            present |= {"gross_spend_usd"}
 
     def value(name: str, amount):
         return amount if name in present else None
@@ -322,21 +380,28 @@ def _group_coverage(
         return None
     unassigned = Decimal("0")
     named: dict[str, Decimal] = {}
-    capped = 0
+    # One bucket's rows can arrive on more than one page; the cap applies to
+    # the bucket, so gather them before counting.
+    buckets: dict[str, list[Mapping[str, Any]]] = {}
     for page in groups_cost.get("pages") or []:
         for bucket in page.get("data", ()):
-            results = bucket.get("results", ())
-            saw_null = False
-            for row in results:
-                group = row.get("rbac_group_id")
-                amount = _cents(row.get("amount"))
-                if group is None:
-                    saw_null = True
-                    unassigned += amount
-                else:
-                    named[group] = named.get(group, Decimal("0")) + amount
-            if len(results) >= _GROUP_CAP and not saw_null:
-                capped += 1
+            buckets.setdefault(str(bucket.get("starting_at")), []).extend(
+                bucket.get("results", ())
+            )
+    capped = 0
+    for results in buckets.values():
+        saw_null = False
+        for row in results:
+            require_usd(row.get("currency"), "cost_report")
+            group = row.get("rbac_group_id")
+            amount = cents(row.get("amount"), "cost_report amount")
+            if group is None:
+                saw_null = True
+                unassigned += amount
+            else:
+                named[group] = named.get(group, Decimal("0")) + amount
+        if len(results) >= _GROUP_CAP and not saw_null:
+            capped += 1
     return GroupCoverage(
         total_usd=total, unassigned_usd=unassigned, named=named, capped_buckets=capped
     )

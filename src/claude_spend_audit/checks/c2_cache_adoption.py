@@ -219,4 +219,8 @@ CHECK = Check(
     # No dimension requirement: the arithmetic holds on an ungrouped export,
     # it just reports one blended segment. The brief segments by model and
     # workspace where those are available.
+    #
+    # It does need a cache-read column. Without one every row reads zero,
+    # and "almost no cache reads" would be a finding about the export.
+    needs_tokens=frozenset({"cache_read"}),
 )

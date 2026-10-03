@@ -20,10 +20,14 @@ from ..frame import SourceInfo
 from .csv_ingest import _cell, _read
 from .schema import (
     DEFAULT_SCHEMA_DIR,
+    AmbiguousDate,
     Mapping_,
     Profile,
     SchemaError,
     SchemaMismatch,
+    ValueMismatch,
+    is_totals_label,
+    resolve_slash_order,
     select_profile,
 )
 
@@ -37,6 +41,8 @@ _NUMERIC = ("prompt_tokens", "completion_tokens", "net_spend_usd", "gross_spend_
 def load_enterprise_csv(
     path: str | Path,
     profile: Profile | None = None,
+    *,
+    date_order: str | None = None,
 ) -> tuple[SpendReport, Mapping_]:
     """Read a Team/Enterprise spend report into a SpendReport."""
     p = Path(path)
@@ -66,14 +72,31 @@ def load_enterprise_csv(
             missing=_NUMERIC,
         )
 
-    rows: list[SpendRow] = []
+    date_cols = [
+        mapping.fields[n] for n in ("period_start", "period_end") if n in mapping.fields
+    ]
+    try:
+        order = resolve_slash_order(
+            (_cell(record, i) for record in records for i in date_cols), date_order
+        )
+    except AmbiguousDate as exc:
+        raise ValueMismatch(
+            f"Cannot read this file's dates: {exc}.",
+            profile=profile.name,
+            hint="Pass --date-order mdy or --date-order dmy.",
+        ) from exc
+
+    parsed: list[dict] = []
     starts = []
     ends = []
-    excluded = 0
+    unnamed = 0
+    labelled = 0
 
     for row_no, record in enumerate(records, start=2):
         values = {
-            name: profile.parse(profile.columns[name], _cell(record, idx), row_no=row_no)
+            name: profile.parse(
+                profile.columns[name], _cell(record, idx), row_no=row_no, date_order=order
+            )
             for name, idx in mapping.fields.items()
         }
         if values.get("period_start") is not None:
@@ -82,12 +105,41 @@ def load_enterprise_csv(
             ends.append(values["period_end"])
 
         if values.get("user_email") is None and values.get("model") is None:
-            excluded += 1
+            unnamed += 1
             continue
+        if any(
+            is_totals_label(values.get(name)) for name in ("user_email", "model", "product")
+        ):
+            labelled += 1
+            continue
+        currency = values.get("currency")
+        if currency and currency.strip().upper() != "USD":
+            raise ValueMismatch(
+                f"Row {row_no} reports spend in {currency!r}. Every figure this "
+                "tool produces is in US dollars, and it does not convert "
+                "currencies.",
+                profile=profile.name,
+                hint="Export the report in USD if your account allows it.",
+            )
+        parsed.append(values)
 
-        rows.append(
-            SpendRow(**{name: values.get(name) for name in ALL_FIELDS if name in mapping.fields})
-        )
+    # A per-user subtotal: a row with no model for a user whose other rows
+    # name one. It restates those rows, so counting it doubles the user.
+    subtotals = 0
+    if "model" in mapping.fields:
+        with_model = {v.get("user_email") for v in parsed if v.get("model") is not None}
+        kept = []
+        for values in parsed:
+            if values.get("model") is None and values.get("user_email") in with_model:
+                subtotals += 1
+                continue
+            kept.append(values)
+        parsed = kept
+
+    rows = [
+        SpendRow(**{name: values.get(name) for name in ALL_FIELDS if name in mapping.fields})
+        for values in parsed
+    ]
 
     report = SpendReport(
         rows=tuple(rows),
@@ -116,8 +168,16 @@ def load_enterprise_csv(
         )
     if mapping.unmapped:
         found.append(gapmod.unmapped_csv_columns(mapping.unmapped))
-    if excluded:
-        found.append(gapmod.enterprise_rows_excluded(excluded))
+    if unnamed:
+        found.append(gapmod.enterprise_rows_excluded(unnamed))
+    if labelled:
+        found.append(gapmod.enterprise_rows_excluded(labelled, "are labelled as totals"))
+    if subtotals:
+        found.append(
+            gapmod.enterprise_rows_excluded(
+                subtotals, "name a user but no model, beside that user's per-model rows"
+            )
+        )
     found.append(gapmod.enterprise_analytics_source())
     return report.with_gaps(found), mapping
 
@@ -125,8 +185,12 @@ def load_enterprise_csv(
 def detect_enterprise(path: str | Path | None) -> Profile | None:
     """The enterprise profile this file matches, or None.
 
-    Only claims a file that no usage profile matches, so routing on it can
-    never take a Console or cookbook export away from the usage path. A file
+    Claims a file no usage profile matches, and also one a usage profile
+    matches only by ignoring its user column -- a spend report with a date
+    and input/output token columns fits the Console usage profile, which
+    would drop every email and spend figure. A Console or cookbook export has
+    no column the spend profile reads as a user, so it stays on the usage
+    path. A file
     that cannot be read as CSV at all is simply not detected; the usage path
     then reports its own error for it.
     """
@@ -137,14 +201,23 @@ def detect_enterprise(path: str | Path | None) -> Profile | None:
     except (OSError, UnicodeDecodeError, SchemaMismatch):
         return None
     try:
-        select_profile(headers, "usage")
-        return None
+        usage = select_profile(headers, "usage")
     except (SchemaMismatch, SchemaError):
-        pass
+        usage = None
     try:
-        return select_profile(headers, ENTERPRISE_KIND)
+        enterprise = select_profile(headers, ENTERPRISE_KIND)
     except (SchemaMismatch, SchemaError):
-        pass
+        enterprise = None
+    if usage is None and enterprise is not None:
+        return enterprise
+    if usage is not None:
+        # Both fit: a spend report with a date column and input/output tokens
+        # satisfies the usage profile too. If the usage reading would throw
+        # away the per-user column, the file is a spend report.
+        if enterprise is None:
+            return None
+        user_header = headers[enterprise.match(headers).fields["user_email"]]
+        return enterprise if user_header in usage.match(headers).unmapped else None
     # A file that has every required column but claims one field twice is a
     # spend report with a problem, not usage data. Route it here so the user
     # sees the ambiguity error that names the two columns, rather than a

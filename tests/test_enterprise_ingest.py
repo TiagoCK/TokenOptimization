@@ -276,7 +276,7 @@ def test_a_totals_row_is_excluded_and_reported(tmp_path):
     assert len(report.rows) == 2
     assert report.spend_total == Decimal("15.00")
     excluded = [g for g in report.gaps if g.code is GapCode.ENTERPRISE_ROWS_EXCLUDED]
-    assert len(excluded) == 1 and excluded[0].scope == "1 row(s)"
+    assert len(excluded) == 1 and excluded[0].scope.startswith("1 row(s)")
 
 
 def test_period_columns_are_read_when_present(tmp_path):

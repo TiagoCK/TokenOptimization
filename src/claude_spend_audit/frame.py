@@ -239,6 +239,11 @@ class Frame:
     bucket_width: str | None = None
     sources: tuple[SourceInfo, ...] = ()
     gaps: tuple[Gap, ...] = ()
+    #: Token buckets the source actually reported, read the same way as
+    #: ``grouped_by``: a CSV with no cache-read column has zero cache reads
+    #: in every row, and only this field says that zero was never measured.
+    #: None means the source always reports every bucket (the API paths).
+    token_fields: frozenset[str] | None = None
 
     # -- period ----------------------------------------------------------
 
@@ -251,6 +256,10 @@ class Frame:
     def period_end(self) -> datetime | None:
         ends = [r.end for r in self.usage] + [r.end for r in self.cost]
         return max(ends) if ends else None
+
+    def has_token_field(self, name: str) -> bool:
+        """True when the source carried this token bucket at all."""
+        return self.token_fields is None or name in self.token_fields
 
     # -- dimensions ------------------------------------------------------
 
@@ -349,6 +358,7 @@ def merge(*frames: Frame) -> Frame:
     cost: list[CostRow] = []
     sources: list[SourceInfo] = []
     grouped: frozenset[str] | None = None
+    tokens: frozenset[str] | None = None
     widths: set[str] = set()
 
     for frame in present:
@@ -359,6 +369,11 @@ def merge(*frames: Frame) -> Frame:
             # Only sources that carry usage rows constrain the dimension set;
             # a cost-only export has no segments to speak for.
             grouped = frame.grouped_by if grouped is None else grouped & frame.grouped_by
+            # Same rule for token buckets; None (all of them) is the identity.
+            if frame.token_fields is not None:
+                tokens = (
+                    frame.token_fields if tokens is None else tokens & frame.token_fields
+                )
         if frame.bucket_width:
             widths.add(frame.bucket_width)
 
@@ -368,6 +383,7 @@ def merge(*frames: Frame) -> Frame:
         grouped_by=grouped or frozenset(),
         bucket_width=widths.pop() if len(widths) == 1 else None,
         sources=tuple(sources),
+        token_fields=tokens,
     )
     for frame in present:
         merged = merged.with_gaps(frame.gaps)

@@ -186,4 +186,8 @@ CHECK = Check(
     run=run,
     # No dimension requirement: on an ungrouped export this reports one
     # blended segment, which is still a true statement about the whole.
+    #
+    # Output share is output over all tokens; without the cache-read column
+    # the denominator is short and the share is overstated.
+    needs_tokens=frozenset({"cache_read"}),
 )

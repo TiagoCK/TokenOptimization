@@ -192,3 +192,91 @@ def test_group_coverage_is_loaded():
 def test_a_fetch_without_the_groups_series_has_no_coverage():
     _, _, coverage = load_analytics(A.fetched(groups=False))
     assert coverage is None
+
+
+# -- response shapes nobody has confirmed ------------------------------------------
+
+
+def test_cost_rows_without_a_product_coarsen_the_join():
+    """Usage rows carry a product, cost rows do not: joining on product would
+    leave a@example.com as 15M tokens at $0 plus $160 with no tokens. Combined
+    per user instead, figures intact, product and model dropped."""
+    from claude_spend_audit.gaps import GapCode as Code
+
+    env = A.fetched()
+    for page in env["series"]["user_cost"]["pages"]:
+        for row in page["data"]:
+            row["product"] = None
+    _, report, _ = load_analytics(env)
+    alice = next(r for r in report.rows if r.user_email == "a@example.com")
+    assert alice.prompt_tokens == 15_000_000
+    assert alice.net_spend_usd == Decimal("160")
+    assert alice.product is None and alice.model is None
+    assert "product" not in report.present and "model" not in report.present
+    assert Code.ANALYTICS_USER_JOIN_COARSENED in {g.code for g in report.gaps}
+
+
+def test_non_user_actors_are_never_merged():
+    env = A.fetched()
+    page = env["series"]["user_usage"]["pages"][1]["data"]
+    template = dict(page[0])
+    page.append({**template, "actor": {"type": "api_actor", "api_key_name": "etl"}})
+    page.append({**template, "actor": {"type": "api_actor", "api_key_name": "bot"}})
+    _, report, _ = load_analytics(env)
+    labels = report.distinct("user_email")
+    assert "api_actor: etl" in labels and "api_actor: bot" in labels
+
+
+def test_a_null_amount_is_an_error_not_zero():
+    from claude_spend_audit.ingest.api_json import ResponseShapeError
+
+    env = A.fetched()
+    env["series"]["cost_total"]["pages"][0]["data"][0]["results"][0]["amount"] = None
+    with pytest.raises(ResponseShapeError, match="null"):
+        load_analytics(env)
+
+
+def test_a_missing_list_price_is_unknown_not_zero():
+    env = A.fetched()
+    env["series"]["user_cost"]["pages"][0]["data"][0]["list_amount"] = None
+    _, report, _ = load_analytics(env)
+    assert "gross_spend_usd" not in report.present
+    assert all(r.gross_spend_usd is None for r in report.rows)
+
+
+def test_non_usd_amounts_are_refused():
+    from claude_spend_audit.ingest.api_json import ResponseShapeError
+
+    env = A.fetched()
+    for bucket in env["series"]["cost_total"]["pages"][0]["data"]:
+        bucket["results"][0]["currency"] = "EUR"
+    with pytest.raises(ResponseShapeError, match="'EUR'"):
+        load_analytics(env)
+
+
+def test_a_bucket_split_across_pages_is_not_capped():
+    """Day 1's 100 named rows on one page, its null row on the next: one
+    bucket with 101 rows and an unassigned row, so no cap."""
+    env = A.fetched()
+    pages = env["series"]["groups_cost"]["pages"]
+    day = pages[0]["data"][0]
+    named = [{"rbac_group_id": f"g{i:03d}", "amount": "1", "currency": "USD"} for i in range(100)]
+    pages[0]["data"][0] = {**day, "results": named}
+    pages.append(A.page([{**day, "results": [
+        {"rbac_group_id": None, "amount": "400.000000", "currency": "USD"}
+    ]}]))
+    _, _, coverage = load_analytics(env)
+    assert coverage.capped_buckets == 0
+    assert coverage.unassigned_usd == Decimal("40")
+
+
+def test_no_freshness_field_at_all_is_a_warning_not_a_failure():
+    env = A.fetched()
+    for series in env["series"].values():
+        for page in series["pages"]:
+            del page["data_refreshed_at"]
+    frame, _, _ = load_analytics(env)
+    codes = _codes(frame)
+    assert GapCode.ANALYTICS_FRESHNESS_UNKNOWN in codes
+    assert GapCode.ANALYTICS_INCOMPLETE_TAIL not in codes
+    assert not any(g.invalidates_total for g in frame.gaps)

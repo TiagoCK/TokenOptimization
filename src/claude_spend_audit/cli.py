@@ -54,7 +54,7 @@ from .ingest.api_client import (
     is_envelope,
 )
 from .ingest.analytics_json import AnalyticsFileError, load_analytics
-from .ingest.api_json import load_cost_json, load_usage_json
+from .ingest.api_json import ResponseShapeError, load_cost_json, load_usage_json
 from .ingest.enterprise_csv import ENTERPRISE_KIND, detect_enterprise, load_enterprise_csv
 from .ingest.schema import Profile, SchemaError, SchemaMismatch
 from .gaps import GapCode
@@ -137,6 +137,15 @@ def _add_data_args(parser: argparse.ArgumentParser) -> None:
         help=(
             "Team/Enterprise spend reports only: replace user emails with "
             "user-001, user-002... (largest spender first) in every output"
+        ),
+    )
+    parser.add_argument(
+        "--date-order",
+        choices=("mdy", "dmy"),
+        default=None,
+        help=(
+            "how to read slash dates such as 03/08/2026 when the file cannot "
+            "settle it: mdy (US, March 8th) or dmy (3rd August)"
         ),
     )
 
@@ -480,17 +489,22 @@ def _load(args) -> tuple[Frame, PricingTable, object]:
     # on a flag means `audit raw.json` just works.
     saved = _read_saved(args.usage)
     if saved is not None:
-        usage_frame = _frame_from_saved(saved, "usage")
-        cost_frame = _read_saved(args.cost) if args.cost else None
-        if cost_frame is not None:
-            cost_frame = _frame_from_saved(cost_frame, "cost")
+        try:
+            usage_frame = _frame_from_saved(saved, "usage")
+            cost_frame = _read_saved(args.cost) if args.cost else None
+            if cost_frame is not None:
+                cost_frame = _frame_from_saved(cost_frame, "cost")
+        except (ResponseShapeError, InvalidOperation) as exc:
+            raise _LoadFailed(f"the saved response cannot be read: {exc}", 2) from exc
         frame = merge(usage_frame, cost_frame) if cost_frame else usage_frame
         if not frame.cost:
             frame = frame.with_gaps([gapmod.no_cost_data()])
+        frame = frame.with_gaps(_period_gaps(usage_frame, cost_frame))
         frame, merged = pricing.merge_model_aliases(frame)
         frame = frame.with_gaps(merged)
         estimate = pricing.estimate_frame(frame)
-        return frame.with_gaps(estimate.gaps), pricing, estimate
+        frame = frame.with_gaps(estimate.gaps)
+        return frame.with_gaps(_scale_gaps(frame, estimate)), pricing, estimate
 
     try:
         # None means "auto-select": more than one producer writes these CSVs
@@ -498,7 +512,9 @@ def _load(args) -> tuple[Frame, PricingTable, object]:
         usage_profile = (
             Profile.load(args.usage_profile) if args.usage_profile else None
         )
-        usage_frame, usage_mapping = load_usage_csv(args.usage, usage_profile)
+        usage_frame, usage_mapping = load_usage_csv(
+            args.usage, usage_profile, date_order=args.date_order
+        )
         usage_profile = _profile_of(usage_frame, usage_profile)
 
         cost_frame = None
@@ -508,7 +524,9 @@ def _load(args) -> tuple[Frame, PricingTable, object]:
             cost_profile = (
                 Profile.load(args.cost_profile) if args.cost_profile else None
             )
-            cost_frame, cost_mapping = load_cost_csv(args.cost, cost_profile)
+            cost_frame, cost_mapping = load_cost_csv(
+                args.cost, cost_profile, date_order=args.date_order
+            )
             cost_profile = _profile_of(cost_frame, cost_profile)
     except SchemaMismatch as exc:
         raise _LoadFailed(str(exc), 1) from exc
@@ -525,6 +543,7 @@ def _load(args) -> tuple[Frame, PricingTable, object]:
     frame = merge(usage_frame, cost_frame) if cost_frame else usage_frame
     if not frame.cost:
         frame = frame.with_gaps([gapmod.no_cost_data()])
+    frame = frame.with_gaps(_period_gaps(usage_frame, cost_frame))
 
     # Merge before estimating, so every figure downstream sees one segment per
     # model rather than one per spelling. Each merge is reported in the
@@ -534,7 +553,42 @@ def _load(args) -> tuple[Frame, PricingTable, object]:
 
     estimate = pricing.estimate_frame(frame)
     frame = frame.with_gaps(estimate.gaps)
-    return frame, pricing, estimate
+    return frame.with_gaps(_scale_gaps(frame, estimate)), pricing, estimate
+
+
+#: Billed and estimated cost this far apart, either way, cannot be a price
+#: difference; at 100x it is the signature of cents read as dollars.
+_SCALE_LIMIT = Decimal("20")
+
+
+def _scale_gaps(frame: Frame, estimate) -> list:
+    """A critical gap when billed and estimated cost differ by 20x or more."""
+    billed = frame.billed_total_usd
+    if not billed or not estimate.usd or billed <= 0 or estimate.usd <= 0:
+        return []
+    ratio = billed / estimate.usd
+    if ratio >= _SCALE_LIMIT:
+        return [gapmod.cost_scale_suspect(f"{ratio:,.0f}x")]
+    if ratio <= 1 / _SCALE_LIMIT:
+        return [gapmod.cost_scale_suspect(f"1/{1 / ratio:,.0f} of")]
+    return []
+
+
+def _period_gaps(usage: Frame, cost: Frame | None) -> list:
+    """A gap when the usage and cost files cover different days."""
+    if cost is None or not usage.usage or not cost.cost:
+        return []
+    u = (usage.period_start, usage.period_end)
+    c = (cost.period_start, cost.period_end)
+    if None in u or None in c:
+        return []
+    if abs(u[0] - c[0]).days < 1 and abs(u[1] - c[1]).days < 1:
+        return []
+
+    def span(start, end):
+        return f"{start:%Y-%m-%d} to {end:%Y-%m-%d}"
+
+    return [gapmod.periods_differ(span(*u), span(*c))]
 
 
 def _exit_code(frame: Frame | SpendReport) -> int:
@@ -920,7 +974,7 @@ def _analytics(args, saved: dict, *, mode: str) -> int:
         return 2
     try:
         frame, report, coverage = load_analytics(saved, source=str(args.usage))
-    except AnalyticsFileError as exc:
+    except (AnalyticsFileError, ResponseShapeError, InvalidOperation) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
 
@@ -930,6 +984,7 @@ def _analytics(args, saved: dict, *, mode: str) -> int:
     frame = frame.with_gaps(merged)
     estimate = pricing.estimate_frame(frame)
     frame = frame.with_gaps(_analytics_gaps(estimate.gaps, frame))
+    frame = frame.with_gaps(_scale_gaps(frame, estimate))
     if report is not None and args.anonymize:
         report = report.anonymized()
 
@@ -1164,7 +1219,9 @@ def _enterprise(args, profile: Profile, *, mode: str) -> int:
         print(f"error: {exc}", file=sys.stderr)
         return 2
     try:
-        report, mapping = load_enterprise_csv(args.usage, profile)
+        report, mapping = load_enterprise_csv(
+            args.usage, profile, date_order=getattr(args, "date_order", None)
+        )
     except SchemaMismatch as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1

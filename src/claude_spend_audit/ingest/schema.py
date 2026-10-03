@@ -15,6 +15,7 @@ The three rules that make this honest rather than merely flexible:
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass, field
 from decimal import Decimal, InvalidOperation
 from datetime import date, datetime, timezone
@@ -72,6 +73,25 @@ class SchemaMismatch(Exception):
         super().__init__("\n".join(lines))
 
 
+class ValueMismatch(SchemaMismatch):
+    """A cell's value is in a format this tool will not guess at.
+
+    The header mapping is fine; the value is the problem. A subclass so every
+    existing ``except SchemaMismatch`` still catches it, but with its own
+    message: the header-alias advice would send the user to the wrong file.
+    """
+
+    def __init__(self, message: str, *, profile: str, hint: str = ""):
+        self.headers = ()
+        self.profile = profile
+        self.profile_path = None
+        self.missing = ()
+        lines = [message]
+        if hint:
+            lines += ["", f"  {hint}"]
+        Exception.__init__(self, "\n".join(lines))
+
+
 #: Zero-width and BOM characters that make two identical-looking identifiers
 #: different strings. The cookbook's own sample output lists the same model
 #: twice, which is what this defends against.
@@ -100,7 +120,7 @@ def normalize_value(raw: str) -> str:
 def normalize(header: str) -> str:
     """Fold a header for matching: case, whitespace, and separators."""
     folded = header.strip().lower()
-    for ch in ("_", "-", "/", "."):
+    for ch in ("_", "-", "/", ".", "(", ")", "[", "]"):
         folded = folded.replace(ch, " ")
     return " ".join(folded.split())
 
@@ -300,8 +320,19 @@ class Profile:
     def is_null(self, raw: str) -> bool:
         return normalize(raw) in self.null_tokens
 
-    def parse(self, spec: ColumnSpec, raw: str, *, row_no: int):
-        """Parse one cell according to its declared type."""
+    def parse(
+        self,
+        spec: ColumnSpec,
+        raw: str,
+        *,
+        row_no: int,
+        date_order: str | None = None,
+    ):
+        """Parse one cell according to its declared type.
+
+        ``date_order`` ("mdy" or "dmy") is how slash dates read; see
+        resolve_slash_order, which decides it once for the whole file.
+        """
         if self.is_null(raw):
             if spec.type == "int":
                 return 0
@@ -312,22 +343,84 @@ class Profile:
         text = raw.strip()
         try:
             if spec.type == "int":
-                # Exports often carry thousands separators.
-                return int(Decimal(text.replace(",", "")))
+                return int(parse_number(text))
             if spec.type == "decimal":
-                return Decimal(text.replace(",", "").replace("$", ""))
+                return parse_number(text)
             if spec.type == "datetime":
-                return parse_datetime(text)
+                return parse_datetime(text, slash_order=date_order)
             return normalize_value(text)
+        except NumberFormatError as exc:
+            raise ValueMismatch(
+                f"Row {row_no}: {raw!r} in field {spec.name!r} {exc}",
+                profile=self.name,
+                hint=(
+                    "Numbers are read with '.' as the decimal point and ',' "
+                    "only as a thousands separator (1,234.56). Re-export with "
+                    "that format; nothing is converted, so nothing is guessed."
+                ),
+            ) from exc
+        except AmbiguousDate as exc:
+            raise ValueMismatch(
+                f"Row {row_no}: {exc}",
+                profile=self.name,
+                hint="Pass --date-order mdy or --date-order dmy.",
+            ) from exc
         except (ValueError, InvalidOperation, ArithmeticError) as exc:
-            raise SchemaMismatch(
+            raise ValueMismatch(
                 f"Row {row_no}: could not read {raw!r} as {spec.type} for field "
                 f"{spec.name!r}.",
-                headers=(),
                 profile=self.name,
-                profile_path=self.path,
+                hint=(
+                    "The column was recognised; this value is in a format "
+                    "the tool does not read. Dates are read as ISO "
+                    "(2026-08-01, optionally with a time) or with slashes; "
+                    "numbers as plain digits such as 1234 or 1,234.56."
+                ),
             ) from exc
 
+
+class NumberFormatError(ValueError):
+    """A number written in a convention this tool refuses to guess at."""
+
+
+#: Thousands separators are accepted only in this exact shape. Anything else
+#: with a comma -- "10,00", "1.200,50" -- is most likely a decimal comma, and
+#: stripping the comma would read it 100x too large.
+_THOUSANDS = re.compile(r"^-?\d{1,3}(,\d{3})+(\.\d+)?$")
+
+
+def parse_number(text: str) -> Decimal:
+    """Read a number written with '.' as the decimal point.
+
+    Accepts a leading "$", thousands commas in the standard shape, and
+    accounting negatives such as "(2.00)". Refuses decimal commas, NaN and
+    infinities rather than reading them as something else.
+    """
+    text = text.strip()
+    negative = text.startswith("(") and text.endswith(")")
+    if negative:
+        text = text[1:-1].strip()
+    if text.startswith("-$"):
+        text = "-" + text[2:]
+    text = text.removeprefix("$").strip()
+    if "," in text:
+        if not _THOUSANDS.match(text):
+            raise NumberFormatError(
+                "looks like it uses a decimal comma, or a thousands "
+                "separator in an unusual place"
+            )
+        text = text.replace(",", "")
+    value = Decimal(text)
+    if not value.is_finite():
+        raise NumberFormatError("is not a finite number")
+    return -value if negative else value
+
+
+class AmbiguousDate(ValueError):
+    """Slash dates whose day/month order cannot be told from the data."""
+
+
+_SLASH_DATE = re.compile(r"^(\d{1,2})/(\d{1,2})/(\d{4})(.*)$")
 
 _DATETIME_FORMATS = (
     "%Y-%m-%dT%H:%M:%S%z",
@@ -336,18 +429,77 @@ _DATETIME_FORMATS = (
     "%Y-%m-%d %H:%M",
     "%Y-%m-%d",
     "%Y/%m/%d",
-    "%m/%d/%Y",
 )
 
+#: Zone names some exports append to a timestamp that is already UTC.
+_UTC_SUFFIXES = (" utc", " gmt")
 
-def parse_datetime(text: str) -> datetime:
+
+def resolve_slash_order(values, explicit: str | None = None) -> str | None:
+    """Decide once, for a whole file, whether 03/08/2026 is March or August.
+
+    Reading slash dates cell by cell would take "03/08" as March 8th and fail
+    only on the first day above 12 -- after silently misplacing every earlier
+    row. Instead the whole column is read first: a first part above 12 can
+    only be a day, a second part above 12 only a day too. If nothing settles
+    it, the user must say, via ``explicit``.
+
+    Returns None when no value uses slashes.
+    """
+    day_first = month_first = False
+    seen = False
+    for value in values:
+        match = _SLASH_DATE.match(value.strip()) if value else None
+        if not match:
+            continue
+        seen = True
+        first, second = int(match.group(1)), int(match.group(2))
+        day_first |= first > 12
+        month_first |= second > 12
+    if not seen:
+        return explicit
+    if day_first and month_first:
+        raise AmbiguousDate(
+            "slash dates in this file are written both day-first and "
+            "month-first, so none of them can be trusted"
+        )
+    inferred = "dmy" if day_first else "mdy" if month_first else None
+    if explicit and inferred and explicit != inferred:
+        raise AmbiguousDate(
+            f"--date-order {explicit} was given, but this file's dates can "
+            f"only be {inferred}"
+        )
+    if explicit or inferred:
+        return explicit or inferred
+    raise AmbiguousDate(
+        "every slash date in this file has day and month of 12 or less, so "
+        "03/08/2026 could be March 8th or 3rd August"
+    )
+
+
+def parse_datetime(text: str, *, slash_order: str | None = None) -> datetime:
     """Parse a timestamp to a tz-aware UTC datetime.
 
     Naive timestamps are read as UTC: the API snaps every bucket to UTC
     boundaries, and silently treating them as local time would shift every
     bucket and corrupt C6's off-hours detection.
+
+    Slash dates need ``slash_order`` ("mdy" or "dmy"), decided for the whole
+    file by resolve_slash_order; without it they are refused.
     """
     text = text.strip()
+    if text.lower().endswith(_UTC_SUFFIXES):
+        text = text[:-4].rstrip()
+    slash = _SLASH_DATE.match(text)
+    if slash:
+        if slash_order not in ("mdy", "dmy"):
+            raise AmbiguousDate(
+                f"{text!r} is a slash date, and its day/month order has not "
+                "been decided"
+            )
+        first, second, year, rest = slash.groups()
+        month, day = (first, second) if slash_order == "mdy" else (second, first)
+        text = f"{year}-{int(month):02d}-{int(day):02d}{rest}"
     try:
         parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
     except ValueError:
@@ -389,13 +541,62 @@ def select_profile(
     `cache_creation_tokens`.
 
     Ties break toward the verified profile, then by name so the choice is
-    deterministic.
+    deterministic -- except where the tied profiles disagree on cents versus
+    dollars. That tie is refused: the file gives no evidence either way, and
+    a wrong pick is a 100x error.
     """
+    matched, attempts, candidates, d = _matching_profiles(headers, kind, directory)
+
+    if matched:
+        best = matched[0]
+        tied = [m for m in matched if m[0] == best[0]]
+        units = {m[3].amount_units for m in tied}
+        if kind == "cost" and len(units) > 1:
+            options = "\n".join(
+                f"    --cost-profile {m[3].path}   (reads amounts as {m[3].amount_units})"
+                for m in tied
+            )
+            raise SchemaMismatch(
+                "This cost file fits more than one profile equally well, and "
+                "they disagree on whether amounts are in cents or dollars -- a "
+                "100x difference the file itself gives no evidence for. Pick "
+                "one explicitly:\n" + options,
+                headers=headers,
+                profile=", ".join(m[3].name for m in tied),
+                profile_path=d,
+            )
+        return best[3]
+
+    detail = "\n".join(attempts)
+    raise SchemaMismatch(
+        f"No {kind} schema profile matches this file. Tried "
+        f"{len(candidates)}, each failing on:\n{detail}",
+        headers=headers,
+        profile=", ".join(p.name for p in candidates),
+        profile_path=d,
+    )
+
+
+def unit_conflicts(
+    headers: tuple[str, ...],
+    chosen: Profile,
+    directory: str | Path | None = None,
+) -> tuple[Profile, ...]:
+    """Other profiles of the same kind that also fit, but read amounts in
+    different units. Non-empty means the unit was decided by column coverage
+    alone, which the report must say."""
+    matched, _, _, _ = _matching_profiles(headers, chosen.kind, directory)
+    return tuple(
+        m[3]
+        for m in matched
+        if m[3].name != chosen.name and m[3].amount_units != chosen.amount_units
+    )
+
+
+def _matching_profiles(headers, kind, directory):
+    """Every profile of ``kind`` that fits, best first, plus why others failed."""
     d = Path(directory) if directory else DEFAULT_SCHEMA_DIR
-    candidates = [
-        Profile.load(path)
-        for path in sorted(d.glob("*.json"))
-    ]
+    candidates = [Profile.load(path) for path in sorted(d.glob("*.json"))]
     candidates = [p for p in candidates if p.kind == kind]
     if not candidates:
         raise SchemaError(f"no {kind!r} schema profiles found in {d}")
@@ -412,19 +613,25 @@ def select_profile(
         matched.append(
             (len(mapping.unmapped), profile.status != "verified", profile.name, profile)
         )
+    matched.sort(key=lambda item: item[:3])
+    return matched, attempts, candidates, d
 
-    if matched:
-        matched.sort(key=lambda item: item[:3])
-        return matched[0][3]
 
-    detail = "\n".join(attempts)
-    raise SchemaMismatch(
-        f"No {kind} schema profile matches this file. Tried "
-        f"{len(candidates)}, each failing on:\n{detail}",
-        headers=headers,
-        profile=", ".join(p.name for p in candidates),
-        profile_path=d,
-    )
+#: Labels a spreadsheet puts on a summary row. Matched on normalize()d text.
+_TOTALS_LABEL = re.compile(r"^(grand )?(sub ?)?totals?( .*)?$|^sum$|^all( .*)?$")
+
+
+def is_totals_label(raw: str | None) -> bool:
+    """True for "Total", "Grand total", "Subtotal", "All models" and the like.
+
+    A row labelled this way restates rows already counted; counting it too
+    would double the figures.
+    """
+    return bool(raw) and bool(_TOTALS_LABEL.match(normalize(raw)))
+
+
+#: Bucket widths as durations, for rows whose export has no end column.
+BUCKET_DELTAS = {"1m": 60, "1h": 3600, "1d": 86400}
 
 
 def infer_bucket_width(starts: list[datetime]) -> str | None:

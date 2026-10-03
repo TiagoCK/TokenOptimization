@@ -49,9 +49,14 @@ class GapCode(StrEnum):
     LIST_PRICE_BASIS = "list_price_basis"
     RBAC_GROUPS_NOT_FETCHED = "rbac_groups_not_fetched"
     RBAC_UNASSIGNED_ROW_MISSING = "rbac_unassigned_row_missing"
+    ANALYTICS_USER_JOIN_COARSENED = "analytics_user_join_coarsened"
+    ANALYTICS_FRESHNESS_UNKNOWN = "analytics_freshness_unknown"
 
     # Shape of the export limits what can be concluded
     DIMENSION_NOT_GROUPED = "dimension_not_grouped"
+    TOKEN_COLUMN_ABSENT = "token_column_absent"
+    TOKEN_COLUMNS_NOT_EXPORTED = "token_columns_not_exported"
+    INPUT_COLUMN_AMBIGUOUS = "input_column_ambiguous"
     GRANULARITY_TOO_COARSE = "granularity_too_coarse"
     INSUFFICIENT_HISTORY = "insufficient_history"
     NO_COST_DATA = "no_cost_data"
@@ -69,6 +74,12 @@ class GapCode(StrEnum):
     UNATTRIBUTED_SPEND = "unattributed_spend"
     PROVISIONAL_CSV_SCHEMA = "provisional_csv_schema"
     UNMAPPED_CSV_COLUMNS = "unmapped_csv_columns"
+    CSV_ROWS_EXCLUDED = "csv_rows_excluded"
+
+    # The figures may be on the wrong scale or cover different ground
+    COST_UNITS_INFERRED = "cost_units_inferred"
+    COST_SCALE_SUSPECT = "cost_scale_suspect"
+    PERIODS_DIFFER = "periods_differ"
 
 
 @dataclass(frozen=True, slots=True)
@@ -211,6 +222,137 @@ def dimension_not_grouped(dimension: str, blocks: str) -> Gap:
             f"Re-export from the Console grouped by {dimension!r}, or use the "
             "Admin API path with that dimension in group_by."
         ),
+    )
+
+
+def token_column_absent(field: str, blocks: str) -> Gap:
+    """A check needs a token category the export has no column for.
+
+    The token counterpart of dimension_not_grouped. A missing cache-read
+    column must not read as "no cache reads": that is a finding the data
+    never gave.
+    """
+    return Gap(
+        code=GapCode.TOKEN_COLUMN_ABSENT,
+        severity=Severity.WARNING,
+        scope=field,
+        message=(
+            f"This export has no {field!r} column, so {blocks} cannot be "
+            "evaluated. A missing column is not the same as zero tokens."
+        ),
+        remedy=(
+            "Re-export with every token column, or run with --explain-schema "
+            "to see whether the column is present under a name the profile "
+            "does not recognise."
+        ),
+    )
+
+
+def token_columns_not_exported(fields: tuple[str, ...]) -> Gap:
+    """Token categories absent from the export as a whole."""
+    names = ", ".join(fields)
+    return Gap(
+        code=GapCode.TOKEN_COLUMNS_NOT_EXPORTED,
+        severity=Severity.WARNING,
+        scope=names,
+        message=(
+            f"The export has no column for: {names}. Token totals and the "
+            "estimated cost leave these categories out, and checks that need "
+            "them are skipped."
+        ),
+        remedy=(
+            "Run with --explain-schema. If the columns are there under another "
+            "name, add that name to the profile's aliases."
+        ),
+    )
+
+
+def input_column_ambiguous(header: str) -> Gap:
+    """A generic "input tokens" header was read as uncached input."""
+    return Gap(
+        code=GapCode.INPUT_COLUMN_AMBIGUOUS,
+        severity=Severity.INFO,
+        scope=header,
+        message=(
+            f"The column {header!r} was read as uncached input tokens, beside "
+            "separate cache columns. If your export's input figure already "
+            "includes cached tokens, they are counted twice in the estimate."
+        ),
+        remedy=(
+            "Compare the estimated cost with your bill. If it is high by about "
+            "the cache-read volume, point uncached_input at a different column "
+            "in the profile."
+        ),
+    )
+
+
+def csv_rows_excluded(count: int, reason: str, detail: str = "") -> Gap:
+    """Rows of a usage or cost CSV left out of every figure."""
+    extra = f" ({detail})" if detail else ""
+    return Gap(
+        code=GapCode.CSV_ROWS_EXCLUDED,
+        severity=Severity.WARNING,
+        scope=f"{count} row(s): {reason}",
+        message=(
+            f"{count} row(s) {reason}{extra} and were left out of every "
+            "figure. That is right for a totals line; if they carry real "
+            "usage, the totals here are understated."
+        ),
+        remedy="Check those rows in the export, and give each one a date if it is real data.",
+    )
+
+
+def cost_units_inferred(profile: str, units: str, alternative: str) -> Gap:
+    """Cents versus dollars was decided by which profile fitted best."""
+    return Gap(
+        code=GapCode.COST_UNITS_INFERRED,
+        severity=Severity.WARNING,
+        scope=profile,
+        message=(
+            f"The cost file was read as {units}, because profile {profile!r} "
+            f"fits its columns best. Another profile that reads it as "
+            f"{alternative} also fits. If that reading is right, every cost "
+            "here is off by 100x."
+        ),
+        remedy=(
+            "Compare the billed total with your invoice. If it is 100x off, "
+            "pass the other profile with --cost-profile."
+        ),
+    )
+
+
+def cost_scale_suspect(ratio: str) -> Gap:
+    """Billed and estimated cost differ by an order of magnitude or more."""
+    return Gap(
+        code=GapCode.COST_SCALE_SUSPECT,
+        severity=Severity.CRITICAL,
+        scope=ratio,
+        message=(
+            f"Billed cost is {ratio} the estimate from token counts. No price "
+            "difference explains a gap that size; the likeliest cause is cost "
+            "amounts read in the wrong unit (cents versus dollars), or a cost "
+            "file that does not belong with this usage."
+        ),
+        invalidates_total=True,
+        remedy=(
+            "Compare the billed total with your invoice, and pass the right "
+            "profile with --cost-profile if the unit is wrong."
+        ),
+    )
+
+
+def periods_differ(usage: str, cost: str) -> Gap:
+    """The usage and cost files cover different date ranges."""
+    return Gap(
+        code=GapCode.PERIODS_DIFFER,
+        severity=Severity.WARNING,
+        scope=f"usage {usage}; cost {cost}",
+        message=(
+            f"The usage data covers {usage} but the cost data covers {cost}. "
+            "Billed and estimated cost are not comparable over different "
+            "periods."
+        ),
+        remedy="Export usage and cost for the same date range.",
     )
 
 
@@ -508,21 +650,24 @@ def enterprise_model_unclassified(model: str) -> Gap:
     )
 
 
-def enterprise_rows_excluded(count: int) -> Gap:
-    """Rows with neither a user nor a model, left out of every figure.
+def enterprise_rows_excluded(
+    count: int, reason: str = "name neither a user nor a model"
+) -> Gap:
+    """Summary rows left out of every figure.
 
     The one place this path drops rows, and the reason it is reported rather
-    than done quietly. A row naming no person and no model is most likely a
-    totals line a spreadsheet added; counting it would double the spend.
+    than done quietly. A row naming no person and no model, a "Total" row, or
+    a per-user subtotal is a line a spreadsheet added; counting it would
+    double the spend.
     """
     return Gap(
         code=GapCode.ENTERPRISE_ROWS_EXCLUDED,
         severity=Severity.WARNING,
-        scope=f"{count} row(s)",
+        scope=f"{count} row(s): {reason}",
         message=(
-            f"{count} row(s) in the spend report name neither a user nor a "
-            "model and were left out of every figure. Rows like that are "
-            "usually a totals line, which would double the spend if counted."
+            f"{count} row(s) in the spend report {reason} and were left out "
+            "of every figure. Rows like that are usually a totals or subtotal "
+            "line, which would double the spend if counted."
         ),
         remedy=(
             "Check the export for a summary row. If these rows carry real "
@@ -669,4 +814,33 @@ def rbac_unassigned_row_missing(buckets: int) -> Gap:
             "row may have been cut, so the unassigned spend reported by C7r is "
             "a lower bound."
         ),
+    )
+
+
+def analytics_user_join_coarsened() -> Gap:
+    """Per-user usage and cost rows did not share product and model keys."""
+    return Gap(
+        code=GapCode.ANALYTICS_USER_JOIN_COARSENED,
+        severity=Severity.WARNING,
+        scope="product, model",
+        message=(
+            "The per-user usage and cost reports split some users by product "
+            "or model differently, so their rows could not be matched. Both "
+            "were combined per user instead: per-user totals stand, but the "
+            "product and model split (E2, E3) is not available."
+        ),
+    )
+
+
+def analytics_freshness_unknown() -> Gap:
+    """The fetch carries no data_refreshed_at field at all."""
+    return Gap(
+        code=GapCode.ANALYTICS_FRESHNESS_UNKNOWN,
+        severity=Severity.WARNING,
+        message=(
+            "The saved responses carry no data_refreshed_at field, so this "
+            "tool cannot tell whether the most recent days were complete when "
+            "fetched."
+        ),
+        remedy="Leave a few days between the end of the range and the fetch.",
     )

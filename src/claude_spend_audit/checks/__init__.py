@@ -24,7 +24,7 @@ from dataclasses import dataclass, field, replace
 from decimal import Decimal
 from typing import Callable, Iterable, Sequence
 
-from ..frame import Frame
+from ..frame import UNSPLIT_CACHE_WRITE, Frame
 from ..findings import Finding, rank
 from ..gaps import Gap
 from .. import gaps as gapmod
@@ -97,6 +97,9 @@ class CheckConfig:
     attribution_min_share: Decimal = Decimal("0.10")
 
 
+#: The two cache-write buckets a TTL-summing source folds into one.
+_TTL_FIELDS = frozenset({"cache_write_5m", "cache_write_1h"})
+
 CheckFn = Callable[[Frame, PricingTable, CheckConfig], Iterable[Finding]]
 
 
@@ -121,6 +124,10 @@ class Check:
     #: and every bucket width, it has just destroyed the one distinction C1
     #: is about.
     blocked_by_tokens: frozenset[str] = frozenset()
+    #: Token buckets the source must carry at all. Read against
+    #: ``Frame.token_fields``: a missing cache-read column would otherwise
+    #: read as "no cache reads" and become a finding the data never gave.
+    needs_tokens: frozenset[str] = frozenset()
     #: Distinct days of data needed, given the thresholds in force. A callable
     #: because it depends on config: C6a needs its baseline plus the day being
     #: judged. Without this, too short an export ran, found nothing, and was
@@ -138,6 +145,15 @@ class Check:
         for dimension in sorted(self.needs_dimensions):
             if not frame.has_dimension(dimension):
                 blocking.append(gapmod.dimension_not_grouped(dimension, self.label))
+
+        for field_name in sorted(self.needs_tokens):
+            if frame.has_token_field(field_name):
+                continue
+            if field_name in _TTL_FIELDS and frame.has_token_field(UNSPLIT_CACHE_WRITE):
+                # The source summed the TTLs into one column; the
+                # cache_ttl_not_split gap below already says so.
+                continue
+            blocking.append(gapmod.token_column_absent(field_name, self.label))
 
         for field_name in sorted(self.blocked_by_tokens):
             total = sum(getattr(r.tokens, field_name, 0) for r in frame.usage)
