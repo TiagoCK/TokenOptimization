@@ -129,6 +129,14 @@ def load_cost_json(
                         service_tier=result.get("service_tier"),
                         context_window=result.get("context_window"),
                         inference_geo=result.get("inference_geo"),
+                        # Only the Enterprise Analytics cost report carries
+                        # these two; on the Usage & Cost API they stay None.
+                        product=result.get("product"),
+                        list_amount_usd=(
+                            Decimal(str(result["list_amount"])) / Decimal("100")
+                            if result.get("list_amount") is not None
+                            else None
+                        ),
                     )
                 )
 

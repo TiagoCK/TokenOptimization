@@ -75,6 +75,46 @@ RETRYABLE_STATUS = frozenset({429, 500, 502, 503, 504})
 #: Stops a server that keeps saying has_more from looping forever.
 DEFAULT_PAGE_CAP = 1000
 
+# -- Claude Enterprise Analytics API -----------------------------------------
+# A separate API with its own key type: an Analytics API key carrying the
+# read:analytics scope, created by the Primary Owner in claude.ai. Its usage
+# and cost reports share the Usage & Cost API's wire shape, which is why the
+# same normaliser reads them. Every constant below is from the published API
+# reference, read 2026-10-03.
+
+ANALYTICS_USAGE_PATH = "/v1/organizations/analytics/usage_report"
+ANALYTICS_COST_PATH = "/v1/organizations/analytics/cost_report"
+ANALYTICS_USER_USAGE_PATH = "/v1/organizations/analytics/user_usage_report"
+ANALYTICS_USER_COST_PATH = "/v1/organizations/analytics/user_cost_report"
+
+#: Buckets per page. Lower than the Usage API's caps for 1m.
+ANALYTICS_MAX_LIMIT: Mapping[str, int] = {"1m": 256, "1h": 168, "1d": 31}
+#: Rows per page on the per-user endpoints.
+ANALYTICS_USER_LIMIT = 1000
+#: "The range may span at most 31 days" -- so every request is windowed.
+ANALYTICS_MAX_SPAN = timedelta(days=31)
+#: No data exists before this instant, and nothing older than 365 days.
+ANALYTICS_EARLIEST = datetime(2026, 1, 1, tzinfo=timezone.utc)
+ANALYTICS_LOOKBACK = timedelta(days=365)
+
+ANALYTICS_USAGE_GROUP_BY = frozenset(
+    {
+        "claude_tag_category",
+        "claude_tag_user_id",
+        "context_window",
+        "inference_geo",
+        "model",
+        "product",
+        "rbac_group_id",
+        "slack_channel_id",
+        "speed",
+    }
+)
+ANALYTICS_COST_GROUP_BY = ANALYTICS_USAGE_GROUP_BY | {"cost_type", "token_type"}
+
+#: Restarts allowed when a pagination cursor expires (HTTP 410) mid-window.
+CURSOR_RESTARTS = 2
+
 
 class ApiError(Exception):
     """Any failure on the API path. Never carries the credential."""
@@ -90,6 +130,15 @@ class RateLimited(ApiError):
 
 class ProtocolError(ApiError):
     """The response did not make sense: bad JSON, or contradictory paging."""
+
+
+class CursorExpired(ApiError):
+    """HTTP 410: a pagination cursor outlived a data refresh.
+
+    The Analytics API documents this. The only safe response is to discard
+    the window's pages and start it again -- splicing pages from before and
+    after a refresh would mix two versions of the data.
+    """
 
 
 # --------------------------------------------------------------------------
@@ -228,6 +277,8 @@ class ApiClient:
         page_cap: int = DEFAULT_PAGE_CAP,
         timeout: float = 30.0,
         jitter: Callable[[], float] = random.random,
+        key_kind: str = "admin",
+        clock: Callable[[], datetime] | None = None,
     ):
         self.credential = (
             credential if isinstance(credential, Credential) else Credential(credential)
@@ -242,6 +293,11 @@ class ApiClient:
         self.page_cap = page_cap
         self.timeout = timeout
         self._jitter = jitter
+        #: "admin" or "analytics": which key this is, so a 401/403 can say
+        #: what the right one would have been.
+        self.key_kind = key_kind
+        # Injected so the analytics date-floor checks are testable.
+        self._clock = clock or (lambda: datetime.now(timezone.utc))
 
         from .. import __version__
 
@@ -297,8 +353,7 @@ class ApiClient:
             ending_at,
             params,
             extra_headers=headers,
-            window_buckets=limit if window else None,
-            bucket_width=bucket_width,
+            span=_span(limit, bucket_width) if window else None,
         )
 
     def cost(
@@ -327,9 +382,144 @@ class ApiClient:
             starting_at,
             ending_at,
             params,
-            window_buckets=limit if window else None,
-            bucket_width="1d",
+            span=_span(limit, "1d") if window else None,
         )
+
+    # -- Claude Enterprise Analytics API ----------------------------------
+
+    def analytics_usage(
+        self,
+        starting_at: datetime,
+        ending_at: datetime,
+        *,
+        bucket_width: str = "1d",
+        group_by: Sequence[str] = (),
+        limit: int | None = None,
+    ) -> list[dict]:
+        """Every page of the Analytics usage report for this range."""
+        return self._analytics_bucketed(
+            ANALYTICS_USAGE_PATH,
+            ANALYTICS_USAGE_GROUP_BY,
+            starting_at,
+            ending_at,
+            bucket_width=bucket_width,
+            group_by=group_by,
+            limit=limit,
+        )
+
+    def analytics_cost(
+        self,
+        starting_at: datetime,
+        ending_at: datetime,
+        *,
+        bucket_width: str = "1d",
+        group_by: Sequence[str] = (),
+        limit: int | None = None,
+    ) -> list[dict]:
+        """Every page of the Analytics cost report for this range."""
+        return self._analytics_bucketed(
+            ANALYTICS_COST_PATH,
+            ANALYTICS_COST_GROUP_BY,
+            starting_at,
+            ending_at,
+            bucket_width=bucket_width,
+            group_by=group_by,
+            limit=limit,
+        )
+
+    def analytics_user_usage(
+        self,
+        starting_at: datetime,
+        ending_at: datetime,
+        *,
+        group_by: Sequence[str] = (),
+    ) -> list[dict]:
+        """Per-user token usage, one aggregate row per user per window."""
+        return self._analytics_users(
+            ANALYTICS_USER_USAGE_PATH, starting_at, ending_at, group_by=group_by
+        )
+
+    def analytics_user_cost(
+        self,
+        starting_at: datetime,
+        ending_at: datetime,
+        *,
+        group_by: Sequence[str] = (),
+    ) -> list[dict]:
+        """Per-user cost, one aggregate row per user per window."""
+        return self._analytics_users(
+            ANALYTICS_USER_COST_PATH, starting_at, ending_at, group_by=group_by
+        )
+
+    def _analytics_bucketed(
+        self,
+        path: str,
+        allowed: frozenset[str],
+        starting_at: datetime,
+        ending_at: datetime,
+        *,
+        bucket_width: str,
+        group_by: Sequence[str],
+        limit: int | None,
+    ) -> list[dict]:
+        if bucket_width not in ANALYTICS_MAX_LIMIT:
+            raise ApiError(
+                f"bucket_width {bucket_width!r} is not one of "
+                f"{', '.join(sorted(ANALYTICS_MAX_LIMIT))}"
+            )
+        _check_group_by(group_by, allowed)
+        self._check_analytics_range(starting_at, ending_at)
+        cap = ANALYTICS_MAX_LIMIT[bucket_width]
+        if limit is None:
+            limit = cap
+        elif not 1 <= limit <= cap:
+            raise ApiError(
+                f"limit {limit} is outside 1..{cap} for bucket_width "
+                f"{bucket_width!r} on the Analytics API. Rejected before sending."
+            )
+        params: dict[str, Any] = {"bucket_width": bucket_width, "limit": limit}
+        if group_by:
+            params["group_by[]"] = list(group_by)
+        # Always windowed: the API refuses ranges over 31 days, and a window
+        # of `limit` buckets keeps each one to a single page where possible.
+        span = min(ANALYTICS_MAX_SPAN, _span(limit, bucket_width))
+        return self._fetch_range(path, starting_at, ending_at, params, span=span)
+
+    def _analytics_users(
+        self,
+        path: str,
+        starting_at: datetime,
+        ending_at: datetime,
+        *,
+        group_by: Sequence[str],
+    ) -> list[dict]:
+        _check_group_by(group_by, ANALYTICS_USAGE_GROUP_BY)
+        self._check_analytics_range(starting_at, ending_at)
+        params: dict[str, Any] = {"limit": ANALYTICS_USER_LIMIT}
+        if group_by:
+            params["group_by[]"] = list(group_by)
+        # No bucket_width: each row aggregates its window. Windows of at most
+        # 31 days, as the API requires; the caller sums across them.
+        return self._fetch_range(
+            path, starting_at, ending_at, params, span=ANALYTICS_MAX_SPAN
+        )
+
+    def _check_analytics_range(self, starting_at: datetime, ending_at: datetime) -> None:
+        """Refuse a range the Analytics API cannot serve, before sending it."""
+        _rfc3339(starting_at, name="starting_at")
+        _rfc3339(ending_at, name="ending_at")
+        if starting_at < ANALYTICS_EARLIEST:
+            raise ApiError(
+                f"starting_at {starting_at:%Y-%m-%d} is before 2026-01-01. The "
+                "Claude Enterprise Analytics API has no data before that date."
+            )
+        oldest = self._clock() - ANALYTICS_LOOKBACK
+        if starting_at < oldest:
+            raise ApiError(
+                f"starting_at {starting_at:%Y-%m-%d} is more than 365 days ago. "
+                "The Claude Enterprise Analytics API only serves the last 365 "
+                f"days; the earliest allowed start today is {oldest:%Y-%m-%d}."
+            )
 
     # -- internals -------------------------------------------------------
 
@@ -353,8 +543,7 @@ class ApiClient:
         params: Mapping[str, Any],
         *,
         extra_headers: Mapping[str, str] | None = None,
-        window_buckets: int | None,
-        bucket_width: str,
+        span: timedelta | None,
     ) -> list[dict]:
         # Validate awareness first. Comparing a naive datetime to an aware one
         # raises TypeError, which would bury the actionable message below.
@@ -367,15 +556,15 @@ class ApiClient:
             )
 
         windows = (
-            list(self._windows(starting_at, ending_at, window_buckets, bucket_width))
-            if window_buckets
+            list(self._tile(starting_at, ending_at, span))
+            if span
             else [(starting_at, ending_at)]
         )
 
         pages: list[dict] = []
         for index, (start, end) in enumerate(windows, start=1):
             try:
-                pages.extend(self._paginate(path, start, end, params, extra_headers))
+                pages.extend(self._fetch_window(path, start, end, params, extra_headers))
             except ApiError as exc:
                 if len(windows) == 1:
                     raise
@@ -388,6 +577,31 @@ class ApiClient:
                 ) from exc
         return pages
 
+    def _fetch_window(
+        self,
+        path: str,
+        start: datetime,
+        end: datetime,
+        params: Mapping[str, Any],
+        extra_headers: Mapping[str, str] | None,
+    ) -> list[dict]:
+        """One window's pages, restarting from page one if a cursor expires.
+
+        A restart discards everything fetched for the window so far: pages
+        from before and after a data refresh must never be spliced together.
+        """
+        for attempt in range(CURSOR_RESTARTS + 1):
+            try:
+                return self._paginate(path, start, end, params, extra_headers)
+            except CursorExpired:
+                if attempt == CURSOR_RESTARTS:
+                    raise CursorExpired(
+                        f"the pagination cursor expired {CURSOR_RESTARTS + 1} "
+                        "times while the API's data refreshed underneath it. "
+                        "Nothing from this window is returned; try again later."
+                    ) from None
+        raise AssertionError("unreachable")  # pragma: no cover
+
     @staticmethod
     def _windows(
         starting_at: datetime,
@@ -395,12 +609,20 @@ class ApiClient:
         buckets: int,
         bucket_width: str,
     ) -> Iterable[tuple[datetime, datetime]]:
+        """Tile the range into windows of ``buckets`` buckets each."""
+        return ApiClient._tile(starting_at, ending_at, _span(buckets, bucket_width))
+
+    @staticmethod
+    def _tile(
+        starting_at: datetime,
+        ending_at: datetime,
+        span: timedelta,
+    ) -> Iterable[tuple[datetime, datetime]]:
         """Tile the range as [start, end), matching the API's own semantics.
 
         ``starting_at`` is inclusive and ``ending_at`` exclusive, so abutting
         windows cannot double-count the bucket on their shared boundary.
         """
-        span = timedelta(seconds=BUCKET_SECONDS[bucket_width] * buckets)
         cursor = starting_at
         while cursor < ending_at:
             nxt = min(cursor + span, ending_at)
@@ -484,6 +706,12 @@ class ApiClient:
             if response.status in (401, 403):
                 raise AuthError(self._auth_message(response))
 
+            if response.status == 410:
+                raise CursorExpired(
+                    f"HTTP 410 from {path}: the pagination cursor expired. "
+                    f"{redact(self._detail(response), self.credential)}"
+                )
+
             if response.status not in RETRYABLE_STATUS:
                 raise ApiError(
                     f"HTTP {response.status} from {path}: "
@@ -534,6 +762,15 @@ class ApiClient:
 
     def _auth_message(self, response: Response) -> str:
         detail = redact(self._detail(response), self.credential)
+        if self.key_kind == "analytics":
+            return (
+                f"the API rejected this credential ({response.status}). The "
+                "Claude Enterprise Analytics API needs an Analytics API key "
+                "carrying the read:analytics scope, which only the Primary "
+                "Owner can create (claude.ai > Organization settings > API). "
+                "It is available on Claude Enterprise plans only, and an Admin "
+                f"API key does not work here. {detail}"
+            )
         if response.status == 403:
             return (
                 "the API rejected this credential (403). Workspace-scoped API "
@@ -614,3 +851,62 @@ def envelope(
 
 def is_envelope(payload: object) -> bool:
     return isinstance(payload, Mapping) and payload.get("kind") == ENVELOPE_KIND
+
+
+#: Marks a file written by `fetch --source analytics`. Several series in one
+#: file, because one audit needs all of them together.
+ANALYTICS_ENVELOPE_KIND = "claude-spend-audit/analytics-fetch"
+
+
+def analytics_envelope(
+    *,
+    starting_at: datetime,
+    ending_at: datetime,
+    series: Mapping[str, Mapping[str, Any]],
+    version: str,
+    fetched_at: datetime | None = None,
+) -> dict:
+    """Wrap Analytics API pages, one entry per series.
+
+    Each series records its own endpoint, bucket width and ``group_by``. As
+    with ``envelope``, ``group_by`` is load-bearing: the responses cannot say
+    which dimensions were requested. Deliberately contains no credential.
+    """
+    return {
+        "kind": ANALYTICS_ENVELOPE_KIND,
+        "version": version,
+        "fetched_at": (fetched_at or datetime.now(timezone.utc)).strftime(
+            "%Y-%m-%dT%H:%M:%SZ"
+        ),
+        "source": "enterprise_analytics",
+        "request": {
+            "starting_at": _rfc3339(starting_at, name="starting_at"),
+            "ending_at": _rfc3339(ending_at, name="ending_at"),
+        },
+        "series": {
+            name: {
+                "endpoint": entry["endpoint"],
+                "bucket_width": entry.get("bucket_width"),
+                "group_by": list(entry.get("group_by") or ()),
+                "pages": list(entry["pages"]),
+            }
+            for name, entry in series.items()
+        },
+    }
+
+
+def is_analytics_envelope(payload: object) -> bool:
+    return isinstance(payload, Mapping) and payload.get("kind") == ANALYTICS_ENVELOPE_KIND
+
+
+def _span(buckets: int, bucket_width: str) -> timedelta:
+    return timedelta(seconds=BUCKET_SECONDS[bucket_width] * buckets)
+
+
+def _check_group_by(group_by: Sequence[str], allowed: frozenset[str]) -> None:
+    unknown = set(group_by) - allowed
+    if unknown:
+        raise ApiError(
+            f"unknown group_by value(s): {', '.join(sorted(unknown))}. "
+            f"Valid: {', '.join(sorted(allowed))}"
+        )

@@ -485,9 +485,7 @@ def run_output_share(
         "Completion tokens include thinking, which is billed as output. The "
         "report does not separate the two, so a high share may be reasoning "
         "rather than long answers.",
-        "The export does not document whether prompt tokens include cache reads "
-        "and writes. If they exclude them, the share shown overstates output "
-        "relative to everything the model read.",
+        _prompt_caveat(report),
         "There is one row per person per model, not per request, so this cannot "
         "tell a few long responses from many short ones.",
         "Some work is legitimately generative: drafting, code generation and "
@@ -528,6 +526,21 @@ def run_output_share(
             caveats=tuple(caveats),
         )
     ]
+
+
+def _prompt_caveat(report: SpendReport) -> str:
+    """What "prompt tokens" means here, as far as the source says."""
+    if report.prompt_includes_cache:
+        return (
+            "Prompt tokens here include cache reads and cache writes as well as "
+            "uncached input, so the share compares output with everything the "
+            "model read."
+        )
+    return (
+        "The export does not document whether prompt tokens include cache reads "
+        "and writes. If they exclude them, the share shown overstates output "
+        "relative to everything the model read."
+    )
 
 
 # --------------------------------------------------------------------------

@@ -103,6 +103,11 @@ class SpendReport:
     period_end: datetime | None = None
     sources: tuple[SourceInfo, ...] = ()
     gaps: tuple[Gap, ...] = ()
+    #: Whether prompt_tokens includes cache reads and writes. None when the
+    #: source does not say -- the CSV spend report's documentation does not.
+    #: True for the Analytics API path, which builds it from all four input
+    #: buckets.
+    prompt_includes_cache: bool | None = None
 
     # -- fields ----------------------------------------------------------
 

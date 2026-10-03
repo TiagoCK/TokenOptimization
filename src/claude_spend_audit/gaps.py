@@ -41,6 +41,13 @@ class GapCode(StrEnum):
     ENTERPRISE_MODEL_UNCLASSIFIED = "enterprise_model_unclassified"
     ENTERPRISE_ROWS_EXCLUDED = "enterprise_rows_excluded"
 
+    # Claude Enterprise Analytics API
+    ANALYTICS_GROUPS_TRUNCATED = "analytics_groups_truncated"
+    ANALYTICS_INCOMPLETE_TAIL = "analytics_incomplete_tail"
+    ANALYTICS_NOT_FINAL = "analytics_not_final"
+    ANALYTICS_PLAN_CONTEXT = "analytics_plan_context"
+    LIST_PRICE_BASIS = "list_price_basis"
+
     # Shape of the export limits what can be concluded
     DIMENSION_NOT_GROUPED = "dimension_not_grouped"
     GRANULARITY_TOO_COARSE = "granularity_too_coarse"
@@ -519,5 +526,115 @@ def enterprise_rows_excluded(count: int) -> Gap:
             "Check the export for a summary row. If these rows carry real "
             "usage, the user or model column is probably mis-mapped: run with "
             "--explain-schema."
+        ),
+    )
+
+
+# --------------------------------------------------------------------------
+# Claude Enterprise Analytics API
+# --------------------------------------------------------------------------
+
+
+def analytics_groups_truncated(missing_tokens: int, share: str, buckets: int) -> Gap:
+    """Grouped buckets that came back with less than the bucket's total.
+
+    The API reports at most the top 100 groups per bucket and has no
+    remainder row, so a grouped fetch can silently drop the tail. The tool
+    fetches an ungrouped total beside it and compares, bucket by bucket.
+    """
+    return Gap(
+        code=GapCode.ANALYTICS_GROUPS_TRUNCATED,
+        severity=Severity.WARNING,
+        scope=f"{buckets} bucket(s)",
+        message=(
+            f"{missing_tokens:,} tokens ({share} of the total) are missing from "
+            f"the grouped data in {buckets} time bucket(s). The Analytics API "
+            "returns at most the top 100 groups per bucket, with no remainder "
+            "row, so every estimate and check below is computed on less than "
+            "the whole."
+        ),
+        invalidates_total=True,
+        remedy=(
+            "Fetch again with fewer --group-by dimensions, so each bucket has "
+            "fewer than 100 distinct combinations."
+        ),
+    )
+
+
+def analytics_incomplete_tail(refreshed_at: str | None) -> Gap:
+    """The requested range runs past the export the API served it from."""
+    if refreshed_at is None:
+        message = (
+            "The Analytics API had no export covering part of the requested "
+            "range when this was fetched, so that part is empty rather than "
+            "zero."
+        )
+    else:
+        message = (
+            f"The requested range runs past {refreshed_at}, the point the "
+            "Analytics API's data had been refreshed to when this was fetched. "
+            "Anything after it is incomplete, so totals for the end of the "
+            "range understate the usage."
+        )
+    return Gap(
+        code=GapCode.ANALYTICS_INCOMPLETE_TAIL,
+        severity=Severity.WARNING,
+        scope=refreshed_at or "",
+        message=message,
+        invalidates_total=True,
+        remedy=(
+            "Fetch again with --to at or before the refresh time, or wait a few "
+            "hours: data is typically refreshed every 4 hours."
+        ),
+    )
+
+
+def analytics_not_final(days: int) -> Gap:
+    return Gap(
+        code=GapCode.ANALYTICS_NOT_FINAL,
+        severity=Severity.INFO,
+        scope=f"{days} day(s)",
+        message=(
+            f"{days} day(s) of this range fall within the last 30 days. The "
+            "Analytics API revises figures for up to 30 days as late events "
+            "arrive and reconciliation runs, so these may still change."
+        ),
+        remedy="For invoicing-grade totals, fetch dates at least 30 days old.",
+    )
+
+
+def list_price_basis(ratio: str) -> Gap:
+    """Check figures are at list price; the account pays something else."""
+    return Gap(
+        code=GapCode.LIST_PRICE_BASIS,
+        severity=Severity.INFO,
+        scope=ratio,
+        message=(
+            "Dollar figures in the checks price tokens at the list rates in "
+            f"the pricing file. This account's billed amount is {ratio} of its "
+            "list-price amount over the period, so actual spend on any finding "
+            "is likely lower by roughly that ratio. It is not applied to "
+            "individual findings, because the discount need not be uniform."
+        ),
+    )
+
+
+def analytics_plan_context() -> Gap:
+    """What Claude Enterprise data is, and what it leaves out."""
+    return Gap(
+        code=GapCode.ANALYTICS_PLAN_CONTEXT,
+        severity=Severity.INFO,
+        message=(
+            "This is Claude Enterprise plan usage from the Analytics API: "
+            "chat, Claude Code, Cowork and other Claude products. Plan products "
+            "manage prompt caching themselves, so remedies that change cache "
+            "configuration may not be available, though the cache figures are "
+            "still measured. The data carries no service tier, workspace or "
+            "API key, so batch adoption (C3) and attribution coverage (C7) "
+            "cannot run on it -- batch pricing does not apply to plan usage "
+            "in any case. On seat-based plans "
+            "cost reflects usage credits only. Claude Code routed through "
+            "Amazon Bedrock is not included, and per-user figures cover seat "
+            "users only, not direct API-key or automation traffic."
         ),
     )

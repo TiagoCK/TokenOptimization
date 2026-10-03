@@ -73,7 +73,43 @@ saved file is an artifact you can read before deciding whether to share it.
 `--api-key` flag, deliberately: an argument lands in shell history and is
 visible to every user on the machine through `ps`.
 
-## Team and Enterprise plans
+## Claude Enterprise: the Analytics API
+
+A Claude Enterprise organisation has no Admin API key, but it has the
+**Enterprise Analytics API**, which reports the same token detail the usage
+checks need -- per day or hour, all five token categories, by model, product
+and context window -- plus billed and list-price cost. The Primary Owner
+creates an Analytics API key (scope `read:analytics`) in claude.ai under
+Organization settings > API.
+
+```bash
+export ANTHROPIC_ANALYTICS_KEY=...
+claude-spend-audit fetch --source analytics --from 2026-08-01 --to 2026-09-01 -o raw.json
+claude-spend-audit audit raw.json
+```
+
+One fetch saves every series the audit needs into one file. With it, C1, C2,
+C4, C5, C6a and C8 run on Enterprise usage, and C6b too with
+`--bucket-width 1h`. C3 and C7 do not: the data has no service tier,
+workspace or API key, and batch does not apply to plan usage. The per-user
+reports also feed E1-E4 (below); pass `--no-users` to leave them -- and every
+email address -- out of the saved file.
+
+Worth knowing before you trust a number:
+
+- **Check figures are at list price.** The header shows the billed amount, the
+  list-price amount and the ratio between them; actual spend on a finding is
+  likely lower by roughly that ratio.
+- **Recent data moves.** Figures refresh about every four hours and can be
+  revised for 30 days. The report flags a range that runs past the latest
+  refresh, or into the revision window.
+- **Grouped results can be cut short.** The API returns at most 100 groups per
+  time bucket, with no remainder row. The tool fetches an ungrouped total too,
+  and flags (and exits 1) if the groups do not add up.
+- Data starts on 2026-01-01; the API is Enterprise only. Team plans should use
+  the spend report below.
+
+## Team and Enterprise plans: the spend report
 
 If your organisation uses Claude through a Team or Enterprise plan -- chat,
 Claude Code, Cowork -- the export you have is the **spend report**, not the

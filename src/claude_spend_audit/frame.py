@@ -59,6 +59,10 @@ TOKEN_FIELD_LABELS: Mapping[str, str] = {
 #: Every dimension the usage endpoint can group by. Order is stable for output.
 DIMENSIONS: tuple[str, ...] = (
     "model",
+    #: Claude product surface (chat, claude_code, cowork...). Only the Claude
+    #: Enterprise Analytics API reports it; the Usage API and Console exports
+    #: never group by it, so it stays out of their grouped_by.
+    "product",
     "workspace_id",
     "api_key_id",
     "account_id",
@@ -146,6 +150,7 @@ class Segment:
     """
 
     model: str | None = None
+    product: str | None = None
     workspace_id: str | None = None
     api_key_id: str | None = None
     account_id: str | None = None
@@ -191,6 +196,10 @@ class CostRow:
     service_tier: str | None = None
     context_window: str | None = None
     inference_geo: str | None = None
+    product: str | None = None
+    #: The list-price (pre-discount) amount, in dollars, when the source
+    #: reports one -- only the Enterprise Analytics cost report does.
+    list_amount_usd: Decimal | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -294,6 +303,19 @@ class Frame:
         if not self.cost:
             return None
         return sum((r.amount_usd for r in self.cost), Decimal("0"))
+
+    @property
+    def list_total_usd(self) -> Decimal | None:
+        """Sum of the cost data's list-price amounts, or None if it has none.
+
+        Only the Enterprise Analytics cost report carries a list price beside
+        the billed amount. Every other source leaves this None, so nothing in
+        their reports changes.
+        """
+        amounts = [r.list_amount_usd for r in self.cost if r.list_amount_usd is not None]
+        if not amounts:
+            return None
+        return sum(amounts, Decimal("0"))
 
     # -- construction helpers -------------------------------------------
 

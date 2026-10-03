@@ -96,6 +96,15 @@ def render(
         spend_rows.append(("Billed", usd(billed), "from the cost export"))
     else:
         spend_rows.append(("Billed", "not supplied", "no cost export provided"))
+    listed = frame.list_total_usd
+    if listed is not None:
+        # Only the Enterprise Analytics cost report carries a list price.
+        note = (
+            f"before discounts; billed is {billed / listed * 100:.1f}% of it"
+            if billed is not None and listed
+            else "before discounts"
+        )
+        spend_rows.append(("List price", usd(listed), note))
     spend_rows.append(
         (
             "Estimated",

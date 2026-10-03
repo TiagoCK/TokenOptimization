@@ -34,6 +34,10 @@ Usage & Cost API ───┘                                             markdo
 Alongside, at every stage:  Gap (gaps.py) -- what this data cannot show
 Alongside, at pricing:      PricingTable  <-- pricing/<version>.json
 
+Enterprise Analytics API ──→ ingest/api_client.py ──→ saved file ──→ ingest/analytics_json.py
+  (fetch --source analytics)    (windowed, 410-safe)               ├─→ Frame       (usage series)
+                                                                   └─→ SpendReport (per-user series)
+
 Team/Enterprise spend report ──→  SpendReport ──→ enterprise/checks.py ──→ Finding[] ──→ render/
   ingest/enterprise_csv.py        enterprise/      E1-E4, descriptive only   (observations)
   (schemas/enterprise_spend_csv.json)  report.py
@@ -62,6 +66,17 @@ helpers, and they are **descriptive only**: each is an `observation`, and
 `run_enterprise_checks` raises if any check returns anything else. `cli.py`
 routes a file there by its columns, and only a file no usage profile matches
 can be claimed.
+
+**The Enterprise Analytics API feeds both.** Its usage and cost reports share
+the Usage & Cost API's wire format, so `api_json` normalises them unchanged into
+a Frame (with `product` as an extra dimension), and the usage checks run on it.
+Its per-user reports become a SpendReport, so E1-E4 run on documented fields
+instead of a guessed CSV mapping. Two properties of the source need guarding.
+Each grouped time bucket holds at most 100 groups and no remainder row, so
+`fetch` also saves an ungrouped total and ingest compares the two bucket by
+bucket, raising a gap that invalidates the total when they differ. And RBAC
+group rows overlap -- a user in two groups counts in both -- so grouping a
+Frame by `rbac_group_id` is refused outright: it would count tokens twice.
 
 **More than one tool produces these CSVs**, and they disagree. The Console UI
 export and Anthropic's published cookbook exporter use different column names

@@ -11,6 +11,10 @@ Three commands:
 It is recognised by its columns and routed to its own pipeline -- its own data
 model and its own descriptive checks -- because it is not usage data.
 
+``fetch --source analytics`` pulls the same kind of data a Claude Enterprise
+organisation has no Admin API for, from the Enterprise Analytics API, into one
+file that ``audit`` reads like any other saved fetch.
+
 Rendering lives in ``render.terminal``; this module handles arguments, loading,
 and exit codes only.
 """
@@ -21,28 +25,39 @@ import argparse
 import json
 import os
 import sys
+from dataclasses import replace
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 from . import __version__
 from . import gaps as gapmod
-from .checks import CHECKS, CheckConfig, run_checks
+from .checks import CHECKS, CheckConfig, CheckRun, run_checks
+from .findings import rank
 from .enterprise import ENTERPRISE_CHECKS, EnterpriseConfig, run_enterprise_checks
 from .enterprise.report import INT_FIELDS, SpendReport
 from .frame import Frame, merge
 from .ingest import load_cost_csv, load_usage_csv
 from .ingest.api_client import (
+    ANALYTICS_COST_PATH,
+    ANALYTICS_USAGE_GROUP_BY,
+    ANALYTICS_USAGE_PATH,
+    ANALYTICS_USER_COST_PATH,
+    ANALYTICS_USER_USAGE_PATH,
     ApiClient,
     ApiError,
     AuthError,
     Credential,
+    analytics_envelope,
     envelope,
+    is_analytics_envelope,
     is_envelope,
 )
+from .ingest.analytics_json import AnalyticsFileError, load_analytics
 from .ingest.api_json import load_cost_json, load_usage_json
 from .ingest.enterprise_csv import ENTERPRISE_KIND, detect_enterprise, load_enterprise_csv
 from .ingest.schema import Profile, SchemaError, SchemaMismatch
-from .pricing import PricingError, PricingTable
+from .gaps import GapCode
+from .pricing import PRICE_DIMENSIONS, PricingError, PricingTable
 from .render import markdown, terminal
 
 _SEVERITY_ORDER = {"critical": 0, "warning": 1, "info": 2}
@@ -63,6 +78,21 @@ DEFAULT_FETCH_GROUP_BY: tuple[str, ...] = (
     "inference_geo",
     "speed",
 )
+
+#: What `fetch --source analytics` groups the usage report by. Every
+#: dimension a usage check needs that this API has, plus product. Never
+#: rbac_group_id: its rows overlap, so a Frame built from them would count a
+#: user in two groups twice.
+DEFAULT_ANALYTICS_GROUP_BY: tuple[str, ...] = (
+    "model",
+    "product",
+    "context_window",
+    "inference_geo",
+    "speed",
+)
+
+#: Where each source's key is read from unless --api-key-env says otherwise.
+_DEFAULT_KEY_ENV = {"admin": "ANTHROPIC_ADMIN_KEY", "analytics": "ANTHROPIC_ANALYTICS_KEY"}
 
 
 # --------------------------------------------------------------------------
@@ -248,11 +278,32 @@ def build_parser() -> argparse.ArgumentParser:
         # then gets echoed into the "not found in $..." error on stderr. The
         # one flag family on this command is the one that must never do that.
         allow_abbrev=False,
-        help="download Usage & Cost data from the Admin API to a local file",
+        help=(
+            "download Usage & Cost data (Admin API) or Claude Enterprise "
+            "analytics to a local file"
+        ),
         description=(
             "Fetches once and saves the raw API responses, so analysis can be "
             "re-run offline at any thresholds without hitting the API again. "
             "The saved file is yours: nothing is uploaded anywhere."
+        ),
+    )
+    fetch.add_argument(
+        "--source",
+        choices=("admin", "analytics"),
+        default="admin",
+        help=(
+            "admin: the Usage & Cost Admin API (Developer Console "
+            "organisations). analytics: the Claude Enterprise Analytics API, "
+            "with an Analytics API key (default: admin)"
+        ),
+    )
+    fetch.add_argument(
+        "--no-users",
+        action="store_true",
+        help=(
+            "analytics only: skip the per-user reports, so the saved file "
+            "holds no email addresses"
         ),
     )
     fetch.add_argument(
@@ -303,12 +354,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     fetch.add_argument(
         "--api-key-env",
-        default="ANTHROPIC_ADMIN_KEY",
+        default=None,
         metavar="NAME",
         help=(
-            "environment variable holding the Admin API key "
-            "(default: ANTHROPIC_ADMIN_KEY). The key itself is never accepted "
-            "on the command line"
+            "environment variable holding the key (default: "
+            "ANTHROPIC_ADMIN_KEY, or ANTHROPIC_ANALYTICS_KEY with --source "
+            "analytics). The key itself is never accepted on the command line"
         ),
     )
     fetch.add_argument(
@@ -382,7 +433,7 @@ def _read_saved(path) -> dict | None:
         payload = json.loads(Path(path).read_text(encoding="utf-8"))
     except (OSError, UnicodeDecodeError, json.JSONDecodeError):
         return None
-    return payload if is_envelope(payload) else None
+    return payload if is_envelope(payload) or is_analytics_envelope(payload) else None
 
 
 def _frame_from_saved(saved: dict, expected: str) -> Frame:
@@ -500,6 +551,9 @@ def _exit_code(frame: Frame | SpendReport) -> int:
 
 
 def _inspect(args) -> int:
+    saved = _read_saved(args.usage)
+    if saved is not None and is_analytics_envelope(saved):
+        return _analytics(args, saved, mode="inspect")
     routed = _enterprise_profile(args)
     if routed is not None:
         return _enterprise(args, routed, mode="inspect")
@@ -547,6 +601,9 @@ def _inspect(args) -> int:
 
 
 def _audit(args) -> int:
+    saved = _read_saved(args.usage)
+    if saved is not None and is_analytics_envelope(saved):
+        return _analytics(args, saved, mode="audit")
     routed = _enterprise_profile(args)
     if routed is not None:
         return _enterprise(args, routed, mode="audit")
@@ -556,8 +613,14 @@ def _audit(args) -> int:
         print(f"error: {exc}", file=sys.stderr)
         return exc.code
 
+    run = run_checks(frame, pricing, _check_config(args))
+    frame = frame.with_gaps(run.gaps)
+    return _emit_audit(args, frame, pricing, estimate, run, checks_total=len(CHECKS))
+
+
+def _check_config(args) -> CheckConfig:
     start, end = args.business_hours
-    config = CheckConfig(
+    return CheckConfig(
         min_impact_usd=args.min_impact,
         spike_threshold=args.spike_threshold,
         utc_offset_hours=args.utc_offset,
@@ -567,11 +630,21 @@ def _audit(args) -> int:
         batch_eligible_share=args.batch_eligible_share,
     )
 
-    run = run_checks(frame, pricing, config)
-    frame = frame.with_gaps(run.gaps)
 
+def _emit_audit(
+    args,
+    frame: Frame,
+    pricing: PricingTable,
+    estimate,
+    run: CheckRun,
+    *,
+    checks_total: int,
+    extra_json: dict | None = None,
+) -> int:
+    """Render a finished audit in the requested format, and return its exit code."""
     if args.json:
         payload = _as_json(frame, pricing, estimate)
+        payload.update(extra_json or {})
         payload["findings"] = [_finding_json(f) for f in run.findings]
         payload["checks_blocked"] = [label for label, _ in run.skipped]
         payload["checks_clean"] = list(run.clean)
@@ -598,7 +671,7 @@ def _audit(args) -> int:
             terminal.footer(
                 [
                     f"{len(run.findings)} finding(s) from "
-                    f"{len(CHECKS) - len(run.skipped)} of {len(CHECKS)} checks.",
+                    f"{checks_total - len(run.skipped)} of {checks_total} checks.",
                 ]
             )
         )
@@ -619,6 +692,8 @@ def _audit(args) -> int:
 
 
 def _fetch(args) -> int:
+    if args.api_key_env is None:
+        args.api_key_env = _DEFAULT_KEY_ENV[args.source]
     if getattr(args, "rejected_api_key", None) is not None:
         # Deliberately does not echo the value back.
         print(
@@ -654,10 +729,13 @@ def _fetch(args) -> int:
         return 2
 
     key = os.environ.get(args.api_key_env, "").strip()
+    analytics = args.source == "analytics"
     if not key:
+        kind = "Analytics API key" if analytics else "Admin API key"
+        example = "<your Analytics API key>" if analytics else "sk-ant-admin01-..."
         lines = [
-            f"error: no Admin API key found in ${args.api_key_env}.",
-            f"  Set it first:  export {args.api_key_env}=sk-ant-admin01-...",
+            f"error: no {kind} found in ${args.api_key_env}.",
+            f"  Set it first:  export {args.api_key_env}={example}",
             "",
             "  The key is deliberately not accepted as a command-line flag:",
             "  arguments land in shell history and are visible to every user",
@@ -665,6 +743,9 @@ def _fetch(args) -> int:
         ]
         print("\n".join(lines), file=sys.stderr)
         return 2
+
+    if analytics:
+        return _fetch_analytics(args, key)
 
     group_by = [g.strip() for g in (args.group_by or "").split(",") if g.strip()]
     client = ApiClient(Credential(key), max_retries=args.max_retries)
@@ -714,6 +795,224 @@ def _fetch(args) -> int:
         file=sys.stderr,
     )
     return 0
+
+
+def _fetch_analytics(args, key: str) -> int:
+    """fetch --source analytics: every series one audit needs, in one file."""
+    if args.group_by == ",".join(DEFAULT_FETCH_GROUP_BY):
+        # The parser's default is the Admin API's dimension list. Left alone,
+        # it means "the default", which for this API is a different list.
+        group_by = list(DEFAULT_ANALYTICS_GROUP_BY)
+    else:
+        group_by = [g.strip() for g in (args.group_by or "").split(",") if g.strip()]
+    if "rbac_group_id" in group_by:
+        print(
+            "error: --group-by rbac_group_id is not supported for an audit. A "
+            "user in several groups is counted in each group's row, so totals "
+            "built from those rows would count the same tokens more than once.",
+            file=sys.stderr,
+        )
+        return 2
+    unknown = sorted(set(group_by) - ANALYTICS_USAGE_GROUP_BY)
+    if unknown:
+        print(
+            f"error: unknown --group-by value(s) for the Analytics API: "
+            f"{', '.join(unknown)}. Valid: {', '.join(sorted(ANALYTICS_USAGE_GROUP_BY))}",
+            file=sys.stderr,
+        )
+        return 2
+
+    client = ApiClient(Credential(key), max_retries=args.max_retries, key_kind="analytics")
+    series: dict[str, dict] = {}
+    try:
+        series["usage"] = {
+            "endpoint": ANALYTICS_USAGE_PATH,
+            "bucket_width": args.bucket_width,
+            "group_by": group_by,
+            "pages": client.analytics_usage(
+                args.start, args.end, bucket_width=args.bucket_width, group_by=group_by
+            ),
+        }
+        if group_by:
+            # The ungrouped total, to detect buckets the 100-group cap cut short.
+            series["usage_total"] = {
+                "endpoint": ANALYTICS_USAGE_PATH,
+                "bucket_width": args.bucket_width,
+                "group_by": [],
+                "pages": client.analytics_usage(
+                    args.start, args.end, bucket_width=args.bucket_width
+                ),
+            }
+        # Ungrouped, so the billed total cannot be truncated by the group cap.
+        series["cost_total"] = {
+            "endpoint": ANALYTICS_COST_PATH,
+            "bucket_width": "1d",
+            "group_by": [],
+            "pages": client.analytics_cost(args.start, args.end, bucket_width="1d"),
+        }
+        if not args.no_users:
+            per_user = ["product", "model"]
+            series["user_usage"] = {
+                "endpoint": ANALYTICS_USER_USAGE_PATH,
+                "group_by": per_user,
+                "pages": client.analytics_user_usage(args.start, args.end, group_by=per_user),
+            }
+            series["user_cost"] = {
+                "endpoint": ANALYTICS_USER_COST_PATH,
+                "group_by": per_user,
+                "pages": client.analytics_user_cost(args.start, args.end, group_by=per_user),
+            }
+    except AuthError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    except ApiError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+
+    payload = analytics_envelope(
+        starting_at=args.start,
+        ending_at=args.end,
+        series=series,
+        version=__version__,
+    )
+    args.output.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    pages = sum(len(entry["pages"]) for entry in series.values())
+    print(
+        f"wrote {args.output} -- {len(series)} series, {pages} page(s).\n"
+        f"Analyse it offline with:  claude-spend-audit audit {args.output}",
+        file=sys.stderr,
+    )
+    return 0
+
+
+# --------------------------------------------------------------------------
+# Claude Enterprise Analytics API (saved fetch)
+# --------------------------------------------------------------------------
+
+
+def _analytics(args, saved: dict, *, mode: str) -> int:
+    """inspect or audit, for a file saved by `fetch --source analytics`."""
+    if args.cost:
+        print(
+            "error: this analytics fetch already carries cost data. --cost "
+            "applies only to Developer Console usage exports.",
+            file=sys.stderr,
+        )
+        return 2
+    try:
+        pricing = (
+            PricingTable.load(args.pricing) if args.pricing else PricingTable.load_default()
+        )
+    except PricingError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    try:
+        frame, report = load_analytics(saved, source=str(args.usage))
+    except AnalyticsFileError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+
+    if not frame.cost:
+        frame = frame.with_gaps([gapmod.no_cost_data()])
+    frame, merged = pricing.merge_model_aliases(frame)
+    frame = frame.with_gaps(merged)
+    estimate = pricing.estimate_frame(frame)
+    frame = frame.with_gaps(_analytics_gaps(estimate.gaps, frame))
+    if report is not None and args.anonymize:
+        report = report.anonymized()
+
+    extra = {"source": "enterprise_analytics", "per_user": report is not None}
+    checks_total = len(CHECKS) + (len(ENTERPRISE_CHECKS) if report is not None else 0)
+
+    if mode == "inspect":
+        blocked: list[tuple[str, str]] = []
+        for check in CHECKS:
+            unmet = check.unmet(frame, CheckConfig())
+            if unmet:
+                frame = frame.with_gaps(unmet)
+                blocked.append((check.label, "; ".join(g.message for g in unmet)))
+        if report is not None:
+            for check in ENTERPRISE_CHECKS:
+                unmet = check.unmet(report)
+                if unmet:
+                    frame = frame.with_gaps(unmet)
+                    blocked.append((check.label, "; ".join(g.message for g in unmet)))
+        frame = replace(frame, gaps=tuple(_analytics_gaps(frame.gaps, frame)))
+        if args.json:
+            payload = _as_json(frame, pricing, estimate)
+            payload.update(extra)
+            payload["checks_blocked"] = [label for label, _ in blocked]
+            print(json.dumps(payload, indent=2))
+            return _exit_code(frame)
+        out = terminal.render_header(frame, pricing, estimate, title="analytics summary")
+        out.extend(terminal.render_dimensions(frame))
+        out.extend(terminal.render_gaps(frame.gaps))
+        out.extend(terminal.render_skipped(blocked))
+        out.extend(
+            terminal.footer(
+                [
+                    f"No checks run. {checks_total - len(blocked)} of {checks_total} "
+                    "would run on this data -- use `audit`.",
+                ]
+            )
+        )
+        print("\n".join(out))
+        return _exit_code(frame)
+
+    run = run_checks(frame, pricing, _check_config(args))
+    findings = list(run.findings)
+    gaps = list(run.gaps)
+    skipped = list(run.skipped)
+    clean = list(run.clean)
+    if report is not None:
+        per_user = run_enterprise_checks(
+            report, pricing, EnterpriseConfig(min_impact_usd=args.min_impact)
+        )
+        findings += per_user.findings
+        gaps += per_user.gaps
+        skipped += per_user.skipped
+        clean += per_user.clean
+    combined = CheckRun(
+        findings=tuple(rank(findings)),
+        gaps=tuple(_analytics_gaps(gaps, frame)),
+        clean=tuple(clean),
+        skipped=tuple(skipped),
+    )
+    frame = frame.with_gaps(combined.gaps)
+    return _emit_audit(
+        args, frame, pricing, estimate, combined, checks_total=checks_total, extra_json=extra
+    )
+
+
+#: Dimensions the Analytics API never reports. A gap telling the reader to
+#: "re-export grouped by" one of them would send them after something that
+#: does not exist; the plan-context gap explains their absence instead.
+_ANALYTICS_ABSENT = frozenset({"service_tier", "workspace_id", "api_key_id"})
+
+
+def _analytics_gaps(gaps, frame: Frame) -> list:
+    """Gaps for an analytics audit, without the ones that do not apply.
+
+    The usage path's "not grouped by" gaps assume a re-export could add the
+    dimension. Here it cannot, so those are dropped for the dimensions this
+    API lacks, and the pricing-dimension gap is rebuilt without service_tier
+    -- it would otherwise warn that batch spend might be overstated, on data
+    where batch does not exist.
+    """
+    kept = []
+    for gap in gaps:
+        if gap.code is GapCode.DIMENSION_NOT_GROUPED and gap.scope in _ANALYTICS_ABSENT:
+            continue
+        if gap.code is GapCode.PRICING_DIMENSION_NOT_GROUPED:
+            missing = tuple(
+                d for d in PRICE_DIMENSIONS
+                if d not in _ANALYTICS_ABSENT and not frame.has_dimension(d)
+            )
+            if missing:
+                kept.append(gapmod.pricing_dimension_not_grouped(missing))
+            continue
+        kept.append(gap)
+    return kept
 
 
 # --------------------------------------------------------------------------

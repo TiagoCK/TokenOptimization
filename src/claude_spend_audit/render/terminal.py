@@ -147,6 +147,12 @@ def render_header(frame: Frame, pricing: PricingTable, estimate, *, title: str) 
         out.append(f"  billed (from cost data)      {usd(billed):>16}")
     else:
         out.append(f"  billed (from cost data)      {'not supplied':>16}")
+    listed = frame.list_total_usd
+    if listed is not None:
+        # Only the Enterprise Analytics cost report carries a list price.
+        out.append(f"  list price (from cost data)  {usd(listed):>16}")
+        if billed is not None and listed:
+            out.append(f"    billed is {billed / listed * 100:.1f}% of list price")
     out.append(f"  estimated (usage x pricing)  {usd(estimate.usd):>16}")
 
     # Never merged. The difference is what surfaces Priority Tier
