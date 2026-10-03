@@ -1,7 +1,7 @@
 """CSV and API ingest must produce the same Frame from the same data.
 
-PROJECT_BRIEF.md §3: "Normalize both into one internal representation so checks
-never know which path the data came from."
+Both normalize into one internal representation, so checks never know which
+path the data came from.
 
 That is a claim about behaviour, and this is the test that makes it one. The two
 fixtures -- tests/fixtures/csv/usage_console.csv and

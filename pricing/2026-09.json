@@ -58,7 +58,7 @@
   "unpriced_service_tiers": {
     "flex": "No published rate. Not present in the cost endpoint's service_tier enum (batch|standard|null).",
     "flex_discount": "No published rate. Not present in the cost endpoint's service_tier enum.",
-    "priority": "Priority Tier uses a different billing model and is excluded from the cost endpoint entirely. PROJECT_BRIEF.md §2 requires a loud warning rather than a silent wrong total.",
+    "priority": "Priority Tier uses a different billing model and is excluded from the cost endpoint entirely. The report raises a loud warning rather than a silently wrong total.",
     "priority_on_demand": "No published rate. Not present in the cost endpoint's service_tier enum."
   },
 

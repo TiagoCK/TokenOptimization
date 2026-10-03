@@ -1,4 +1,4 @@
-"""The inspect command: the §5 header block, and honest exit codes."""
+"""The inspect command: the header block, and honest exit codes."""
 
 import json
 from decimal import Decimal
@@ -26,7 +26,7 @@ def test_header_block_has_the_section_five_fields(capsys, usage_csv):
     assert "TOKENS" in out
     assert "SPEND" in out
     assert "WHAT THIS DATA CANNOT SHOW" in out
-    # §1: say it plainly, in the output itself and not only the README.
+    # Say it plainly, in the output itself and not only the README.
     assert "Nothing was uploaded" in out
     # Priority tier is present in the fixture, so the total is caveated.
     assert code == 1
@@ -190,7 +190,7 @@ HOURLY = "tests/fixtures/csv/usage_hourly.csv"
 
 
 def test_audit_leads_with_c1(capsys):
-    """§4: 'Lead the report with it.' C1 is the only measured-waste check, so
+    """C1 leads the report. It is the only measured-waste check, so
     tier ranking puts it first without a special case."""
     _, out, _ = run(capsys, "audit", WASTE)
     assert "FINDINGS" in out
@@ -200,7 +200,7 @@ def test_audit_leads_with_c1(capsys):
 
 
 def test_audit_shows_confidence_on_every_row(capsys):
-    """§5: 'confidence level visible on every row'."""
+    """The confidence level is visible on every row."""
     import re
 
     _, out, _ = run(capsys, "audit", HOURLY)

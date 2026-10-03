@@ -1,6 +1,6 @@
 """The internal representation both ingest paths normalize into.
 
-Checks never learn which path the data came from, per PROJECT_BRIEF.md §3.
+Checks never learn which path the data came from.
 
 Field names deliberately mirror the Usage & Cost API's own vocabulary so that
 nothing here is invented. In particular the five token buckets are exactly the
@@ -21,7 +21,7 @@ from .gaps import Gap
 # --------------------------------------------------------------------------
 
 #: Maps the cost endpoint's ``token_type`` enum onto TokenBuckets attributes.
-#: The brief describes four buckets; the API has five, because cache creation
+#: A four-bucket model is the obvious one; the API has five, because cache creation
 #: is an object split by TTL and the two TTLs are priced differently.
 TOKEN_TYPE_TO_FIELD: Mapping[str, str] = {
     "uncached_input_tokens": "uncached_input",
@@ -46,7 +46,7 @@ UNSPLIT_CACHE_WRITE = "cache_write_unsplit"
 #: Every bucket, including the lossy one. Used for arithmetic and display.
 ALL_TOKEN_FIELDS: tuple[str, ...] = TOKEN_FIELDS + (UNSPLIT_CACHE_WRITE,)
 
-#: Human labels for report headers (§5 wants tokens broken out by category).
+#: Human labels for report headers, which break tokens out by category.
 TOKEN_FIELD_LABELS: Mapping[str, str] = {
     "uncached_input": "uncached input",
     "cache_read": "cache read",

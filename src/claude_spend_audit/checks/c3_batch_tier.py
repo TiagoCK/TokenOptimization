@@ -1,9 +1,9 @@
 """C3 -- batch tier adoption. `candidate`
 
-PROJECT_BRIEF.md §4: "Quantify standard-tier spend and present the 50% figure
-as *conditional on latency tolerance* -- always a range, never a point estimate,
-because you cannot tell an async pipeline from an interactive one at this
-granularity."
+Quantifies standard-tier spend and presents the 50% batch discount as
+*conditional on latency tolerance* -- always a range, never a point estimate,
+because an async pipeline cannot be told from an interactive one at this
+granularity.
 
 The ceiling here is unusually clean: the Batch API is a flat 50% discount on
 both input and output, and it stacks with the caching multipliers, so it is
@@ -61,7 +61,7 @@ def run(frame: Frame, pricing: PricingTable, config) -> Iterable[Finding]:
         eligible[segment] = eligible.get(segment, Decimal("0")) + estimate.usd
 
     # The discount is a rate, so it comes from the pricing file like every
-    # other rate -- §3 forbids a check from containing one. Batch costs
+    # other rate -- a check never contains one. Batch costs
     # `multiplier` of standard; the saving is the rest.
     multiplier = pricing.service_tier_multiplier("batch")
     discount = 1 - multiplier

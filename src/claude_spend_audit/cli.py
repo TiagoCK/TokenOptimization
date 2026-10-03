@@ -708,7 +708,7 @@ def _emit_audit(
 
     if args.format == "markdown":
         # The shareable artifact. It carries its own provenance because it gets
-        # forwarded away from the terminal that produced it (§5).
+        # forwarded away from the terminal that produced it.
         report = markdown.render(
             frame,
             pricing,

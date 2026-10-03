@@ -1,11 +1,11 @@
 """Known gaps in the source data, modelled as data rather than as print calls.
 
-PROJECT_BRIEF.md §2 lists constraints that are "not edge cases, they're
-load-bearing". §5 requires the Markdown report to carry a caveats section
-listing every gap that applied to the dataset in hand.
+The data's limitations are not edge cases; they are load-bearing. Every
+report carries a caveats section listing each gap that applied to the dataset
+in hand.
 
 Renderers iterate ``Frame.gaps`` generically, so adding a gap never requires
-touching a renderer -- the same rule §7 sets for checks.
+touching a renderer -- the same rule that holds for checks.
 """
 
 from __future__ import annotations
@@ -93,8 +93,7 @@ class Gap:
     #: for whole-dataset gaps. Part of the dedupe key in Frame.with_gaps.
     scope: str = ""
     #: True when this gap means a headline dollar total understates the real
-    #: bill. §2: "surface a loud warning rather than silently reporting a
-    #: wrong total."
+    #: bill: a loud warning rather than a silently wrong total.
     invalidates_total: bool = False
     #: What the user can do about it, when there is something.
     remedy: str | None = None
@@ -107,7 +106,7 @@ class Gap:
 
 # --------------------------------------------------------------------------
 # Constructors. Kept here so wording stays consistent everywhere a gap is
-# raised, and so the §2 constraints read as one list.
+# raised, and so the data's known limitations read as one list.
 # --------------------------------------------------------------------------
 
 

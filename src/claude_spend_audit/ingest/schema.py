@@ -1,9 +1,9 @@
 """Header-to-field matching for CSV exports, driven by JSON profiles.
 
-Anthropic does not publish the Console export's column headers. PROJECT_BRIEF.md
-§7 says never to invent an API field, so the mapping lives in a JSON file the
-user can inspect and correct -- the same treatment §3 requires for pricing --
-rather than in a table of guesses compiled into the parser.
+Anthropic does not publish the Console export's column headers. This project
+never invents an API field, so the mapping lives in a JSON file the user can
+inspect and correct -- the same treatment pricing gets -- rather than in a
+table of guesses compiled into the parser.
 
 The three rules that make this honest rather than merely flexible:
 

@@ -300,8 +300,7 @@ def test_says_the_tiers_are_this_tools_classification(pricing):
 
 
 def test_no_dollar_figure_but_the_measured_ones(pricing):
-    """Overclaiming on this check is "the fastest way to lose a technical
-    buyer". No sentence may pair a dollar amount with saving or routing."""
+    """An overclaim on this check would discredit the whole report. No sentence may pair a dollar amount with saving or routing."""
     finding = golden(pricing)
     for text in (finding.summary, finding.remedy, *finding.caveats):
         lowered = text.lower()

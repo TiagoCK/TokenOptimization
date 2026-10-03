@@ -1,7 +1,7 @@
 """The Markdown renderer -- the shareable artifact.
 
-PROJECT_BRIEF.md §5 requires it to stand alone: "This is what gets forwarded
-internally after a prospect runs it." So the tests here are mostly about
+It has to stand alone: it is what gets forwarded internally after someone
+runs the tool. So the tests here are mostly about
 whether a reader who did not run the tool, and has no reason to trust it, can
 still tell where every number came from.
 """
@@ -32,7 +32,7 @@ def report(pricing, usage_profile, cost_profile):
 
 
 # --------------------------------------------------------------------------
-# §5: it has to stand alone
+# It has to stand alone
 # --------------------------------------------------------------------------
 
 
@@ -61,7 +61,7 @@ def test_names_its_source_files(report):
 
 
 def test_carries_the_caveats_section(report):
-    """§5: 'a caveats section listing every gap from §2 that applied'."""
+    """A caveats section listing every gap that applied."""
     assert "## What this data cannot show" in report
     assert "Priority Tier" in report
     assert "provisional" in report
@@ -87,7 +87,7 @@ def test_summary_table_shows_confidence_and_both_figures(report):
 
 
 def test_a_candidates_assumptions_sit_beside_its_number(report):
-    """§3: never a dollar figure next to a candidate without the assumption
+    """Never a dollar figure next to a candidate without the assumption
     stated inline. In Markdown that means the same section, not a footnote."""
     c3 = report.split("### C3", 1)[1].split("### ", 1)[0]
     assert "**Recoverable: $0.00 to $11.38**" in c3

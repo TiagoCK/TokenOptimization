@@ -87,8 +87,7 @@ def test_spike_claims_no_savings(pricing, usage_profile):
     """The magnitude is arithmetic; recoverability is not.
 
     Aggregate data cannot tell a stuck agent from a product launch, so C6
-    measures and stops. §4 on C8: overclaiming is the fastest way to lose a
-    technical buyer.
+    measures and stops. An overclaim here would discredit every other figure.
     """
     finding = only(list(SPIKES.run(hourly_frame(usage_profile), pricing, CheckConfig())))
     assert finding.confidence is Confidence.MEASURED

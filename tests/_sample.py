@@ -1,7 +1,6 @@
 """The synthetic month behind examples/, shared by the generator and its tests.
 
-examples/sample-report.md is the artifact linked in outreach (PROJECT_BRIEF.md
-§6), so the data behind it has to look like a real organisation's month and
+examples/sample-report.md is the first thing a new reader sees, so the data behind it has to look like a real organisation's month and
 exercise every check -- the preamble says it does, and a test holds it to
 that. It is also committed as CSV, so anyone can run the tool on it before
 handing over data of their own.

@@ -1,14 +1,13 @@
 """Pricing lookup. Every rate comes from a versioned JSON file on disk.
 
-PROJECT_BRIEF.md §3: "Never hardcode prices in check logic and never let the
-model infer them from memory. Every dollar figure in the output must trace to a
-file the user can inspect and correct."
+Prices are never hardcoded in check logic. Every dollar figure in the output
+must trace to a file the user can inspect and correct.
 
 So this module contains no numbers. It reads them, applies published multipliers,
 and -- crucially -- refuses to produce a figure when it does not have a rate.
 ``rate_for`` returns ``Priced | Unpriced``; there is no code path that quietly
-returns zero for an unknown model or an unpriceable service tier. §7: "Bias every
-estimate conservative and state assumptions in the output itself."
+returns zero for an unknown model or an unpriceable service tier. Every estimate
+is biased conservative, with its assumptions stated in the output itself.
 """
 
 from __future__ import annotations
@@ -125,7 +124,7 @@ class Estimate:
 
 
 def _dec(value: object, where: str) -> Decimal:
-    """Parse a rate as Decimal. Rejects floats outright -- see §7."""
+    """Parse a rate as Decimal. Rejects floats outright: money is never a float."""
     if isinstance(value, float):
         raise PricingError(
             f"{where}: rates must be JSON strings, not floats "
@@ -198,8 +197,8 @@ class PricingTable:
         """Load the newest pricing file by filename (they sort chronologically).
 
         Rates live at the repo root rather than inside the package so they stay
-        visible and editable -- §3 requires the user be able to inspect and
-        correct them. The cost is that a non-editable ``pip install .`` leaves
+        visible and editable -- the user must be able to inspect and correct
+        them. The cost is that a non-editable ``pip install .`` leaves
         them behind, so say what to do about it rather than just failing.
         """
         d = Path(directory) if directory else DEFAULT_PRICING_DIR

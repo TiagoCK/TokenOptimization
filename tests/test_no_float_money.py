@@ -1,7 +1,6 @@
 """No float may touch a money path.
 
-The tool prints dollar figures that someone may take to their CFO
-(PROJECT_BRIEF.md §7). Binary floating point cannot represent $0.10, and errors
+The tool prints dollar figures that someone may take to their CFO. Binary floating point cannot represent $0.10, and errors
 compound across a month of buckets. Decimal throughout, enforced two ways: by
 inspecting the values that come out, and by grepping the source for the
 constructs that would introduce a float in the first place.

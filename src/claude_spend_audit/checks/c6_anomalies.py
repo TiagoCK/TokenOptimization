@@ -1,7 +1,7 @@
 """C6 -- off-hours volume and day-over-day spikes. `measured`
 
-PROJECT_BRIEF.md §4: "Runaway retry loops and stuck agents are the single most
-expensive failure mode in production and they show up clearly here."
+Runaway retry loops and stuck agents are the most expensive failure mode in
+production, and they show up clearly in time-bucketed usage.
 
 Registered as two checks rather than one, because they need different data.
 Spike detection works on daily buckets; off-hours detection needs hourly ones.
@@ -15,9 +15,8 @@ count distinguishes them. So ``measured_usd`` is populated and ``recoverable``
 is left None: the finding puts a real number in front of someone who knows
 which it was, and stops there.
 
-That restraint is the check's value. §4 on C8: overclaiming "is the fastest way
-to lose a technical buyer", and an audit tool that labels a legitimate nightly
-batch job as waste will be dismissed on the spot.
+That restraint is the check's value. An audit tool that labels a legitimate
+nightly batch job as waste will be dismissed on the spot, and rightly.
 """
 
 from __future__ import annotations

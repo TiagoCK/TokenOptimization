@@ -1,7 +1,7 @@
 """The `fetch` command and the saved-artifact round trip.
 
 The workflow this protects: fetch once, then analyse offline as many times as
-you like. One network round trip, a file the prospect can inspect before
+you like. One network round trip, a file the user can inspect before
 sharing anything, and reproducible re-runs at different thresholds.
 
 The credential tests here matter as much as the ones in test_api_client.py --

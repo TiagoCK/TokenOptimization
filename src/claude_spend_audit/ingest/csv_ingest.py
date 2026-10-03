@@ -1,7 +1,7 @@
 """CSV ingest for Console Usage and Cost page exports.
 
-The path a prospect can actually use in a sales conversation: no admin key, no
-security review, thirty seconds of work (PROJECT_BRIEF.md §3).
+The path anyone can use: no admin key, no security review, thirty seconds of
+work.
 
 All header interpretation is delegated to a schema profile. This module decides
 nothing about column names.
@@ -44,7 +44,7 @@ from .schema import (
 )
 
 #: Markers that would positively indicate Bedrock-routed traffic. Absent one of
-#: these there is no signal in aggregate data, so no claim is made -- see §2.
+#: these there is no signal in aggregate data, so no claim is made.
 _BEDROCK_MARKERS = ("bedrock", "aws marketplace", "anthropic.claude-")
 
 #: Fallback bucket length when an export has no end column and only one bucket.

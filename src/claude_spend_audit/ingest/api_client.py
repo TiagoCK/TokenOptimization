@@ -1,13 +1,13 @@
 """Fetching half of the Usage & Cost Admin API path.
 
-PROJECT_BRIEF.md §6: "M4 -- Admin API ingest. Pagination, windowing around the
-bucket caps, retry with backoff. Set a ``User-Agent`` per the docs."
+Pagination, windowing around the bucket caps, retry with backoff, and a
+``User-Agent`` per the docs.
 
 ``api_json.py`` already turns responses into a ``Frame``; this module only gets
 the pages. The split matters: everything below is about HTTP, and nothing below
 knows what a token bucket is.
 
-**Why stdlib.** §7 names ``httpx``. This is the one feature that asks someone
+**Why stdlib.** ``httpx`` would be the usual choice. This is the one feature that asks someone
 for an org-wide admin credential, and the moment they are deciding whether to
 hand it over is the moment an empty dependency list is worth most -- they can
 read the whole code path. ``urllib.request`` does authenticated GET with

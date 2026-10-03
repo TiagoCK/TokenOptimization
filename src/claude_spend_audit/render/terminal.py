@@ -1,16 +1,14 @@
 """Terminal output. Stdlib only.
 
-PROJECT_BRIEF.md §7 names ``rich``, but its stated reason for a short
-dependency list is that "a security-conscious prospect can audit it in five
-minutes -- this is a feature, not an aesthetic preference". Zero dependencies
-is a stronger version of that property than four, and for a tool whose entire
-pitch is "run this on your own data" an empty dependency list is worth more
-than box-drawing characters.
+No ``rich``: a security-conscious user should be able to audit the whole
+dependency tree in five minutes, and zero dependencies is a stronger version
+of that property than a few. For a tool whose premise is "run this on your
+own data", an empty dependency list is worth more than box-drawing characters.
 
-§5 requires: a ranked table, largest estimated impact first, with the
+The output is a ranked table, largest estimated impact first, with the
 confidence level visible on every row. The renderer iterates whatever findings
-it is handed and knows nothing about which checks exist -- §7's requirement
-that adding a check never means touching the reporter.
+it is handed and knows nothing about which checks exist, so adding a check
+never means touching the reporter.
 """
 
 from __future__ import annotations
@@ -115,7 +113,7 @@ def _table(evidence: Evidence, indent: str = "    ") -> list[str]:
 
 
 # --------------------------------------------------------------------------
-# header block -- §5's "header block should always state ..."
+# header block, which always states what the data covers
 # --------------------------------------------------------------------------
 
 
@@ -156,7 +154,7 @@ def render_header(frame: Frame, pricing: PricingTable, estimate, *, title: str) 
     out.append(f"  estimated (usage x pricing)  {usd(estimate.usd):>16}")
 
     # Never merged. The difference is what surfaces Priority Tier
-    # understatement (§2) instead of burying it inside one total.
+    # understatement instead of burying it inside one total.
     if billed is not None and estimate.usd:
         delta = estimate.usd - billed
         pct = (delta / billed * 100) if billed else Decimal("0")
@@ -323,7 +321,7 @@ def render_findings(findings: Sequence[Finding]) -> list[str]:
     for i, finding in enumerate(findings, start=1):
         measured = usd(finding.measured_usd) if finding.measured_usd is not None else "-"
         # "not claimed" is not a hedge -- it is the finding saying the data
-        # cannot support a savings number, which §3 requires it to say.
+        # cannot support a savings number, which it must say.
         recoverable = str(finding.recoverable) if finding.recoverable else "not claimed"
         out.append(
             f"  {i:<3} {finding.check_id:<6} "
@@ -353,7 +351,7 @@ def _render_detail(index: int, finding: Finding) -> list[str]:
     if finding.recoverable is not None:
         out.append("")
         out.append(f"   recoverable {finding.recoverable}")
-        # §3: the assumptions go here, inline, next to the figure -- never in
+        # The assumptions go here, inline, next to the figure -- never in
         # a footnote the reader can skip.
         for assumption in finding.recoverable.assumptions:
             out.append(f"               - {wrap(assumption, 60, '                 ')}")

@@ -1,8 +1,7 @@
 """C7 -- attribution coverage. `observation`
 
-PROJECT_BRIEF.md §4: "High unattributed spend is itself the finding -- you
-cannot manage what you cannot allocate, and this is often the most persuasive
-slide in the readout."
+High unattributed spend is itself the finding: you cannot manage what you
+cannot allocate.
 
 This is the check the whole `Frame.grouped_by` design exists to protect. The
 API returns `null` for `workspace_id` both when the traffic belongs to the
@@ -109,7 +108,7 @@ def run(frame: Frame, pricing: PricingTable, config) -> Iterable[Finding]:
                 "priced spend whose workspace or API key is null in the source "
                 "data"
             ),
-            # An observation makes no savings claim, by §3's definition.
+            # An observation makes no savings claim, by definition.
             evidence=Evidence(
                 columns=("attribution", "spend", "share"),
                 rows=tuple(rows),

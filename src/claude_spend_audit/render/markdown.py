@@ -1,9 +1,9 @@
 """Markdown output -- the shareable artifact.
 
-PROJECT_BRIEF.md §5: "This is what gets forwarded internally after a prospect
-runs it, so it has to stand alone: period covered, total spend, pricing file
-version, findings with evidence, and a caveats section listing every gap from
-§2 that applied to this dataset."
+This is what gets forwarded internally after someone runs the tool, so it has
+to stand alone: period covered, total spend, pricing file version, findings
+with evidence, and a caveats section listing every gap that applied to this
+dataset.
 
 *Stands alone* is the whole design constraint. This file will be read by people
 who did not run the tool, cannot see the terminal it came from, and have no
@@ -12,7 +12,7 @@ fetched when, which tool version, which source files -- and it never prints a
 number without saying what the number means and what it assumes.
 
 Like the terminal renderer, this consumes `Finding[]` and knows nothing about
-which checks exist. Adding a check never requires touching this file (§7).
+which checks exist. Adding a check never requires touching this file.
 """
 
 from __future__ import annotations
@@ -383,7 +383,7 @@ def _render_finding(finding: Finding) -> list[str]:
     if finding.recoverable is not None:
         out.append(f"**Recoverable: {finding.recoverable}**")
         out.append("")
-        # §3: assumptions sit with the figure, never in a footnote.
+        # Assumptions sit with the figure, never in a footnote.
         for assumption in finding.recoverable.assumptions:
             out.append(f"- {assumption}")
         out.append("")

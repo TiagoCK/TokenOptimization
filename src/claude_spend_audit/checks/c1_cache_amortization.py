@@ -1,7 +1,7 @@
 """C1 -- cache write amortization. `measured`
 
-PROJECT_BRIEF.md §4: "This is the best check in the tool: unambiguous,
-arithmetic, and the fix is a config change. Lead the report with it."
+The strongest check in the tool: unambiguous, arithmetic, and the fix is a
+config change. It leads the report when it finds something.
 
 The arithmetic, per segment:
 
@@ -27,14 +27,14 @@ Two properties make this exact rather than an estimate:
   is arithmetic, not an estimate, which is why C1 carries a point recoverable
   where every other check would need a range.
 
-The TTL split the brief predates is what gives this its teeth. Break-even, in
+The TTL split is what gives this its teeth. Break-even, in
 read tokens per write token, differs fourfold between the two TTLs:
 
     5m write at 1.25x base  ->  0.28 reads per write token
     1h write at 2x base     ->  1.11 reads per write token
 
-A summed ``cache_creation`` bucket cannot express that, which is why the
-brief's four-bucket model would have made this check impossible to state.
+A summed ``cache_creation`` bucket cannot express that, which is why a
+four-bucket token model would have made this check impossible to state.
 """
 
 from __future__ import annotations
@@ -101,8 +101,8 @@ def _rates_for(pricing: PricingTable, segment: Segment) -> _Rates | None:
 def _aggregate(frame: Frame) -> dict[Segment, TokenBuckets]:
     """Sum token buckets per full Segment.
 
-    Grouping by the full segment rather than the brief's (model, workspace,
-    key) is a correctness requirement, not a preference: service tier,
+    Grouping by the full segment rather than by (model, workspace,
+    key) alone is a correctness requirement, not a preference: service tier,
     inference geo and speed all change the rates, so mixing them into one
     bucket would price the result at whichever rate happened to be looked up.
     The rollup to (model, workspace, key) happens at display time.
@@ -172,7 +172,7 @@ def run(frame: Frame, pricing: PricingTable, config) -> Iterable[Finding]:
         columns=("model / workspace / key", "5m wr", "1h wr", "reads", "r:w", "waste"),
         rows=tuple(
             (
-                # The brief's (model, workspace, key) identity.
+                # Labelled by (model, workspace, key), the identity a reader knows.
                 describe(frame, segment, ("model", "workspace_id", "api_key_id")),
                 _short(tokens.cache_write_5m),
                 _short(tokens.cache_write_1h),

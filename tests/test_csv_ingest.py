@@ -55,7 +55,7 @@ def test_token_totals(usage_csv, usage_profile):
 def test_blank_workspace_reads_as_the_default_workspace(usage_csv, usage_profile):
     """An empty cell is the API's null, not a parse failure.
 
-    §2: workspace_id is null for the default workspace and api_key_id is null
+    workspace_id is null for the default workspace and api_key_id is null
     for Console playground traffic. Neither is an error.
     """
     frame, _ = load_usage_csv(usage_csv, usage_profile)

@@ -1,8 +1,8 @@
 """Pricing arithmetic, with every expected figure hand-calculated in a comment.
 
-PROJECT_BRIEF.md §7: "Every check needs a golden-file test with a synthetic
-fixture where the expected dollar figure is hand-calculated in a comment. When
-the model changes a formula, the test should catch it."
+Every check has a golden-file test with a synthetic fixture where the expected
+dollar figure is hand-calculated in a comment. When a formula changes, the
+test catches it.
 
 Rates used below, all from pricing/2026-09.json:
 
@@ -61,7 +61,7 @@ def test_cache_write_1h(pricing):
 
 
 def test_the_two_cache_ttls_are_not_the_same_price(pricing):
-    """The delta that C1 depends on, and that the brief's 4-bucket model loses.
+    """The delta that C1 depends on, and that a 4-bucket token model loses.
 
     1h writes cost 1.6x what 5m writes cost ($10.00 vs $6.25), so break-even is
     2 cache reads for 1h against 1 for 5m. Summing the two buckets would make
@@ -205,7 +205,7 @@ def test_fast_mode_falls_back_for_models_without_an_override(pricing):
 def test_unpriceable_tiers_are_unpriced_not_zero(pricing, tier):
     """A tier with no published rate must never silently price at $0.
 
-    §2 requires a loud warning rather than a wrong total.
+    It raises a loud warning rather than a wrong total.
     """
     rate = pricing.rate_for("claude-opus-5", "uncached_input", service_tier=tier)
     assert isinstance(rate, Unpriced)

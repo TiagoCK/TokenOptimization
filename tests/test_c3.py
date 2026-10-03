@@ -71,7 +71,7 @@ def test_ceiling_is_half_of_standard_spend(pricing):
 
 
 def test_the_discount_comes_from_the_pricing_file(pricing_data):
-    """§3: a check never contains a rate. Change the batch multiplier in the
+    """A check never contains a rate. Change the batch multiplier in the
     file to 0.6 and the ceiling follows -- to 40%, not 50%.
 
         $100.00 standard spend (as above) x (1 - 0.6) = $40.00 ceiling
@@ -153,7 +153,7 @@ def test_priority_tier_is_not_counted(pricing):
 
 
 # --------------------------------------------------------------------------
-# The range, and §3
+# The range, and the candidate rule
 # --------------------------------------------------------------------------
 
 

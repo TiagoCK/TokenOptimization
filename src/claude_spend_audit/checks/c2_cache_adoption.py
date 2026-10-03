@@ -1,8 +1,8 @@
 """C2 -- cache adoption gap. `candidate`
 
-PROJECT_BRIEF.md §4: "High-volume segments with near-zero cache reads are
-candidates. State the assumption explicitly: this only converts to savings if
-the workload has a stable prompt prefix, which the aggregate data cannot show."
+High-volume segments with near-zero cache reads are candidates. The
+assumption is stated explicitly: this only converts to savings if the workload
+has a stable prompt prefix, which the aggregate data cannot show.
 
 C1 and C2 are the same question from opposite ends. C1 finds workloads that
 cache and should not; C2 finds workloads that do not cache and perhaps should.
@@ -35,14 +35,14 @@ from typing import Iterable
 from ..frame import Frame, Segment, TokenBuckets
 from ..findings import Confidence, Evidence, Finding, Recoverable
 from ..pricing import PricingTable, Priced
-# The brief segments C2 by model and workspace.
+# C2 segments by model and workspace.
 from ._format import describe, short_tokens as _short
 
 MTOK = Decimal("1000000")
 
 
 def _hit_rate(tokens: TokenBuckets) -> Decimal:
-    """cache_read / (cache_read + uncached_input + cache_creation), per §4."""
+    """cache_read / (cache_read + uncached_input + cache_creation), the standard hit rate."""
     denominator = (
         tokens.cache_read + tokens.uncached_input + tokens.cache_write_total
     )
@@ -115,7 +115,7 @@ def run(frame: Frame, pricing: PricingTable, config) -> Iterable[Finding]:
         else:
             rolled[label] = [tokens, ceiling]
 
-    # §3: a candidate needs a range, and the range must not rest on an invented
+    # A candidate needs a range, and the range must not rest on an invented
     # number. Zero is a real possibility -- a prompt with no stable prefix
     # cannot be cached at all -- and the ceiling is arithmetic. Anyone who knows
     # their workload can narrow it with --cache-prefix-share.
@@ -217,8 +217,8 @@ CHECK = Check(
     name="Cache adoption gap",
     run=run,
     # No dimension requirement: the arithmetic holds on an ungrouped export,
-    # it just reports one blended segment. The brief segments by model and
-    # workspace where those are available.
+    # it just reports one blended segment. Segments are labelled by model
+    # and workspace where those are available.
     #
     # It does need a cache-read column. Without one every row reads zero,
     # and "almost no cache reads" would be a finding about the export.

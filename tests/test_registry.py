@@ -1,4 +1,4 @@
-"""The check registry: preconditions, and §7's "never touch the reporter" rule."""
+"""The check registry: preconditions, and the "never touch the reporter" rule."""
 
 from datetime import datetime, timezone
 from decimal import Decimal
@@ -121,7 +121,7 @@ def test_clean_checks_are_distinguished_from_blocked_ones(pricing):
 
 
 # --------------------------------------------------------------------------
-# §7: adding a check must never require touching the reporter
+# Adding a check must never require touching the reporter
 # --------------------------------------------------------------------------
 
 

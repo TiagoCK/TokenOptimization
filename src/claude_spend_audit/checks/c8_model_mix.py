@@ -1,9 +1,8 @@
 """C8 -- model mix. `observation`
 
-PROJECT_BRIEF.md §4: "Frontier vs. mid vs. small model spend share. **Resist
-the temptation to claim routing savings here.** You cannot tell from
-aggregates whether an Opus call needed Opus. ... Overclaiming on this check
-is the fastest way to lose a technical buyer."
+Frontier vs. mid vs. small model spend share. **No routing savings are
+claimed here.** Aggregates cannot show whether an Opus call needed Opus, and
+an overclaim on this check would discredit every other figure in the report.
 
 So this check reports the mix and the list prices behind it, and stops. The
 list prices are what let a reader see the gap between tiers for themselves --

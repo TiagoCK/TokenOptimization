@@ -1,12 +1,12 @@
 """The check registry.
 
-PROJECT_BRIEF.md §7: "Checks are pure functions ``Frame -> list[Finding]``,
-registered in a list. Adding a check must never require touching the reporter."
+Checks are pure functions ``Frame -> list[Finding]``, registered in a list.
+Adding a check must never require touching the reporter.
 
-Two adaptations, both forced by things the brief asks for elsewhere:
+Two adaptations, both forced by other rules of the design:
 
 * Checks take ``(Frame, PricingTable, CheckConfig)``. Pricing is injected rather
-  than imported, because §3 forbids a check from containing a rate. Config is
+  than imported, because a check must never contain a rate. Config is
   injected so thresholds are visible on the command line rather than buried.
 
 * Each check declares its own preconditions. A check that cannot run on the
@@ -35,8 +35,8 @@ from ..pricing import PricingTable
 class CheckConfig:
     """Thresholds, all overridable from the command line.
 
-    Defaults are deliberately conservative. §7: "Bias every estimate
-    conservative and state assumptions in the output itself."
+    Defaults are deliberately conservative: every estimate is biased
+    conservative, with its assumptions stated in the output itself.
     """
 
     #: Findings below this dollar amount are dropped rather than padding the
@@ -246,7 +246,7 @@ from .c6_anomalies import SPIKES as C6A, OFF_HOURS as C6B  # noqa: E402
 from .c7_attribution import CHECK as C7  # noqa: E402
 from .c8_model_mix import CHECK as C8  # noqa: E402
 
-#: §4 orders these by strength of inference. The registry order is the
+#: Ordered by strength of inference. The registry order is the
 #: tie-breaker only -- actual report order comes from findings.rank().
 CHECKS: tuple[Check, ...] = (C1, C2, C3, C4, C5, C6A, C6B, C7, C8)
 

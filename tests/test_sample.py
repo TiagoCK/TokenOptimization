@@ -1,8 +1,7 @@
 """The committed sample: examples/sample-usage.csv, sample-cost.csv, and the
 report built from them.
 
-The report is the thing linked in outreach (PROJECT_BRIEF.md §6), so it is held
-to more than "it renders". Its preamble says every check has something to say,
+The report is the first thing a new reader sees, so it is held to more than "it renders". Its preamble says every check has something to say,
 and a test enforces that. It says anyone can reproduce it, and a test runs the
 CLI on the committed files to prove it. And a stale sample is a public
 correctness problem, so a test fails the moment regeneration would change a
@@ -92,7 +91,7 @@ def test_it_says_it_is_synthetic_and_how_to_run_it():
 
 
 def test_c1_leads_the_report(sample):
-    """§4: C1 is "the best check in the tool ... Lead the report with it."
+    """C1 is the strongest check in the tool, and leads the report.
     It measures less money here than C6b does -- which is exactly the case
     the ranking has to get right."""
     _, _, _, run = sample
@@ -111,7 +110,7 @@ def _findings_table(text: str) -> list[str]:
 
 
 def test_the_cli_reproduces_the_committed_findings(tmp_path, capsys):
-    """The preamble tells a prospect to run one command. It has to give them
+    """The preamble tells a reader to run one command. It has to give them
     the report they are looking at."""
     out = tmp_path / "report.md"
     code = main([

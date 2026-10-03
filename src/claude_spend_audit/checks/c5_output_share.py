@@ -1,16 +1,15 @@
 """C5 -- output token share. `observation`
 
-PROJECT_BRIEF.md §4: "Output is several times the price of input per token. An
-unusually high output share can indicate missing `max_tokens` discipline or
-verbose response formats. Observation only -- some workloads are legitimately
-generative."
+Output is several times the price of input per token. An unusually high
+output share can indicate missing `max_tokens` discipline or verbose response
+formats. Observation only -- some workloads are legitimately generative.
 
 **The threshold is a share of tokens, not of spend.** Spend share looks like
 the natural measure and is the wrong one: caching makes input cheaper without
 changing how many tokens there are, so a well-cached agent's output share of
 spend rises precisely *because* it did the right thing. Judged on spend, C5
 would flag the workloads C1 and C2 approve of. Token share is untouched by
-caching, so it isolates what the brief is asking about -- how much a workload
+caching, so it isolates what the check is asking about -- how much a workload
 writes relative to what it reads. Spend share is still reported beside it,
 because that is the figure that costs money.
 

@@ -7,8 +7,7 @@ for two reasons:
   fixtures written against it are grounded in the published schema rather than
   in a guess;
 * it lets tests assert that CSV and API ingest produce an identical Frame,
-  which is what PROJECT_BRIEF.md §3 means by "checks never know which path the
-  data came from".
+  which is what "checks never know which path the data came from" requires.
 
 Field names follow the response schema exactly. Nothing here is inferred.
 """

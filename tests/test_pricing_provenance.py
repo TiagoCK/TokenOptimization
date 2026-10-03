@@ -1,7 +1,7 @@
 """Every rate on file must be traceable, and derived rates must re-derive.
 
-PROJECT_BRIEF.md §3: "Every dollar figure in the output must trace to a file the
-user can inspect and correct."
+Every dollar figure in the output must trace to a file the user can inspect
+and correct.
 
 That only holds if the file itself is internally consistent. A rate marked
 'derived: 1.25 x uncached_input' that does not actually equal 1.25x the base is

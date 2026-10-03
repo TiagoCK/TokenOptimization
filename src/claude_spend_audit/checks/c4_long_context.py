@@ -1,10 +1,9 @@
 """C4 -- long-context composition. `observation`
 
-PROJECT_BRIEF.md §4, as rewritten 2026-09-10: "Report for the `200k-1M`
-bucket: spend, share of total, and the split across the five token buckets.
-Point the reader at the uncached share."
+Reports the `200k-1M` bucket: spend, share of total, and the split across
+the five token buckets, pointing the reader at the uncached share.
 
-**There is no long-context premium to recover.** The brief's first draft
+**There is no long-context premium to recover.** The first design of this check
 assumed one. The pricing page now says Claude 4.6 and later "include the full
 1M token context window at standard pricing" -- a 900k-token request costs the
 same per token as a 9k one. So moving work below 200k saves exactly the tokens

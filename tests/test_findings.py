@@ -1,15 +1,14 @@
-"""The Finding contract, which is PROJECT_BRIEF.md §3 made structural.
+"""The Finding contract, made structural.
 
-§3 calls the confidence level "the most important design decision in the
-project" and sets one rule above the rest:
+The confidence level is the most important design decision in the project,
+and one rule sits above the rest:
 
     Never print a dollar figure next to a `candidate` without the range and
     the assumption stated inline.
 
 These tests exist to prove a violating finding cannot be built. If they ever
-pass while the rule is unenforced, the tool can ship an overclaim -- and §3's
-whole point is that "an audit tool that overclaims dies on first contact with
-a competent engineer".
+pass while the rule is unenforced, the tool can ship an overclaim -- and an
+audit tool that overclaims dies on first contact with a competent engineer.
 """
 
 from decimal import Decimal
@@ -37,7 +36,7 @@ def make(**overrides) -> Finding:
 
 
 # --------------------------------------------------------------------------
-# §3's rule
+# The rule
 # --------------------------------------------------------------------------
 
 
@@ -71,7 +70,7 @@ def test_a_properly_formed_candidate_is_accepted():
 
 
 def test_observation_cannot_claim_savings():
-    """An observation is context with no savings claim, by §3's definition."""
+    """An observation is context with no savings claim, by definition."""
     with pytest.raises(ValueError, match="no savings claim"):
         make(
             confidence=Confidence.OBSERVATION,
@@ -126,7 +125,7 @@ def test_evidence_rows_must_match_the_columns():
 
 
 def test_confidence_outranks_dollars():
-    """§4 says C1 leads the report; §5 says largest impact first.
+    """C1 leads the report, and the report puts the largest impact first.
 
     Ranking within tier honours both. A $40,000 exposure never displaces a
     $9 measured waste, because they are not the same kind of claim.

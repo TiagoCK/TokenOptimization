@@ -5,7 +5,7 @@
     "",
     "tests/fixtures/csv/usage_console.csv carries the SAME numbers in Console",
     "CSV form. test_ingest_paths_agree.py asserts both normalize to an identical",
-    "Frame -- that is the guarantee behind PROJECT_BRIEF.md §3's 'checks never",
+    "Frame -- that is the guarantee that 'checks never",
     "know which path the data came from'. Edit one, edit both.",
     "",
     "Token counts are round so every dollar figure is hand-checkable; the",

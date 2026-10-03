@@ -147,7 +147,7 @@ def test_composition_by_category(pricing):
 
 
 def test_effective_rates_and_their_ratio(pricing):
-    """The "value per 1M removed" table from the brief, measured.
+    """The "value per 1M removed" table, measured.
 
         uncached  $10.00 / 2M = $5.00/MTok   1x
         read       $2.00 / 4M = $0.50/MTok   0.1x
@@ -313,7 +313,7 @@ def test_empty_data_produces_nothing(pricing):
 
 
 # --------------------------------------------------------------------------
-# It is an observation, and says the things the brief requires
+# It is an observation, and says the things it must
 # --------------------------------------------------------------------------
 
 
@@ -326,7 +326,7 @@ def test_claims_no_savings(pricing):
 
 def test_states_that_there_is_no_premium(pricing):
     """Any finding implying a premium is recoverable would be claiming
-    something false, and a technical buyer would know it."""
+    something false, and a technical reader would know it."""
     caveats = " ".join(golden(pricing).caveats)
     assert "no long-context premium" in caveats
     assert "same per-token rate" in caveats
@@ -387,7 +387,7 @@ def test_runs_from_the_registry(pricing):
 
 @pytest.mark.parametrize("renderer", ["terminal", "markdown"])
 def test_renders_without_renderer_changes(pricing, renderer):
-    """§7: adding a check never requires touching a reporter."""
+    """Adding a check never requires touching a reporter."""
     from claude_spend_audit.render import markdown, terminal
 
     finding = golden(pricing)

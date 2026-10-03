@@ -49,8 +49,8 @@ def test_null_in_an_ungrouped_dimension_means_not_broken_out():
 
 def test_the_two_cases_are_distinguishable():
     """If these ever compare equal, C7 can report un-grouped data as
-    unattributed spend -- a fabricated finding on the brief's most persuasive
-    slide."""
+    unattributed spend -- a fabricated finding, on the check where a
+    fabrication does the most damage."""
     grouped = _frame(Segment(workspace_id=None), {"workspace_id"})
     ungrouped = _frame(Segment(workspace_id=None), set())
     assert grouped.value_of(grouped.usage[0].segment, "workspace_id") is not (

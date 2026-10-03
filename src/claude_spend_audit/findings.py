@@ -1,7 +1,7 @@
 """What a check produces, and the rules a finding must satisfy to exist.
 
-PROJECT_BRIEF.md §3 calls the confidence level "the most important design
-decision in the project", and sets one rule above the rest:
+The confidence level is the most important design decision in the project,
+and one rule sits above the rest:
 
     Never print a dollar figure next to a `candidate` without the range and
     the assumption stated inline.
@@ -41,7 +41,7 @@ class Confidence(StrEnum):
     OBSERVATION = "observation"
 
 
-#: Report order. §4 orders the checks "by strength of the inference", and §5
+#: Report order. Checks are ordered by strength of inference, and the report
 #: wants the largest impact first -- ranking within tier satisfies both without
 #: ever ranking a recoverable figure against an un-sizeable exposure.
 CONFIDENCE_RANK: dict[Confidence, int] = {
@@ -56,7 +56,7 @@ class Recoverable:
     """An estimate of what could actually be saved.
 
     For a `candidate` this must be a genuine range with the assumptions that
-    produce it, per §3. For a `measured` finding a point estimate is allowed --
+    produce it. For a `measured` finding a point estimate is allowed --
     ``low == high`` -- because the arithmetic supports one.
     """
 
@@ -83,7 +83,7 @@ class Recoverable:
 class Evidence:
     """The numbers behind a finding, so a reader can check the arithmetic.
 
-    §7: the tool prints figures someone may take to their CFO. Showing the
+    The tool prints figures someone may take to their CFO. Showing the
     working is what makes that survivable.
     """
 
@@ -134,23 +134,23 @@ class Finding:
         if self.confidence is Confidence.OBSERVATION and self.recoverable is not None:
             raise ValueError(
                 f"{self.check_id}: an observation carries no savings claim by "
-                "definition (§3), but a recoverable estimate was supplied"
+                "definition, but a recoverable estimate was supplied"
             )
 
         if self.confidence is Confidence.CANDIDATE and self.recoverable is not None:
-            # §3, verbatim: never a dollar figure next to a candidate without
+            # The rule above: never a dollar figure next to a candidate without
             # the range and the assumption stated inline.
             if self.recoverable.is_point:
                 raise ValueError(
                     f"{self.check_id}: a candidate's savings must be a range, "
                     f"not the point estimate {self.recoverable}. The data "
-                    "cannot support a single number here (§3)."
+                    "cannot support a single number here."
                 )
 
             if not self.recoverable.assumptions:
                 raise ValueError(
                     f"{self.check_id}: a candidate's savings range must state "
-                    "the assumptions it rests on, inline (§3)"
+                    "the assumptions it rests on, inline"
                 )
 
         if self.recoverable is not None and self.recoverable.low > self.recoverable.high:
@@ -182,7 +182,7 @@ def rank(findings: Sequence[Finding]) -> list[Finding]:
     """Measured before candidate before observation; within each tier, a
     savings claim before a bare measurement; dollars descending inside that.
 
-    §5 asks for largest impact first and §4 says C1 should lead the report.
+    The report puts the largest impact first, and C1 should lead it.
     Those only conflict if unlike figures share one ranking -- and tier alone
     does not keep them apart, because C1 and C6 are both `measured`. C6 can
     measure a far larger number than C1 (a month of overnight spend) without
