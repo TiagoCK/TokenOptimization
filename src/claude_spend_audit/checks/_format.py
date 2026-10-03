@@ -55,7 +55,7 @@ def describe(
     segment: Segment,
     dimensions: tuple[str, ...] = ("model", "workspace_id"),
 ) -> str:
-    """A segment's label, e.g. ``claude-opus-5 / wrkspc_x``.
+    """A segment's label, e.g. ``claude-opus-5 / Production [...a1b2]``.
 
     Reads each dimension through ``Frame.value_of``, so a null in a grouped
     dimension and a dimension the export never carried get different words.
@@ -70,5 +70,5 @@ def describe(
         elif value is None:
             parts.append(_NULL_MEANS[dimension])
         else:
-            parts.append(value)
+            parts.append(frame.display(dimension, value))
     return " / ".join(parts)

@@ -136,8 +136,9 @@ def _add_data_args(parser: argparse.ArgumentParser) -> None:
         "--anonymize",
         action="store_true",
         help=(
-            "Team/Enterprise spend reports only: replace user emails with "
-            "user-001, user-002... (largest spender first) in every output"
+            "replace user emails with user-001, user-002... (largest spender "
+            "first) in Team/Enterprise per-user output, and show workspace and "
+            "API-key IDs instead of their names, which often name people"
         ),
     )
     parser.add_argument(
@@ -337,6 +338,14 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     fetch.add_argument(
+        "--no-names",
+        action="store_true",
+        help=(
+            "admin only: skip looking up workspace and API-key names, so "
+            "findings show IDs and the saved file holds no names"
+        ),
+    )
+    fetch.add_argument(
         "--from",
         dest="start",
         type=_utc_date,
@@ -488,8 +497,16 @@ def _frame_from_saved(saved: dict, expected: str) -> Frame:
     pages = saved.get("pages") or []
     source = f"fetch {request.get('starting_at')}..{request.get('ending_at')}"
     if expected == "cost":
-        return load_cost_json(pages, source=source)
-    return load_usage_json(pages, group_by=request.get("group_by") or (), source=source)
+        frame = load_cost_json(pages, source=source)
+    else:
+        frame = load_usage_json(pages, group_by=request.get("group_by") or (), source=source)
+    names = saved.get("names")
+    if isinstance(names, dict):
+        frame = replace(
+            frame,
+            names={d: dict(m) for d, m in names.items() if isinstance(m, dict)},
+        )
+    return frame
 
 
 class _LoadFailed(Exception):
@@ -520,6 +537,9 @@ def _load(args) -> tuple[Frame, PricingTable, object]:
         except (ResponseShapeError, InvalidOperation) as exc:
             raise _LoadFailed(f"the saved response cannot be read: {exc}", 2) from exc
         frame = merge(usage_frame, cost_frame) if cost_frame else usage_frame
+        if args.anonymize:
+            # Key names are often a person's ("alice-laptop"); IDs are not.
+            frame = replace(frame, names={})
         if not frame.cost:
             frame = frame.with_gaps([gapmod.no_cost_data()])
         frame = frame.with_gaps(_period_gaps(usage_frame, cost_frame))
@@ -854,6 +874,8 @@ def _fetch(args) -> int:
         print(f"error: {exc}", file=sys.stderr)
         return 1
 
+    names = None if args.no_names else _lookup_names(client)
+
     payload = envelope(
         endpoint=args.what,
         starting_at=args.start,
@@ -862,6 +884,7 @@ def _fetch(args) -> int:
         group_by=group_by,
         pages=pages,
         version=__version__,
+        names=names,
     )
     args.output.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
 
@@ -873,6 +896,26 @@ def _fetch(args) -> int:
         file=sys.stderr,
     )
     return 0
+
+
+def _lookup_names(client: ApiClient) -> dict[str, dict[str, str]] | None:
+    """Workspace and API-key names, or None with a warning if unavailable.
+
+    Optional by design: the usage or cost pages are the point of the fetch,
+    so a key that may read usage but not list workspaces still gets its file.
+    """
+    try:
+        return {
+            "workspace_id": client.workspace_names(),
+            "api_key_id": client.api_key_names(),
+        }
+    except ApiError as exc:
+        print(
+            f"warning: could not look up workspace and API-key names ({exc}). "
+            "The file is saved without them; findings will show IDs.",
+            file=sys.stderr,
+        )
+        return None
 
 
 def _fetch_analytics(args, key: str) -> int:

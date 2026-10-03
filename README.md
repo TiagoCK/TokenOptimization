@@ -170,6 +170,13 @@ the saved file is something you can read before deciding whether to share it.
 Add `--bucket-width 1h` for the off-hours check (C6b), and fetch cost data
 separately with `--what cost` to compare against billing.
 
+`fetch` also looks up your workspace and API-key names, so findings read
+`Production [...a1b2]` rather than a bare `wrkspc_...` ID. Only each name is
+kept -- not the key hint, creator or anything else those lists return. Pass
+`--no-names` to skip it, or `--anonymize` at audit time to show IDs instead
+(key names often name people). If the key may not list workspaces, the fetch
+still saves the usage and says so.
+
 **With a CSV export** (no credentials). Export from the Console's Usage and Cost
 pages and run against the files:
 
@@ -348,7 +355,8 @@ Useful flags:
 - `--cost-profile` / `--usage-profile` — force a schema profile, for example
   when a cost file's cents-or-dollars reading is ambiguous
 - `--json` — machine-readable output
-- `--anonymize` — replace user emails with `user-001`... (per-user data only)
+- `--anonymize` — replace user emails with `user-001`... in per-user data, and
+  show workspace and API-key IDs instead of their names
 - `--pricing pricing/2026-09.json` — use a specific rate card (the default is
   the newest file in `pricing/`)
 - `--utc-offset -5` — set your local business day for the off-hours check
@@ -359,7 +367,8 @@ Useful flags:
   floor of $0, because guessing them would put an invented number in the report.
 
 For `fetch`: `--source admin|analytics`, `--from` / `--to` (UTC dates, end
-exclusive), `--bucket-width 1d|1h|1m`, `--group-by`, `--no-users`, and
+exclusive), `--bucket-width 1d|1h|1m`, `--group-by`, `--no-users`,
+`--no-names`, and
 `--api-key-env` to read the key from a different variable. **The key is only
 ever read from an environment variable.** There is no `--api-key` flag,
 deliberately: an argument lands in shell history and is visible to every user

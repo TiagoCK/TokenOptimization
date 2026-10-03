@@ -253,6 +253,13 @@ def _describe_json(payload: Any) -> list[str]:
     if is_envelope(payload):
         out = [f"  saved fetch: Usage & Cost Admin API, endpoint {payload.get('endpoint')!r}", ""]
         out += _request_lines(payload)
+        names = payload.get("names") or {}
+        if isinstance(names, Mapping):
+            # Counts only: names are often a person's or a project's.
+            out.append(
+                f"  names: {len(names.get('workspace_id') or {})} workspace(s), "
+                f"{len(names.get('api_key_id') or {})} API key(s)"
+            )
         out += _indent(_page_structure(payload.get("pages") or []), "  ")
         out += ["", "  dry run:", *_indent(_dry_run_admin(payload), "    ")]
         return out

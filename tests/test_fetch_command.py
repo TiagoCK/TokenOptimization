@@ -324,7 +324,7 @@ def test_fetch_writes_a_readable_file(tmp_path, monkeypatch, capsys):
     out = tmp_path / "raw.json"
     code = main([
         "fetch", "--from", "2026-08-01", "--to", "2026-08-08",
-        "-o", str(out), "--group-by", "model,workspace_id",
+        "-o", str(out), "--group-by", "model,workspace_id", "--no-names",
     ])
     err = capsys.readouterr().err
 
@@ -357,6 +357,7 @@ def test_the_fetched_file_is_immediately_auditable(tmp_path, monkeypatch, capsys
     out = tmp_path / "raw.json"
     assert main([
         "fetch", "--from", "2026-08-01", "--to", "2026-08-08", "-o", str(out),
+        "--no-names",
     ]) == 0
     capsys.readouterr()
 
@@ -418,7 +419,8 @@ def test_a_default_fetch_requests_every_default_dimension(tmp_path, monkeypatch,
     monkeypatch.setattr(ApiClient, "__init__", patched)
 
     out = tmp_path / "raw.json"
-    assert main(["fetch", "--from", "2026-08-01", "--to", "2026-08-08", "-o", str(out)]) == 0
+    # The name lookup has its own tests; this one is about the usage request.
+    assert main(["fetch", "--from", "2026-08-01", "--to", "2026-08-08", "-o", str(out), "--no-names"]) == 0
     capsys.readouterr()
 
     sent = parse_qs(urlsplit(transport.last.url).query)["group_by[]"]
@@ -444,7 +446,8 @@ def test_a_default_fetch_raises_no_pricing_dimension_gap(tmp_path, monkeypatch, 
     monkeypatch.setattr(ApiClient, "__init__", patched)
 
     out = tmp_path / "raw.json"
-    assert main(["fetch", "--from", "2026-08-01", "--to", "2026-08-08", "-o", str(out)]) == 0
+    # The name lookup has its own tests; this one is about the usage request.
+    assert main(["fetch", "--from", "2026-08-01", "--to", "2026-08-08", "-o", str(out), "--no-names"]) == 0
     capsys.readouterr()
 
     main(["audit", str(out), "--json"])

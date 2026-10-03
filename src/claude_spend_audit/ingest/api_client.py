@@ -116,6 +116,13 @@ ANALYTICS_COST_GROUP_BY = ANALYTICS_USAGE_GROUP_BY | {"cost_type", "token_type"}
 CURSOR_RESTARTS = 2
 
 
+#: Admin API list endpoints used only to label IDs with names.
+WORKSPACES_PATH = "/v1/organizations/workspaces"
+API_KEYS_PATH = "/v1/organizations/api_keys"
+#: The largest page both list endpoints accept.
+NAME_PAGE_LIMIT = 1000
+
+
 class ApiError(Exception):
     """Any failure on the API path. Never carries the credential."""
 
@@ -449,6 +456,53 @@ class ApiClient:
         """Per-user cost, one aggregate row per user per window."""
         return self._analytics_users(
             ANALYTICS_USER_COST_PATH, starting_at, ending_at, group_by=group_by
+        )
+
+    def workspace_names(self) -> dict[str, str]:
+        """Workspace ID -> name, archived workspaces included.
+
+        Archived workspaces still appear in past usage, so leaving them out
+        would put a bare ID back exactly where a name was wanted. Only the
+        name is kept: nothing else these objects carry is needed to label a
+        finding, so nothing else is saved.
+        """
+        return self._names(WORKSPACES_PATH, {"include_archived": "true"})
+
+    def api_key_names(self) -> dict[str, str]:
+        """API key ID -> name, for keys in every status.
+
+        No status filter: archived and expired keys still appear in past
+        usage. The partial key hint, creator and principal are deliberately
+        dropped -- a label needs the name and nothing more.
+        """
+        return self._names(API_KEYS_PATH, {})
+
+    def _names(self, path: str, params: Mapping[str, Any]) -> dict[str, str]:
+        """Walk an ``after_id`` / ``has_more`` list endpoint, keeping id -> name."""
+        names: dict[str, str] = {}
+        after: str | None = None
+        seen: set[str] = set()
+        for _ in range(self.page_cap):
+            query = {**params, "limit": NAME_PAGE_LIMIT}
+            if after:
+                query["after_id"] = after
+            payload = self._get(path, query, None)
+            for item in payload.get("data") or ():
+                if isinstance(item, Mapping) and item.get("id") and item.get("name"):
+                    names[str(item["id"])] = str(item["name"])
+            if not payload.get("has_more"):
+                return names
+            after = payload.get("last_id")
+            if not after or after in seen:
+                raise ProtocolError(
+                    f"{path} reported has_more=true without a new last_id, so "
+                    "there is no way to continue. Refusing to return a partial "
+                    "list."
+                )
+            seen.add(after)
+        raise ProtocolError(
+            f"stopped after {self.page_cap} pages of {path} without has_more "
+            "going false."
         )
 
     def _analytics_bucketed(
@@ -822,6 +876,7 @@ def envelope(
     pages: Sequence[dict],
     version: str,
     fetched_at: datetime | None = None,
+    names: Mapping[str, Mapping[str, str]] | None = None,
 ) -> dict:
     """Wrap raw pages with just enough provenance to be re-readable.
 
@@ -846,6 +901,9 @@ def envelope(
             "group_by": list(group_by),
         },
         "pages": list(pages),
+        # Dimension -> ID -> name, from the workspace and API-key lists.
+        # Saved only when looked up, so an older reader sees nothing new.
+        **({"names": {d: dict(m) for d, m in names.items()}} if names else {}),
     }
 
 

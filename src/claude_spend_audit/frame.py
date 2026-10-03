@@ -244,6 +244,10 @@ class Frame:
     #: in every row, and only this field says that zero was never measured.
     #: None means the source always reports every bucket (the API paths).
     token_fields: frozenset[str] | None = None
+    #: Dimension -> ID -> human name, from the Admin API's workspace and
+    #: API-key lists. Display only: no figure ever depends on it, and an ID
+    #: with no entry is shown as the ID.
+    names: Mapping[str, Mapping[str, str]] = field(default_factory=dict)
 
     # -- period ----------------------------------------------------------
 
@@ -256,6 +260,16 @@ class Frame:
     def period_end(self) -> datetime | None:
         ends = [r.end for r in self.usage] + [r.end for r in self.cost]
         return max(ends) if ends else None
+
+    def display(self, dimension: str, value: str) -> str:
+        """A dimension value as a reader should see it.
+
+        The name when one is known, with the ID's last four characters so two
+        workspaces of the same name (an archived one and its replacement, say)
+        stay distinguishable; otherwise the ID unchanged.
+        """
+        name = self.names.get(dimension, {}).get(value)
+        return f"{name} [...{value[-4:]}]" if name else value
 
     def has_token_field(self, name: str) -> bool:
         """True when the source carried this token bucket at all."""
@@ -359,6 +373,7 @@ def merge(*frames: Frame) -> Frame:
     sources: list[SourceInfo] = []
     grouped: frozenset[str] | None = None
     tokens: frozenset[str] | None = None
+    names: dict[str, dict[str, str]] = {}
     widths: set[str] = set()
 
     for frame in present:
@@ -376,6 +391,8 @@ def merge(*frames: Frame) -> Frame:
                 )
         if frame.bucket_width:
             widths.add(frame.bucket_width)
+        for dimension, mapping in frame.names.items():
+            names.setdefault(dimension, {}).update(mapping)
 
     merged = Frame(
         usage=tuple(usage),
@@ -384,6 +401,7 @@ def merge(*frames: Frame) -> Frame:
         bucket_width=widths.pop() if len(widths) == 1 else None,
         sources=tuple(sources),
         token_fields=tokens,
+        names=names,
     )
     for frame in present:
         merged = merged.with_gaps(frame.gaps)

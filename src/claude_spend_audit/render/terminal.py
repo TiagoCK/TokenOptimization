@@ -260,7 +260,7 @@ def render_dimensions(frame: Frame) -> list[str]:
         # Reserve room for the ", +N more" suffix so adding it cannot overflow.
         budget = WIDTH - len(prefix) - len(f", +{len(values)} more")
 
-        labels = [str(v) if v is not None else "(null)" for v in values]
+        labels = [frame.display(dim, str(v)) if v is not None else "(null)" for v in values]
         shown: list[str] = []
         used = 0
         for label in labels:

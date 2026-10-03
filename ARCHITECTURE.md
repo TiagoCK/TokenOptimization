@@ -261,6 +261,15 @@ printed it straight back to stderr. The `fetch` parser now sets
 `allow_abbrev=False` and refuses `--api-key` explicitly, without echoing what
 it was given.
 
+**Names, and only names.** With the same key, `fetch` reads the workspace and
+API-key lists so findings can show `Production [...a1b2]` instead of an ID.
+Those lists also return a partial key hint, the creator, the principal and
+more; only `id -> name` is saved. `Frame.names` carries the map, and
+`Frame.display()` is the one place a label is built from it -- no figure reads
+it, which a test checks. Names are optional all the way through: a key that
+may not list workspaces still gets its usage file, and `--anonymize` drops
+them, since key names often name people.
+
 ## What the tool changes about your data
 
 Almost nothing — but not quite nothing, and the exceptions are listed here
