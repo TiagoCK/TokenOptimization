@@ -22,7 +22,8 @@ def test_header_block_has_the_section_five_fields(capsys, usage_csv):
     code, out, _ = run(capsys, "inspect", str(usage_csv))
     assert "period covered" in out
     assert "2026-08-01" in out and "2026-08-03" in out
-    assert "pricing file     2026-09" in out
+    # The newest rate card on file is the default.
+    assert "pricing file     2026-10" in out
     assert "TOKENS" in out
     assert "SPEND" in out
     assert "WHAT THIS DATA CANNOT SHOW" in out
@@ -128,8 +129,8 @@ def test_json_output_is_machine_readable(capsys, usage_csv, cost_csv):
     payload = json.loads(out)
 
     assert payload["period"]["bucket_width"] == "1d"
-    assert payload["pricing"]["version"] == "2026-09"
-    assert payload["pricing"]["fetched_at"] == "2026-09-09"
+    assert payload["pricing"]["version"] == "2026-10"
+    assert payload["pricing"]["fetched_at"] == "2026-10-03"
     assert Decimal(payload["spend"]["billed_usd"]) == Decimal("30.75")
     assert Decimal(payload["spend"]["estimated_usd"]) == Decimal("27.75")
     assert payload["spend"]["estimate_is_complete"] is False

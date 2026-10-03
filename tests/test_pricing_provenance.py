@@ -9,6 +9,7 @@ a number nobody checked, which is exactly what this project cannot afford.
 """
 
 from decimal import Decimal
+from pathlib import Path
 
 import pytest
 
@@ -17,6 +18,15 @@ from claude_spend_audit.pricing import PricingTable
 
 # 'derived: <factor> x <bucket>' -- the only derivation form in use.
 DERIVED_PREFIX = "derived:"
+
+PRICING_FILES = sorted((Path(__file__).resolve().parents[1] / "pricing").glob("*.json"))
+
+
+@pytest.fixture(params=PRICING_FILES, ids=lambda path: path.stem)
+def pricing(request) -> PricingTable:
+    """Every rate card on file, not only the one the other tests pin: a new
+    month's file has to meet the same rules before the CLI picks it up."""
+    return PricingTable.load(request.param)
 
 
 def test_every_rate_declares_its_provenance(pricing):
@@ -70,16 +80,22 @@ def test_published_standard_rates_match_the_published_multipliers(pricing):
 
     Both sides are transcribed independently from the pricing page -- the
     per-model table and the multiplier table -- so agreement is a real check on
-    the transcription. Fable 5.1 and Mythos 5.1 are excluded: their cache reads
-    are 0.025x, not the standard 0.1x, per the table's own footnote.
+    the transcription. A few models read cache at a footnoted multiplier
+    instead of the standard 0.1x: 0.025x for Fable 5.1 and Mythos 5.1, 0.05x
+    for Opus 5.5. Those are checked against their own footnote.
     """
-    exceptions = {"claude-fable-5-1", "claude-mythos-5-1"}
+    cache_read_footnotes = {
+        "claude-fable-5-1": Decimal("0.025"),
+        "claude-mythos-5-1": Decimal("0.025"),
+        "claude-opus-5-5": Decimal("0.05"),
+    }
     for model_id in pricing.model_ids:
         base = pricing.base_rate("models", model_id, "uncached_input")
         for bucket in ("cache_write_5m", "cache_write_1h", "cache_read"):
-            if bucket == "cache_read" and model_id in exceptions:
-                continue
-            expected = pricing.multiplier(bucket) * base
+            multiplier = pricing.multiplier(bucket)
+            if bucket == "cache_read" and model_id in cache_read_footnotes:
+                multiplier = cache_read_footnotes[model_id]
+            expected = multiplier * base
             actual = pricing.base_rate("models", model_id, bucket)
             assert actual == expected, (
                 f"{model_id}.{bucket}: file says ${actual}/MTok, but "
@@ -117,8 +133,7 @@ def test_batch_multiplier_matches_the_published_batch_table(pricing):
 
 
 def test_pricing_file_records_where_it_came_from(pricing):
-    assert pricing.version == "2026-09"
-    assert pricing.fetched_at == "2026-09-09"
+    assert pricing.fetched_at.startswith(pricing.version)
     assert "pricing" in pricing.source_url
 
 

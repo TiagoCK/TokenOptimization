@@ -1,0 +1,719 @@
+{
+  "schema_version": 1,
+  "pricing_version": "2026-10",
+  "fetched_at": "2026-10-03",
+  "source_url": "https://platform.claude.com/docs/en/about-claude/pricing",
+  "currency": "USD",
+  "unit": "usd_per_million_tokens",
+  "_readme": [
+    "Every dollar figure this tool prints traces back to this file. Nothing is",
+    "inferred at runtime and nothing is hardcoded in check logic.",
+    "",
+    "Each rate carries a 'provenance' entry saying where the number came from:",
+    "  'published'  - transcribed verbatim from the pricing page table",
+    "  'derived: X' - computed from other published values by the stated rule.",
+    "                 tests/test_pricing_provenance.py re-derives every one of",
+    "                 these and fails if the arithmetic drifts.",
+    "",
+    "If a rate here is wrong for your organization (negotiated pricing, volume",
+    "discount, enterprise terms), edit this file. The numbers in the report will",
+    "change accordingly. That is the intended workflow."
+  ],
+  "multipliers": {
+    "cache_write_5m": {
+      "value": "1.25",
+      "of": "uncached_input",
+      "provenance": "published",
+      "note": "Prompt caching table: '5-minute cache write: 1.25x base input price'"
+    },
+    "cache_write_1h": {
+      "value": "2",
+      "of": "uncached_input",
+      "provenance": "published",
+      "note": "Prompt caching table: '1-hour cache write: 2x base input price'"
+    },
+    "cache_read": {
+      "value": "0.1",
+      "of": "uncached_input",
+      "provenance": "published",
+      "note": "Prompt caching table: 'Cache read (hit): 0.1x base input price (0.025x on Claude Fable 5.1 and Claude Mythos 5.1)'. Per-model rates below are authoritative; this multiplier exists for provenance checking only."
+    }
+  },
+  "service_tier_multipliers": {
+    "standard": {
+      "value": "1",
+      "provenance": "published",
+      "note": "Baseline. The model pricing table is standard-tier pricing."
+    },
+    "batch": {
+      "value": "0.5",
+      "provenance": "published",
+      "note": "'The Batch API allows asynchronous processing of large volumes of requests with a 50% discount on both input and output tokens.' Verified against the published batch table: Opus 5 $2.50/$12.50 = 0.5 x $5/$25."
+    }
+  },
+  "unpriced_service_tiers": {
+    "flex": "No published rate. Not present in the cost endpoint's service_tier enum (batch|standard|null).",
+    "flex_discount": "No published rate. Not present in the cost endpoint's service_tier enum.",
+    "priority": "Priority Tier uses a different billing model and is excluded from the cost endpoint entirely. The report raises a loud warning rather than a silently wrong total.",
+    "priority_on_demand": "No published rate. Not present in the cost endpoint's service_tier enum."
+  },
+  "inference_geo_multipliers": {
+    "global": {
+      "value": "1",
+      "provenance": "published",
+      "note": "'Global routing (the default) uses standard pricing.'"
+    },
+    "us": {
+      "value": "1.1",
+      "provenance": "published",
+      "note": "'specifying US-only inference through the inference_geo parameter incurs a 1.1x multiplier on all token pricing categories, including input tokens, output tokens, cache writes, and cache reads.' Claude 4.6+ only."
+    },
+    "not_available": {
+      "value": "1",
+      "provenance": "published",
+      "note": "Models predating Feb 2026 do not support inference_geo and always use standard pricing."
+    }
+  },
+  "long_context": {
+    "provenance": "published",
+    "note": "'Claude 4.6 and later models and Claude Mythos Preview include the full 1M token context window at standard pricing. (A 900k-token request is billed at the same per-token rate as a 9k-token request.)' The page makes no statement about long-context rates for earlier models, so their 200k-1M traffic is priced at the standard rate below and reported as unconfirmed rather than assumed correct.",
+    "standard_rate_models": [
+      "claude-fable-5-1",
+      "claude-mythos-5-1",
+      "claude-fable-5",
+      "claude-mythos-5",
+      "claude-opus-5",
+      "claude-opus-4-8",
+      "claude-opus-4-7",
+      "claude-opus-4-6",
+      "claude-sonnet-5",
+      "claude-sonnet-4-6"
+    ]
+  },
+  "model_tiers": {
+    "provenance": "classification",
+    "note": "The 'tier' on each model below (frontier / mid / small) is this tool's classification, not Anthropic's -- the pricing page publishes rates, not tiers. It is used only to group the model-mix observation (C8) and never affects a price. Edit it to match how your organization thinks about its models."
+  },
+  "server_tools": {
+    "web_search": {
+      "usd_per_1000_requests": "10",
+      "provenance": "published",
+      "note": "'Web search is available on the Claude API for $10 per 1,000 searches, plus standard token costs.' Countable from usage via server_tool_use.web_search_requests."
+    },
+    "code_execution": {
+      "usd_per_container_hour": "0.05",
+      "free_hours_per_month": "1550",
+      "provenance": "published",
+      "priceable_from_usage": false,
+      "note": "Billed by execution time, not tokens, with a 5-minute minimum per container. Appears only in the cost endpoint under cost_type 'code_execution'. Cannot be estimated from usage data. Free when used alongside web_search_20260209+ or web_fetch_20260209+."
+    },
+    "session_usage": {
+      "usd_per_session_hour": "0.08",
+      "provenance": "published",
+      "priceable_from_usage": false,
+      "note": "Claude Managed Agents session runtime, accrued only while a session is 'running'. Appears only in the cost endpoint under cost_type 'session_usage'."
+    }
+  },
+  "models": {
+    "claude-fable-5-1": {
+      "display_name": "Claude Fable 5.1",
+      "tier": "frontier",
+      "rates": {
+        "uncached_input": {
+          "usd_per_mtok": "10",
+          "provenance": "published"
+        },
+        "cache_write_5m": {
+          "usd_per_mtok": "12.50",
+          "provenance": "published"
+        },
+        "cache_write_1h": {
+          "usd_per_mtok": "20",
+          "provenance": "published"
+        },
+        "cache_read": {
+          "usd_per_mtok": "0.25",
+          "provenance": "published",
+          "note": "0.025x base, not the standard 0.1x. Footnote 1 on the pricing table."
+        },
+        "output": {
+          "usd_per_mtok": "50",
+          "provenance": "published"
+        }
+      }
+    },
+    "claude-mythos-5-1": {
+      "display_name": "Claude Mythos 5.1",
+      "tier": "frontier",
+      "rates": {
+        "uncached_input": {
+          "usd_per_mtok": "10",
+          "provenance": "published"
+        },
+        "cache_write_5m": {
+          "usd_per_mtok": "12.50",
+          "provenance": "published"
+        },
+        "cache_write_1h": {
+          "usd_per_mtok": "20",
+          "provenance": "published"
+        },
+        "cache_read": {
+          "usd_per_mtok": "0.25",
+          "provenance": "published",
+          "note": "0.025x base, not the standard 0.1x."
+        },
+        "output": {
+          "usd_per_mtok": "50",
+          "provenance": "published"
+        }
+      }
+    },
+    "claude-fable-5": {
+      "display_name": "Claude Fable 5",
+      "tier": "frontier",
+      "rates": {
+        "uncached_input": {
+          "usd_per_mtok": "10",
+          "provenance": "published"
+        },
+        "cache_write_5m": {
+          "usd_per_mtok": "12.50",
+          "provenance": "published"
+        },
+        "cache_write_1h": {
+          "usd_per_mtok": "20",
+          "provenance": "published"
+        },
+        "cache_read": {
+          "usd_per_mtok": "1",
+          "provenance": "published"
+        },
+        "output": {
+          "usd_per_mtok": "50",
+          "provenance": "published"
+        }
+      }
+    },
+    "claude-mythos-5": {
+      "display_name": "Claude Mythos 5",
+      "tier": "frontier",
+      "rates": {
+        "uncached_input": {
+          "usd_per_mtok": "10",
+          "provenance": "published"
+        },
+        "cache_write_5m": {
+          "usd_per_mtok": "12.50",
+          "provenance": "published"
+        },
+        "cache_write_1h": {
+          "usd_per_mtok": "20",
+          "provenance": "published"
+        },
+        "cache_read": {
+          "usd_per_mtok": "1",
+          "provenance": "published"
+        },
+        "output": {
+          "usd_per_mtok": "50",
+          "provenance": "published"
+        }
+      }
+    },
+    "claude-opus-5-5": {
+      "display_name": "Claude Opus 5.5",
+      "tier": "frontier",
+      "rates": {
+        "uncached_input": {
+          "usd_per_mtok": "4",
+          "provenance": "published"
+        },
+        "cache_write_5m": {
+          "usd_per_mtok": "5",
+          "provenance": "published"
+        },
+        "cache_write_1h": {
+          "usd_per_mtok": "8",
+          "provenance": "published"
+        },
+        "cache_read": {
+          "usd_per_mtok": "0.20",
+          "provenance": "published",
+          "note": "0.05x base, not the standard 0.1x. Footnote 2 on the pricing table."
+        },
+        "output": {
+          "usd_per_mtok": "20",
+          "provenance": "published"
+        }
+      }
+    },
+    "claude-opus-5": {
+      "display_name": "Claude Opus 5",
+      "tier": "frontier",
+      "rates": {
+        "uncached_input": {
+          "usd_per_mtok": "5",
+          "provenance": "published"
+        },
+        "cache_write_5m": {
+          "usd_per_mtok": "6.25",
+          "provenance": "published"
+        },
+        "cache_write_1h": {
+          "usd_per_mtok": "10",
+          "provenance": "published"
+        },
+        "cache_read": {
+          "usd_per_mtok": "0.50",
+          "provenance": "published"
+        },
+        "output": {
+          "usd_per_mtok": "25",
+          "provenance": "published"
+        }
+      }
+    },
+    "claude-opus-4-8": {
+      "display_name": "Claude Opus 4.8",
+      "tier": "frontier",
+      "rates": {
+        "uncached_input": {
+          "usd_per_mtok": "5",
+          "provenance": "published"
+        },
+        "cache_write_5m": {
+          "usd_per_mtok": "6.25",
+          "provenance": "published"
+        },
+        "cache_write_1h": {
+          "usd_per_mtok": "10",
+          "provenance": "published"
+        },
+        "cache_read": {
+          "usd_per_mtok": "0.50",
+          "provenance": "published"
+        },
+        "output": {
+          "usd_per_mtok": "25",
+          "provenance": "published"
+        }
+      }
+    },
+    "claude-opus-4-7": {
+      "display_name": "Claude Opus 4.7",
+      "tier": "frontier",
+      "rates": {
+        "uncached_input": {
+          "usd_per_mtok": "5",
+          "provenance": "published"
+        },
+        "cache_write_5m": {
+          "usd_per_mtok": "6.25",
+          "provenance": "published"
+        },
+        "cache_write_1h": {
+          "usd_per_mtok": "10",
+          "provenance": "published"
+        },
+        "cache_read": {
+          "usd_per_mtok": "0.50",
+          "provenance": "published"
+        },
+        "output": {
+          "usd_per_mtok": "25",
+          "provenance": "published"
+        }
+      }
+    },
+    "claude-opus-4-6": {
+      "display_name": "Claude Opus 4.6",
+      "tier": "frontier",
+      "rates": {
+        "uncached_input": {
+          "usd_per_mtok": "5",
+          "provenance": "published"
+        },
+        "cache_write_5m": {
+          "usd_per_mtok": "6.25",
+          "provenance": "published"
+        },
+        "cache_write_1h": {
+          "usd_per_mtok": "10",
+          "provenance": "published"
+        },
+        "cache_read": {
+          "usd_per_mtok": "0.50",
+          "provenance": "published"
+        },
+        "output": {
+          "usd_per_mtok": "25",
+          "provenance": "published"
+        }
+      }
+    },
+    "claude-opus-4-5": {
+      "display_name": "Claude Opus 4.5",
+      "tier": "frontier",
+      "rates": {
+        "uncached_input": {
+          "usd_per_mtok": "5",
+          "provenance": "published"
+        },
+        "cache_write_5m": {
+          "usd_per_mtok": "6.25",
+          "provenance": "published"
+        },
+        "cache_write_1h": {
+          "usd_per_mtok": "10",
+          "provenance": "published"
+        },
+        "cache_read": {
+          "usd_per_mtok": "0.50",
+          "provenance": "published"
+        },
+        "output": {
+          "usd_per_mtok": "25",
+          "provenance": "published"
+        }
+      }
+    },
+    "claude-opus-4-1": {
+      "display_name": "Claude Opus 4.1",
+      "tier": "frontier",
+      "retired": true,
+      "rates": {
+        "uncached_input": {
+          "usd_per_mtok": "15",
+          "provenance": "published"
+        },
+        "cache_write_5m": {
+          "usd_per_mtok": "18.75",
+          "provenance": "published"
+        },
+        "cache_write_1h": {
+          "usd_per_mtok": "30",
+          "provenance": "published"
+        },
+        "cache_read": {
+          "usd_per_mtok": "1.50",
+          "provenance": "published"
+        },
+        "output": {
+          "usd_per_mtok": "75",
+          "provenance": "published"
+        }
+      }
+    },
+    "claude-opus-4": {
+      "display_name": "Claude Opus 4",
+      "tier": "frontier",
+      "retired": true,
+      "rates": {
+        "uncached_input": {
+          "usd_per_mtok": "15",
+          "provenance": "published"
+        },
+        "cache_write_5m": {
+          "usd_per_mtok": "18.75",
+          "provenance": "published"
+        },
+        "cache_write_1h": {
+          "usd_per_mtok": "30",
+          "provenance": "published"
+        },
+        "cache_read": {
+          "usd_per_mtok": "1.50",
+          "provenance": "published"
+        },
+        "output": {
+          "usd_per_mtok": "75",
+          "provenance": "published"
+        }
+      }
+    },
+    "claude-sonnet-5-5": {
+      "display_name": "Claude Sonnet 5.5",
+      "tier": "mid",
+      "rates": {
+        "uncached_input": {
+          "usd_per_mtok": "2",
+          "provenance": "published"
+        },
+        "cache_write_5m": {
+          "usd_per_mtok": "2.50",
+          "provenance": "published"
+        },
+        "cache_write_1h": {
+          "usd_per_mtok": "4",
+          "provenance": "published"
+        },
+        "cache_read": {
+          "usd_per_mtok": "0.20",
+          "provenance": "published"
+        },
+        "output": {
+          "usd_per_mtok": "10",
+          "provenance": "published"
+        }
+      }
+    },
+    "claude-sonnet-5": {
+      "display_name": "Claude Sonnet 5",
+      "tier": "mid",
+      "rates": {
+        "uncached_input": {
+          "usd_per_mtok": "2",
+          "provenance": "published",
+          "note": "Launch introductory pricing became the standard price; the scheduled 2026-09-01 increase to $3 did not occur."
+        },
+        "cache_write_5m": {
+          "usd_per_mtok": "2.50",
+          "provenance": "published"
+        },
+        "cache_write_1h": {
+          "usd_per_mtok": "4",
+          "provenance": "published"
+        },
+        "cache_read": {
+          "usd_per_mtok": "0.20",
+          "provenance": "published"
+        },
+        "output": {
+          "usd_per_mtok": "10",
+          "provenance": "published"
+        }
+      }
+    },
+    "claude-sonnet-4-6": {
+      "display_name": "Claude Sonnet 4.6",
+      "tier": "mid",
+      "rates": {
+        "uncached_input": {
+          "usd_per_mtok": "3",
+          "provenance": "published"
+        },
+        "cache_write_5m": {
+          "usd_per_mtok": "3.75",
+          "provenance": "published"
+        },
+        "cache_write_1h": {
+          "usd_per_mtok": "6",
+          "provenance": "published"
+        },
+        "cache_read": {
+          "usd_per_mtok": "0.30",
+          "provenance": "published"
+        },
+        "output": {
+          "usd_per_mtok": "15",
+          "provenance": "published"
+        }
+      }
+    },
+    "claude-sonnet-4-5": {
+      "display_name": "Claude Sonnet 4.5",
+      "tier": "mid",
+      "rates": {
+        "uncached_input": {
+          "usd_per_mtok": "3",
+          "provenance": "published"
+        },
+        "cache_write_5m": {
+          "usd_per_mtok": "3.75",
+          "provenance": "published"
+        },
+        "cache_write_1h": {
+          "usd_per_mtok": "6",
+          "provenance": "published"
+        },
+        "cache_read": {
+          "usd_per_mtok": "0.30",
+          "provenance": "published"
+        },
+        "output": {
+          "usd_per_mtok": "15",
+          "provenance": "published"
+        }
+      }
+    },
+    "claude-sonnet-4": {
+      "display_name": "Claude Sonnet 4",
+      "tier": "mid",
+      "retired": true,
+      "rates": {
+        "uncached_input": {
+          "usd_per_mtok": "3",
+          "provenance": "published"
+        },
+        "cache_write_5m": {
+          "usd_per_mtok": "3.75",
+          "provenance": "published"
+        },
+        "cache_write_1h": {
+          "usd_per_mtok": "6",
+          "provenance": "published"
+        },
+        "cache_read": {
+          "usd_per_mtok": "0.30",
+          "provenance": "published"
+        },
+        "output": {
+          "usd_per_mtok": "15",
+          "provenance": "published"
+        }
+      }
+    },
+    "claude-haiku-4-5": {
+      "display_name": "Claude Haiku 4.5",
+      "tier": "small",
+      "rates": {
+        "uncached_input": {
+          "usd_per_mtok": "1",
+          "provenance": "published"
+        },
+        "cache_write_5m": {
+          "usd_per_mtok": "1.25",
+          "provenance": "published"
+        },
+        "cache_write_1h": {
+          "usd_per_mtok": "2",
+          "provenance": "published"
+        },
+        "cache_read": {
+          "usd_per_mtok": "0.10",
+          "provenance": "published"
+        },
+        "output": {
+          "usd_per_mtok": "5",
+          "provenance": "published"
+        }
+      }
+    },
+    "claude-3-5-haiku": {
+      "display_name": "Claude Haiku 3.5",
+      "tier": "small",
+      "retired": true,
+      "rates": {
+        "uncached_input": {
+          "usd_per_mtok": "0.80",
+          "provenance": "published"
+        },
+        "cache_write_5m": {
+          "usd_per_mtok": "1",
+          "provenance": "published"
+        },
+        "cache_write_1h": {
+          "usd_per_mtok": "1.60",
+          "provenance": "published"
+        },
+        "cache_read": {
+          "usd_per_mtok": "0.08",
+          "provenance": "published"
+        },
+        "output": {
+          "usd_per_mtok": "4",
+          "provenance": "published"
+        }
+      }
+    }
+  },
+  "speed_overrides": {
+    "fast": {
+      "_note": [
+        "Fast mode (research preview) reprices Opus 5.5 to $8/$40 and Opus 5 and",
+        "Opus 4.8 to $10/$50 per MTok across the full context window. Published: 'Prompt caching multipliers",
+        "apply on top of fast mode pricing', so the four cache rates below are",
+        "derived from the fast-mode base input rate using the same published",
+        "multipliers as every other model. Fast mode is not available with the",
+        "Batch API and not available on Opus 4.7 or 4.6."
+      ],
+      "claude-opus-5-5": {
+        "display_name": "Claude Opus 5.5 (fast mode)",
+        "rates": {
+          "uncached_input": {
+            "usd_per_mtok": "8",
+            "provenance": "published"
+          },
+          "cache_write_5m": {
+            "usd_per_mtok": "10",
+            "provenance": "derived: 1.25 x uncached_input"
+          },
+          "cache_write_1h": {
+            "usd_per_mtok": "16",
+            "provenance": "derived: 2 x uncached_input"
+          },
+          "cache_read": {
+            "usd_per_mtok": "0.40",
+            "provenance": "derived: 0.05 x uncached_input",
+            "note": "Opus 5.5 reads cache at 0.05x base, not 0.1x."
+          },
+          "output": {
+            "usd_per_mtok": "40",
+            "provenance": "published"
+          }
+        }
+      },
+      "claude-opus-5": {
+        "display_name": "Claude Opus 5 (fast mode)",
+        "rates": {
+          "uncached_input": {
+            "usd_per_mtok": "10",
+            "provenance": "published"
+          },
+          "cache_write_5m": {
+            "usd_per_mtok": "12.50",
+            "provenance": "derived: 1.25 x uncached_input"
+          },
+          "cache_write_1h": {
+            "usd_per_mtok": "20",
+            "provenance": "derived: 2 x uncached_input"
+          },
+          "cache_read": {
+            "usd_per_mtok": "1",
+            "provenance": "derived: 0.1 x uncached_input"
+          },
+          "output": {
+            "usd_per_mtok": "50",
+            "provenance": "published"
+          }
+        }
+      },
+      "claude-opus-4-8": {
+        "display_name": "Claude Opus 4.8 (fast mode)",
+        "rates": {
+          "uncached_input": {
+            "usd_per_mtok": "10",
+            "provenance": "published"
+          },
+          "cache_write_5m": {
+            "usd_per_mtok": "12.50",
+            "provenance": "derived: 1.25 x uncached_input"
+          },
+          "cache_write_1h": {
+            "usd_per_mtok": "20",
+            "provenance": "derived: 2 x uncached_input"
+          },
+          "cache_read": {
+            "usd_per_mtok": "1",
+            "provenance": "derived: 0.1 x uncached_input"
+          },
+          "output": {
+            "usd_per_mtok": "50",
+            "provenance": "published"
+          }
+        }
+      }
+    }
+  },
+  "model_aliases": {
+    "_note": "Exact-match table only. Never fuzzy-matched. Maps dated snapshot IDs and platform-prefixed IDs onto the canonical entry in 'models'. An ID absent from both 'models' and this table yields Unpriced, never a guessed rate.",
+    "claude-opus-4-1-20250805": "claude-opus-4-1",
+    "claude-opus-4-20250514": "claude-opus-4",
+    "claude-sonnet-4-20250514": "claude-sonnet-4",
+    "claude-sonnet-4-5-20250929": "claude-sonnet-4-5",
+    "claude-opus-4-5-20251101": "claude-opus-4-5",
+    "claude-haiku-4-5-20251001": "claude-haiku-4-5",
+    "claude-3-5-haiku-20241022": "claude-3-5-haiku"
+  }
+}

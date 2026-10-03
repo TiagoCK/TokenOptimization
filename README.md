@@ -128,7 +128,8 @@ different data.
 
 - **Untested on real data** -- see above.
 - **Check figures use list rates.** Every dollar figure a check computes comes
-  from [`pricing/2026-09.json`](pricing/2026-09.json). Negotiated discounts and
+  from the newest rate card in `pricing/`, currently
+  [`pricing/2026-10.json`](pricing/2026-10.json). Negotiated discounts and
   plan pricing are not reflected unless you edit that file. The Enterprise
   Analytics path shows your billed-to-list ratio in the header so you can scale
   mentally; billed totals read from cost data are always what was billed.
@@ -348,7 +349,8 @@ Useful flags:
   when a cost file's cents-or-dollars reading is ambiguous
 - `--json` — machine-readable output
 - `--anonymize` — replace user emails with `user-001`... (per-user data only)
-- `--pricing pricing/2026-09.json` — use a specific rate card
+- `--pricing pricing/2026-09.json` — use a specific rate card (the default is
+  the newest file in `pricing/`)
 - `--utc-offset -5` — set your local business day for the off-hours check
 - `--business-hours 08:00-17:00` — set the window it measures against
 - `--min-impact 50` — drop findings below a dollar threshold
@@ -377,7 +379,8 @@ without being able to say whether any of it was avoidable, so it reports the
 first and prints `not claimed` for the second. Within a confidence level, a
 finding that claims a saving comes before one that only measures spend.
 
-Every rate the tool uses is in [`pricing/2026-09.json`](pricing/2026-09.json),
+Every rate the tool uses is in a rate card under `pricing/` -- by default the
+newest, [`pricing/2026-10.json`](pricing/2026-10.json) --
 with the source URL and fetch date recorded, and each entry marked either as
 published or with the derivation that produced it. If a rate is wrong for your
 organisation, edit that file and every figure moves with it.
