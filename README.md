@@ -46,6 +46,22 @@ How much that matters depends on the source:
 - **The Console CSV and Team/Enterprise spend-report CSV** mappings are
   educated guesses. Anthropic does not publish those exports' column headers.
 
+**Check the billed total against your real bill before trusting any dollar
+figure.** Cost units differ by source, and one of them is an assumption:
+
+- The Cost API and the Enterprise Analytics cost reports document their
+  amounts in cents (fractional cents for Analytics); they are divided by 100.
+- The Console cost CSV is *assumed* to be in cents like the API it mirrors.
+  This is a guess.
+- The cookbook cost CSV and the spend report are read as dollars (their
+  columns are named `amount_usd` and `..._spend_usd`).
+
+If the "billed" line in the report is 100 times larger or smaller than the
+figure in your Console or invoice, the unit assumption is wrong for your
+export -- every cost in the report is off by the same factor. `inspect` shows
+billed beside estimated cost, where a gap that size is easy to see. Please
+report it.
+
 Every path fails loudly rather than guessing. An export that does not match
 prints its real header row; an API response that does not make sense raises
 rather than returning partial data. If you hit a mismatch, please open an issue
