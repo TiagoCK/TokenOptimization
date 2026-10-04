@@ -926,16 +926,23 @@ def claude_code_recent_day(day: str) -> Gap:
     )
 
 
-def subscription_not_billed_per_token(share: str) -> Gap:
-    """Pro/Team seats appear with an estimated cost they are not billed."""
+def subscription_not_billed_per_token(share: str, kinds: tuple[str, ...] = ("subscription",)) -> Gap:
+    """Users not on pay-as-you-go API billing appear with an estimated cost
+    they are not billed."""
+    known = kinds == ("subscription",)
+    who = (
+        "subscription (Pro or Team) users, who pay for a seat rather than per token"
+        if known
+        else f"users whose customer type is {', '.join(kinds)} rather than "
+        "pay-as-you-go API, so not billed per token as far as this tool knows"
+    )
     return Gap(
         code=GapCode.SUBSCRIPTION_NOT_BILLED_PER_TOKEN,
         severity=Severity.INFO,
         scope=share,
         message=(
-            f"{share} of estimated cost comes from subscription (Pro or Team) "
-            "users, who pay for a seat rather than per token. Their usage is "
-            "left out of the token checks, whose findings are about per-token "
+            f"{share} of estimated cost comes from {who}. Their usage is left "
+            "out of the token checks, whose findings are about per-token "
             "spend, and kept in the per-user and Claude Code checks as an "
             "API-equivalent value."
         ),

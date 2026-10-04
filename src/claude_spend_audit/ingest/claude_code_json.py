@@ -224,7 +224,8 @@ def load_claude_code(
     found = []
     if subscription_estimate and total_estimate:
         share = f"{subscription_estimate / total_estimate:.0%}"
-        found.append(gapmod.subscription_not_billed_per_token(share))
+        kinds = tuple(sorted({r.customer_type for r in records} - {API_CUSTOMER}))
+        found.append(gapmod.subscription_not_billed_per_token(share, kinds))
     recent = _recent_day(envelope, days)
     if recent:
         found.append(gapmod.claude_code_recent_day(recent))

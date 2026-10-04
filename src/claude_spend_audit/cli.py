@@ -1258,6 +1258,13 @@ def _claude_code(args, saved: dict, *, mode: str) -> int:
     report, activity = data.report, data.activity
     if args.anonymize:
         labels = report.anonymous_labels()
+        # Someone can appear in the activity records with no model usage at
+        # all, so not in the SpendReport. They still need a label: an email
+        # left in K1 would defeat --anonymize.
+        unlabelled = sorted({r.actor for r in activity.records} - set(labels))
+        width = max(3, len(str(len(labels) + len(unlabelled))))
+        for offset, actor in enumerate(unlabelled, start=len(labels) + 1):
+            labels[actor] = f"user-{offset:0{width}d}"
         report = report.anonymized()
         activity = activity.relabel(labels)
 
@@ -1344,9 +1351,13 @@ def _claude_code_gaps(gaps, frame: Frame) -> list:
             continue
         if gap.code is GapCode.CACHE_TTL_NOT_SPLIT:
             # The generic remedy points at a cookbook CSV; here the API itself
-            # is the source of the summed figure, and nothing splits it.
+            # is the source of the summed figure, and nothing splits it. Nor
+            # does it understate a bill: this source has no billed total, and
+            # the headline is Anthropic's estimate, which knows the TTLs. Left
+            # as invalidating, every Claude Code audit would exit 1.
             gap = replace(
                 gap,
+                invalidates_total=False,
                 remedy=(
                     "Nothing on this source splits them: the Claude Code "
                     "Analytics API reports cache writes as one figure. "

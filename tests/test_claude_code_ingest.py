@@ -89,3 +89,17 @@ def test_a_file_without_days_is_refused():
     del env["days"]
     with pytest.raises(ClaudeCodeFileError):
         load_claude_code(env)
+
+
+def test_an_unknown_customer_type_is_named_not_called_a_subscription():
+    env = C.fetched()
+    for day in env["days"]:
+        for page in day["pages"]:
+            for record in page["data"]:
+                if record["customer_type"] == "subscription":
+                    record["customer_type"] = "enterprise_seat"
+    data = load_claude_code(env)
+    gap = next(g for g in data.gaps if g.code is GapCode.SUBSCRIPTION_NOT_BILLED_PER_TOKEN)
+    assert "enterprise_seat" in gap.message and "Pro or Team" not in gap.message
+    # Still out of the per-token Frame: only "api" is known to be billed per token.
+    assert data.api_estimate_usd == Decimal("107.25")

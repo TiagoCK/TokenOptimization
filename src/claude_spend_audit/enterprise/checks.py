@@ -108,6 +108,19 @@ class EnterpriseCheck:
         ]
 
 
+def _limits_advice(report: SpendReport) -> str:
+    """Where spend limits live depends on the account the data came from."""
+    if any(source.ingest_path == "claude_code" for source in report.sources):
+        return (
+            "Developer Console workspaces can carry spend limits, and the "
+            "API keys people use for Claude Code can be scoped to them."
+        )
+    return (
+        "Team and Enterprise plans support spend limits at the organization, "
+        "group and individual level."
+    )
+
+
 def _usd(amount: Decimal) -> str:
     return f"${amount:,.2f}"
 
@@ -222,8 +235,7 @@ def run_user_concentration(
             remedy=(
                 "Talk to the heaviest users before changing anything -- they "
                 "are often the people getting the most out of it. Where usage "
-                "does need bounding, Team and Enterprise plans support spend "
-                "limits at the organization, group and individual level."
+                "does need bounding, " + _limits_advice(report)
             ),
             caveats=tuple(caveats),
         )

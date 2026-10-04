@@ -130,3 +130,35 @@ def test_describe_prints_structure_and_no_people(saved):
     assert "tool_actions.edit_tool.accepted: number" in out
     for leaked in ("alice", "carol", "ci-bot", "1075", "7825", "00000000"):
         assert leaked not in out
+
+
+def test_anonymize_covers_people_with_no_model_usage(tmp_path, capsys):
+    """Dave has edit decisions but no tokens, so no SpendReport row. He must
+    still get a label: 35 proposals, 14% accepted, so K1 lists him."""
+    env = C.fetched()
+    env["days"][0]["pages"][0]["data"].append(
+        C._record(0, {"type": "user_actor", "email_address": "dave@example.com"}, "api", 2,
+                  C._tools(edit=(5, 30)), [])
+    )
+    path = tmp_path / "cc.json"
+    path.write_text(json.dumps(env), encoding="utf-8")
+    _, out, _ = run(capsys, "audit", str(path), *PRICING, "--json", "--anonymize")
+    assert "dave@" not in out
+    k1 = next(f for f in json.loads(out)["findings"] if f["check_id"] == "K1")
+    assert "user-004" in {row[0] for row in k1["evidence"]["rows"]}
+
+
+def test_a_clean_file_exits_zero(saved, capsys):
+    """Summed cache writes are a caveat here, not an understated bill: this
+    source has no bill, and Anthropic's estimate knows the TTLs."""
+    code, out, _ = run(capsys, "audit", saved(), *PRICING, "--json")
+    assert code == 0
+    gap = next(g for g in json.loads(out)["gaps"] if g["code"] == "cache_ttl_not_split")
+    assert not gap["invalidates_total"]
+
+
+def test_spend_limit_advice_fits_a_console_organisation(saved, capsys):
+    _, out, _ = run(capsys, "audit", saved(), *PRICING, "--json")
+    e1 = next(f for f in json.loads(out)["findings"] if f["check_id"] == "E1")
+    assert "workspaces can carry spend limits" in e1["remedy"]
+    assert "Team and Enterprise" not in e1["remedy"]
