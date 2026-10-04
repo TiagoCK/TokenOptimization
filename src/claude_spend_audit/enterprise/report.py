@@ -108,6 +108,10 @@ class SpendReport:
     #: True for the Analytics API path, which builds it from all four input
     #: buckets.
     prompt_includes_cache: bool | None = None
+    #: How findings name the spend figure, when the column's own label would
+    #: mislead -- the Claude Code source fills gross spend with Anthropic's
+    #: estimate, which is not a gross bill.
+    spend_name: str | None = None
 
     # -- fields ----------------------------------------------------------
 
@@ -131,7 +135,7 @@ class SpendReport:
 
     @property
     def spend_label(self) -> str:
-        return FIELD_LABELS.get(self.spend_field or "", "spend")
+        return self.spend_name or FIELD_LABELS.get(self.spend_field or "", "spend")
 
     def spend_of(self, row: SpendRow) -> Decimal:
         """A row's spend in the chosen column. Zero only for a blank cell."""
@@ -185,19 +189,7 @@ class SpendReport:
         back to tokens and then to the email itself, so the numbering is
         deterministic. The same person gets the same label everywhere.
         """
-        weight: dict[str, tuple[Decimal, int]] = {}
-        for row in self.rows:
-            if row.user_email is None:
-                continue
-            spend = self.spend_of(row) if self.spend_field else Decimal("0")
-            tokens = (row.prompt_tokens or 0) + (row.completion_tokens or 0)
-            old_spend, old_tokens = weight.get(row.user_email, (Decimal("0"), 0))
-            weight[row.user_email] = (old_spend + spend, old_tokens + tokens)
-
-        ordered = sorted(weight, key=lambda e: (-weight[e][0], -weight[e][1], e))
-        width = max(3, len(str(len(ordered))))
-        labels = {email: f"user-{i:0{width}d}" for i, email in enumerate(ordered, 1)}
-
+        labels = self.anonymous_labels()
         rows = tuple(
             replace(
                 row,
@@ -212,3 +204,22 @@ class SpendReport:
             rows=rows,
             present=self.present - {"account_uuid", "user_name"},
         )
+
+    def anonymous_labels(self) -> dict[str, str]:
+        """Email -> ``user-001``..., largest spender first.
+
+        Exposed so another view of the same people (the Claude Code activity
+        records) can be relabelled with exactly the same mapping.
+        """
+        weight: dict[str, tuple[Decimal, int]] = {}
+        for row in self.rows:
+            if row.user_email is None:
+                continue
+            spend = self.spend_of(row) if self.spend_field else Decimal("0")
+            tokens = (row.prompt_tokens or 0) + (row.completion_tokens or 0)
+            old_spend, old_tokens = weight.get(row.user_email, (Decimal("0"), 0))
+            weight[row.user_email] = (old_spend + spend, old_tokens + tokens)
+
+        ordered = sorted(weight, key=lambda e: (-weight[e][0], -weight[e][1], e))
+        width = max(3, len(str(len(ordered))))
+        return {email: f"user-{i:0{width}d}" for i, email in enumerate(ordered, 1)}

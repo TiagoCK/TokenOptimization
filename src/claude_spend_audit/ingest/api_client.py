@@ -122,6 +122,10 @@ API_KEYS_PATH = "/v1/organizations/api_keys"
 #: The largest page both list endpoints accept.
 NAME_PAGE_LIMIT = 1000
 
+#: The Claude Code Analytics endpoint: one UTC day of per-actor records.
+CLAUDE_CODE_PATH = "/v1/organizations/usage_report/claude_code"
+CLAUDE_CODE_PAGE_LIMIT = 1000
+
 
 class ApiError(Exception):
     """Any failure on the API path. Never carries the credential."""
@@ -251,6 +255,16 @@ def urllib_transport(request: Request) -> Response:
 # --------------------------------------------------------------------------
 # Client
 # --------------------------------------------------------------------------
+
+
+def _utc_day(moment: datetime, *, name: str):
+    """The UTC calendar day of an aware datetime."""
+    if moment.tzinfo is None:
+        raise ApiError(
+            f"{name} has no timezone. Pass an aware datetime -- a naive one "
+            "would be guessed at, and guessing shifts every day."
+        )
+    return moment.astimezone(timezone.utc).date()
 
 
 def _rfc3339(moment: datetime, *, name: str) -> str:
@@ -476,6 +490,72 @@ class ApiClient:
         dropped -- a label needs the name and nothing more.
         """
         return self._names(API_KEYS_PATH, {})
+
+    def claude_code(
+        self,
+        starting_at: datetime,
+        ending_at: datetime,
+        *,
+        progress: Callable[[str, int], None] | None = None,
+    ) -> list[dict]:
+        """Every Claude Code Analytics record from ``starting_at`` up to, not
+        including, ``ending_at``.
+
+        The endpoint answers one UTC day per request, so a range is walked a
+        day at a time, each day's pages followed to the end. Returns
+        ``[{"date": "YYYY-MM-DD", "pages": [...]}]``. ``progress`` is called
+        after each day with the date and its page count, because a month is
+        at least thirty requests and the user should see it moving.
+        """
+        first = _utc_day(starting_at, name="starting_at")
+        last = _utc_day(ending_at, name="ending_at")
+        if last <= first:
+            raise ApiError("the range is empty: --to must be after --from")
+        today = self._clock().astimezone(timezone.utc).date()
+        if first > today:
+            raise ApiError(f"{first} is in the future; there is no data for it yet")
+        days: list[dict] = []
+        day = first
+        while day < last and day <= today:
+            pages = self._claude_code_day(day)
+            days.append({"date": day.isoformat(), "pages": pages})
+            if progress is not None:
+                progress(day.isoformat(), len(pages))
+            day += timedelta(days=1)
+        return days
+
+    def _claude_code_day(self, day) -> list[dict]:
+        """One day's records, every page, with the same loop guards as
+        ``_paginate``: a missing or repeated cursor is refused rather than
+        returned as a short, complete-looking day."""
+        pages: list[dict] = []
+        seen: set[str] = set()
+        token: str | None = None
+        while True:
+            query: dict[str, Any] = {
+                "starting_at": day.isoformat(),
+                "limit": CLAUDE_CODE_PAGE_LIMIT,
+            }
+            if token:
+                query["page"] = token
+            payload = self._get(CLAUDE_CODE_PATH, query, None)
+            pages.append(payload)
+            if not payload.get("has_more"):
+                return pages
+            nxt = payload.get("next_page")
+            if not nxt or nxt in seen:
+                raise ProtocolError(
+                    f"{CLAUDE_CODE_PATH} for {day} reported has_more=true "
+                    "without a new next_page. Refusing to return a partial day "
+                    "that would look complete."
+                )
+            seen.add(nxt)
+            token = nxt
+            if len(pages) >= self.page_cap:
+                raise ProtocolError(
+                    f"stopped after {self.page_cap} pages of {day} without "
+                    "has_more going false."
+                )
 
     def _names(self, path: str, params: Mapping[str, Any]) -> dict[str, str]:
         """Walk an ``after_id`` / ``has_more`` list endpoint, keeping id -> name."""
@@ -955,6 +1035,43 @@ def analytics_envelope(
 
 def is_analytics_envelope(payload: object) -> bool:
     return isinstance(payload, Mapping) and payload.get("kind") == ANALYTICS_ENVELOPE_KIND
+
+
+#: Marks a file written by `fetch --source claude-code`.
+CLAUDE_CODE_ENVELOPE_KIND = "claude-spend-audit/claude-code-fetch"
+
+
+def claude_code_envelope(
+    *,
+    starting_at: datetime,
+    ending_at: datetime,
+    days: Sequence[Mapping[str, Any]],
+    version: str,
+    fetched_at: datetime | None = None,
+) -> dict:
+    """Wrap Claude Code Analytics pages, one entry per UTC day.
+
+    ``fetched_at`` is load-bearing: it is how a day still in progress at fetch
+    time is recognised later. Deliberately contains no credential.
+    """
+    return {
+        "kind": CLAUDE_CODE_ENVELOPE_KIND,
+        "version": version,
+        "fetched_at": (fetched_at or datetime.now(timezone.utc)).strftime(
+            "%Y-%m-%dT%H:%M:%SZ"
+        ),
+        "source": "claude_code_analytics",
+        "endpoint": CLAUDE_CODE_PATH,
+        "request": {
+            "starting_at": _rfc3339(starting_at, name="starting_at"),
+            "ending_at": _rfc3339(ending_at, name="ending_at"),
+        },
+        "days": [dict(day) for day in days],
+    }
+
+
+def is_claude_code_envelope(payload: object) -> bool:
+    return isinstance(payload, Mapping) and payload.get("kind") == CLAUDE_CODE_ENVELOPE_KIND
 
 
 def _span(buckets: int, bucket_width: str) -> timedelta:

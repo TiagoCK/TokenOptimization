@@ -52,6 +52,14 @@ class GapCode(StrEnum):
     ANALYTICS_USER_JOIN_COARSENED = "analytics_user_join_coarsened"
     ANALYTICS_FRESHNESS_UNKNOWN = "analytics_freshness_unknown"
 
+    # Claude Code Analytics API
+    CLAUDE_CODE_ESTIMATES = "claude_code_estimates"
+    CLAUDE_CODE_INPUT_UNCONFIRMED = "claude_code_input_unconfirmed"
+    CLAUDE_CODE_PRICING_BASIS = "claude_code_pricing_basis"
+    CLAUDE_CODE_RECENT_DAY = "claude_code_recent_day"
+    CLAUDE_CODE_SHAPE = "claude_code_shape"
+    SUBSCRIPTION_NOT_BILLED_PER_TOKEN = "subscription_not_billed_per_token"
+
     # Shape of the export limits what can be concluded
     DIMENSION_NOT_GROUPED = "dimension_not_grouped"
     TOKEN_COLUMN_ABSENT = "token_column_absent"
@@ -842,4 +850,110 @@ def analytics_freshness_unknown() -> Gap:
             "fetched."
         ),
         remedy="Leave a few days between the end of the range and the fetch.",
+    )
+
+
+# --------------------------------------------------------------------------
+# Claude Code Analytics API
+# --------------------------------------------------------------------------
+
+
+def claude_code_estimates(total: str, api: str, ours: str) -> Gap:
+    """Every dollar from this source is Anthropic's estimate, not a bill."""
+    return Gap(
+        code=GapCode.CLAUDE_CODE_ESTIMATES,
+        severity=Severity.INFO,
+        message=(
+            f"Anthropic estimates {total} for the Claude Code use in this file, "
+            f"{api} of it by API-billed users; this tool prices those users' "
+            f"tokens at {ours}. Both are estimates at list price, not billed "
+            "amounts. API-billed Claude Code use also appears in the Usage & "
+            "Cost API, so do not add this audit's figures to an audit of that "
+            "data."
+        ),
+    )
+
+
+def claude_code_input_unconfirmed(ours: str, theirs: str) -> Gap:
+    """Our estimate from the tokens disagrees with Anthropic's own."""
+    return Gap(
+        code=GapCode.CLAUDE_CODE_INPUT_UNCONFIRMED,
+        severity=Severity.WARNING,
+        scope=f"{ours} vs {theirs}",
+        message=(
+            f"Pricing these tokens gives {ours}, but Anthropic's estimated cost "
+            f"for the same rows is {theirs}. This tool reads the API's input "
+            "tokens as uncached input, as the Messages API reports them; a gap "
+            "this size suggests they mean something else here, so token-based "
+            "findings from this file (C2, C5) may be wrong."
+        ),
+        remedy=(
+            "Please report it with the output of `describe` for this file -- "
+            "it shows the response shape, not the data."
+        ),
+    )
+
+
+def claude_code_pricing_basis(dimensions: tuple[str, ...]) -> Gap:
+    """The source carries no tier, geography or speed; standard is assumed."""
+    names = ", ".join(dimensions)
+    return Gap(
+        code=GapCode.CLAUDE_CODE_PRICING_BASIS,
+        severity=Severity.INFO,
+        scope=names,
+        message=(
+            f"The Claude Code Analytics API does not report {names}, so this "
+            "tool prices every token at the standard tier, global routing and "
+            "standard speed. Anthropic's own estimate, compared against it "
+            "below, does not have that limitation."
+        ),
+    )
+
+
+def claude_code_recent_day(day: str) -> Gap:
+    """The range ends within a day of the fetch, while data still arrives."""
+    return Gap(
+        code=GapCode.CLAUDE_CODE_RECENT_DAY,
+        severity=Severity.WARNING,
+        scope=day,
+        message=(
+            f"The range includes {day}, which had not finished when this file "
+            "was fetched. Its figures are partial, which can read as a drop "
+            "in use on the last day."
+        ),
+        invalidates_total=True,
+        remedy="Fetch again once the day is over, or end the range a day earlier.",
+    )
+
+
+def subscription_not_billed_per_token(share: str) -> Gap:
+    """Pro/Team seats appear with an estimated cost they are not billed."""
+    return Gap(
+        code=GapCode.SUBSCRIPTION_NOT_BILLED_PER_TOKEN,
+        severity=Severity.INFO,
+        scope=share,
+        message=(
+            f"{share} of estimated cost comes from subscription (Pro or Team) "
+            "users, who pay for a seat rather than per token. Their usage is "
+            "left out of the token checks, whose findings are about per-token "
+            "spend, and kept in the per-user and Claude Code checks as an "
+            "API-equivalent value."
+        ),
+    )
+
+
+def claude_code_shape() -> Gap:
+    """Why several usage checks cannot run on this source at all."""
+    return Gap(
+        code=GapCode.CLAUDE_CODE_SHAPE,
+        severity=Severity.INFO,
+        scope="model, person, day",
+        message=(
+            "The Claude Code Analytics API breaks usage out by model, person and "
+            "UTC day only: no workspace, API key, service tier, context window "
+            "or hour. Batch tier adoption (C3), long-context composition (C4), "
+            "off-hours volume (C6b) and attribution coverage (C7) cannot run on "
+            "it, and no re-export changes that. For those, audit the Usage & "
+            "Cost API data instead."
+        ),
     )

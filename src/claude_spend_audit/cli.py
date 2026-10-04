@@ -50,10 +50,14 @@ from .ingest.api_client import (
     AuthError,
     Credential,
     analytics_envelope,
+    claude_code_envelope,
     envelope,
     is_analytics_envelope,
+    is_claude_code_envelope,
     is_envelope,
 )
+from .claude_code import CODE_CHECKS, CodeConfig, run_code_checks
+from .ingest.claude_code_json import ClaudeCodeFileError, load_claude_code
 from .ingest.analytics_json import AnalyticsFileError, load_analytics
 from .ingest.api_json import ResponseShapeError, load_cost_json, load_usage_json
 from .ingest.enterprise_csv import ENTERPRISE_KIND, detect_enterprise, load_enterprise_csv
@@ -94,7 +98,11 @@ DEFAULT_ANALYTICS_GROUP_BY: tuple[str, ...] = (
 )
 
 #: Where each source's key is read from unless --api-key-env says otherwise.
-_DEFAULT_KEY_ENV = {"admin": "ANTHROPIC_ADMIN_KEY", "analytics": "ANTHROPIC_ANALYTICS_KEY"}
+_DEFAULT_KEY_ENV = {
+    "admin": "ANTHROPIC_ADMIN_KEY",
+    "analytics": "ANTHROPIC_ANALYTICS_KEY",
+    "claude-code": "ANTHROPIC_ADMIN_KEY",
+}
 
 
 # --------------------------------------------------------------------------
@@ -321,12 +329,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
     fetch.add_argument(
         "--source",
-        choices=("admin", "analytics"),
+        choices=("admin", "analytics", "claude-code"),
         default="admin",
         help=(
             "admin: the Usage & Cost Admin API (Developer Console "
             "organisations). analytics: the Claude Enterprise Analytics API, "
-            "with an Analytics API key (default: admin)"
+            "with an Analytics API key. claude-code: the Claude Code Analytics "
+            "API, with the Admin API key (default: admin)"
         ),
     )
     fetch.add_argument(
@@ -475,7 +484,8 @@ def _read_saved(path) -> dict | None:
         payload = json.loads(Path(path).read_text(encoding="utf-8"))
     except (OSError, UnicodeDecodeError, json.JSONDecodeError):
         return None
-    return payload if is_envelope(payload) or is_analytics_envelope(payload) else None
+    known = (is_envelope, is_analytics_envelope, is_claude_code_envelope)
+    return payload if any(test(payload) for test in known) else None
 
 
 def _frame_from_saved(saved: dict, expected: str) -> Frame:
@@ -652,6 +662,8 @@ def _inspect(args) -> int:
     saved = _read_saved(args.usage)
     if saved is not None and is_analytics_envelope(saved):
         return _analytics(args, saved, mode="inspect")
+    if saved is not None and is_claude_code_envelope(saved):
+        return _claude_code(args, saved, mode="inspect")
     routed = _enterprise_profile(args)
     if routed is not None:
         return _enterprise(args, routed, mode="inspect")
@@ -702,6 +714,8 @@ def _audit(args) -> int:
     saved = _read_saved(args.usage)
     if saved is not None and is_analytics_envelope(saved):
         return _analytics(args, saved, mode="audit")
+    if saved is not None and is_claude_code_envelope(saved):
+        return _claude_code(args, saved, mode="audit")
     routed = _enterprise_profile(args)
     if routed is not None:
         return _enterprise(args, routed, mode="audit")
@@ -844,6 +858,8 @@ def _fetch(args) -> int:
 
     if analytics:
         return _fetch_analytics(args, key)
+    if args.source == "claude-code":
+        return _fetch_claude_code(args, key)
 
     group_by = [g.strip() for g in (args.group_by or "").split(",") if g.strip()]
     client = ApiClient(Credential(key), max_retries=args.max_retries)
@@ -916,6 +932,64 @@ def _lookup_names(client: ApiClient) -> dict[str, dict[str, str]] | None:
             file=sys.stderr,
         )
         return None
+
+
+def _fetch_claude_code(args, key: str) -> int:
+    """fetch --source claude-code: every day of the range, one file."""
+    inapplicable = [
+        flag
+        for flag, used in (
+            ("--what", args.what != "usage"),
+            ("--bucket-width", args.bucket_width != "1d"),
+            ("--group-by", args.group_by != ",".join(DEFAULT_FETCH_GROUP_BY)),
+            ("--window", args.window),
+            ("--no-users", args.no_users),
+            ("--no-names", args.no_names),
+        )
+        if used
+    ]
+    if inapplicable:
+        print(
+            f"error: {', '.join(inapplicable)} does not apply to --source "
+            "claude-code. The Claude Code Analytics API reports one fixed "
+            "shape: a record per person per day.",
+            file=sys.stderr,
+        )
+        return 2
+
+    days = (args.end - args.start).days
+    print(
+        f"fetching {days} day(s) of Claude Code analytics -- one request per "
+        "day, so this can take a while if the API asks us to slow down.",
+        file=sys.stderr,
+    )
+    client = ApiClient(Credential(key), max_retries=args.max_retries)
+    try:
+        fetched = client.claude_code(
+            args.start,
+            args.end,
+            progress=lambda day, pages: print(f"  {day}: {pages} page(s)", file=sys.stderr),
+        )
+    except AuthError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    except ApiError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+
+    payload = claude_code_envelope(
+        starting_at=args.start, ending_at=args.end, days=fetched, version=__version__
+    )
+    args.output.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    records = sum(len(p.get("data", ())) for d in fetched for p in d["pages"])
+    print(
+        f"wrote {args.output} -- {len(fetched)} day(s), {records} record(s).\n"
+        "It holds users' email addresses; it stays on this machine unless you "
+        "move it.\n"
+        f"Analyse it offline with:  claude-spend-audit audit {args.output}",
+        file=sys.stderr,
+    )
+    return 0
 
 
 def _fetch_analytics(args, key: str) -> int:
@@ -1134,6 +1208,154 @@ def _analytics(args, saved: dict, *, mode: str) -> int:
     return _emit_audit(
         args, frame, pricing, estimate, combined, checks_total=checks_total, extra_json=extra
     )
+
+
+# --------------------------------------------------------------------------
+# Claude Code Analytics API (saved fetch)
+# --------------------------------------------------------------------------
+
+#: Anthropic's estimate and ours may differ this much before the token
+#: reading is called into question.
+_CLAUDE_CODE_TOLERANCE = Decimal("0.10")
+
+
+def _claude_code(args, saved: dict, *, mode: str) -> int:
+    """inspect or audit, for a file saved by `fetch --source claude-code`."""
+    from .enterprise.checks import E1, E3, E4
+
+    if args.cost:
+        print(
+            "error: a Claude Code fetch carries its own estimated cost. --cost "
+            "applies only to Developer Console usage exports.",
+            file=sys.stderr,
+        )
+        return 2
+    try:
+        pricing = (
+            PricingTable.load(args.pricing) if args.pricing else PricingTable.load_default()
+        )
+    except PricingError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    try:
+        data = load_claude_code(saved, source=str(args.usage))
+    except (ClaudeCodeFileError, ResponseShapeError, InvalidOperation, KeyError, ValueError) as exc:
+        print(f"error: the saved Claude Code fetch cannot be read: {exc}", file=sys.stderr)
+        return 2
+
+    frame, merged = pricing.merge_model_aliases(data.frame)
+    frame = frame.with_gaps(merged)
+    estimate = pricing.estimate_frame(frame)
+    ours, theirs = estimate.usd, data.api_estimate_usd
+    found = [
+        gapmod.claude_code_estimates(_money(data.total_estimate_usd), _money(theirs), _money(ours))
+    ]
+    if theirs and abs(ours - theirs) / theirs > _CLAUDE_CODE_TOLERANCE:
+        found.append(gapmod.claude_code_input_unconfirmed(_money(ours), _money(theirs)))
+    frame = frame.with_gaps(found + list(data.gaps))
+    frame = frame.with_gaps(_claude_code_gaps(estimate.gaps, frame))
+
+    report, activity = data.report, data.activity
+    if args.anonymize:
+        labels = report.anonymous_labels()
+        report = report.anonymized()
+        activity = activity.relabel(labels)
+
+    per_user_checks = (E1, E3, E4)
+    checks_total = len(CHECKS) + len(per_user_checks) + len(CODE_CHECKS)
+    extra = {
+        "source": "claude_code_analytics",
+        "anthropic_estimate_usd": str(data.total_estimate_usd),
+        "anthropic_estimate_api_usd": str(theirs),
+    }
+
+    if mode == "inspect":
+        blocked: list[tuple[str, str]] = []
+        for check in CHECKS:
+            unmet = check.unmet(frame, CheckConfig())
+            if unmet:
+                frame = frame.with_gaps(unmet)
+                blocked.append((check.label, "; ".join(g.message for g in unmet)))
+        for check in per_user_checks:
+            unmet = check.unmet(report)
+            if unmet:
+                blocked.append((check.label, "; ".join(g.message for g in unmet)))
+        frame = replace(frame, gaps=tuple(_claude_code_gaps(frame.gaps, frame)))
+        if args.json:
+            payload = _as_json(frame, pricing, estimate)
+            payload.update(extra)
+            payload["checks_blocked"] = [label for label, _ in blocked]
+            print(json.dumps(payload, indent=2))
+            return _exit_code(frame)
+        out = terminal.render_header(frame, pricing, estimate, title="Claude Code summary")
+        out.extend(terminal.render_dimensions(frame))
+        out.extend(terminal.render_gaps(frame.gaps))
+        out.extend(terminal.render_skipped(blocked))
+        out.extend(
+            terminal.footer(
+                [
+                    f"No checks run. {checks_total - len(blocked)} of {checks_total} "
+                    "would run on this data -- use `audit`.",
+                ]
+            )
+        )
+        print("\n".join(out))
+        return _exit_code(frame)
+
+    run = run_checks(frame, pricing, _check_config(args))
+    per_user = run_enterprise_checks(
+        report, pricing, EnterpriseConfig(min_impact_usd=args.min_impact),
+        checks=per_user_checks,
+    )
+    code = run_code_checks(activity, CodeConfig(min_impact_usd=args.min_impact))
+    combined = CheckRun(
+        findings=tuple(rank([*run.findings, *per_user.findings, *code.findings])),
+        gaps=tuple(_claude_code_gaps([*run.gaps, *per_user.gaps], frame)),
+        clean=(*run.clean, *per_user.clean, *code.clean),
+        skipped=(*run.skipped, *per_user.skipped),
+    )
+    frame = frame.with_gaps(combined.gaps)
+    return _emit_audit(
+        args, frame, pricing, estimate, combined, checks_total=checks_total, extra_json=extra
+    )
+
+
+def _money(amount: Decimal) -> str:
+    return f"${amount:,.2f}"
+
+
+def _claude_code_gaps(gaps, frame: Frame) -> list:
+    """Gaps for a Claude Code audit, without advice that cannot be followed.
+
+    The endpoint has one fixed shape, broken out by model only. "Re-export
+    grouped by workspace" or "re-export hourly" would send the reader after
+    something that does not exist, so those gaps are dropped in favour of one
+    that says which checks this source can never support; the pricing gap
+    says what was assumed instead of how to re-export.
+    """
+    kept = [gapmod.claude_code_shape()]
+    for gap in gaps:
+        if gap.code in (GapCode.DIMENSION_NOT_GROUPED, GapCode.GRANULARITY_TOO_COARSE):
+            continue
+        if gap.code is GapCode.PRICING_DIMENSION_NOT_GROUPED:
+            missing = tuple(d for d in PRICE_DIMENSIONS if not frame.has_dimension(d))
+            if missing:
+                kept.append(gapmod.claude_code_pricing_basis(missing))
+            continue
+        if gap.code is GapCode.CACHE_TTL_NOT_SPLIT:
+            # The generic remedy points at a cookbook CSV; here the API itself
+            # is the source of the summed figure, and nothing splits it.
+            gap = replace(
+                gap,
+                remedy=(
+                    "Nothing on this source splits them: the Claude Code "
+                    "Analytics API reports cache writes as one figure. "
+                    "Anthropic's own estimate, in the caveats, prices them "
+                    "with the TTL it knows."
+                ),
+            )
+        kept.append(gap)
+    return kept
 
 
 #: Dimensions the Analytics API never reports. A gap telling the reader to

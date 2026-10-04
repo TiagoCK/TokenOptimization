@@ -14,6 +14,7 @@ deliberately left unestimated.
 - [Data flow](#data-flow)
 - [The six invariants](#the-six-invariants)
 - [The confidence model](#the-confidence-model)
+- [The Claude Code Analytics source](#the-claude-code-analytics-source)
 - [What the tool changes about your data](#what-the-tool-changes-about-your-data)
 - [Verifying a figure by hand](#verifying-a-figure-by-hand)
 - [Adding a check](#adding-a-check)
@@ -231,6 +232,31 @@ The tier alone does not finish the job, because C1 and C6 are both `measured`:
 a month of overnight spend easily dwarfs the cache premium C1 proves was
 wasted. So within a level, a finding that claims a saving sorts ahead of one
 that only measures spend. The two numbers are never compared with each other.
+
+## The Claude Code Analytics source
+
+`fetch --source claude-code` saves one entry per UTC day from
+`/v1/organizations/usage_report/claude_code`, the endpoint's own granularity.
+`ingest/claude_code_json.py` turns it into three views, because each check
+family needs a different one:
+
+- a `Frame` of **API-billed** use per day and model, for the usage checks.
+  Subscription (Pro/Team) rows are left out of it: a seat is not billed per
+  token, so a per-token finding would not be about their bill. The cache
+  writes arrive without a TTL and go to the unsplit bucket, which blocks C1
+  through its existing precondition;
+- a `SpendReport` per person and model, everyone included, whose spend column
+  is labelled "estimated cost" so no finding calls it a bill;
+- `CodeActivity`, sessions and accepted/rejected edits per person-day, for
+  K1-K3, which are observations enforced by the same descriptive-only runner
+  as the E-checks.
+
+One assumption is checked rather than trusted: that the API's `input` tokens
+exclude cached tokens. The audit prices the API-billed tokens itself and
+compares the result with Anthropic's `estimated_cost` for the same rows; more
+than 10% apart raises `claude_code_input_unconfirmed`. API-billed Claude Code
+use is also inside the Usage & Cost API totals, so the two audits are never
+combined, and a caveat in every Claude Code report says so.
 
 ## Handling the admin credential
 

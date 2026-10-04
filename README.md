@@ -97,6 +97,7 @@ with the header row or the shape of the response -- never the data itself.
 |---|---|---|---|
 | Developer Console (API) with an Admin API key | `fetch` (Usage & Cost Admin API) | Console CSV export | every usage check |
 | Developer Console, no Admin API key | Console CSV export | CSV from Anthropic's cookbook exporter | most usage checks, depending on the export's columns |
+| Developer Console, Claude Code use by people or keys | `fetch --source claude-code` (Admin API key) | none | per-person Claude Code use: K1-K3, E1, E3, E4, and C2, C5, C6a, C8 on API-billed use |
 | Claude Enterprise | `fetch --source analytics` (Analytics API key) | spend report CSV | most usage checks, C7r and E1-E4 |
 | Claude Team | spend report CSV | none | E1-E4 only, descriptive |
 | Claude Pro or Max (individual) | not supported | none | no usage export exists |
@@ -200,6 +201,38 @@ Caveats for this account type:
   cannot run on its output; the tool says so and prices those tokens at the
   cheaper rate, making the estimate a floor.
 
+**Claude Code usage** (the same Admin API key). The Claude Code Analytics API
+reports each person's (or API key's) Claude Code use per day: sessions,
+accepted and rejected edits, tokens and Anthropic's estimated cost per model.
+
+```bash
+claude-spend-audit fetch --source claude-code --from 2026-08-01 --to 2026-09-01 -o claude-code.json
+```
+
+```bash
+claude-spend-audit audit claude-code.json
+```
+
+The API answers one day per request, so a month is at least 31 requests.
+
+Caveats for this source:
+
+- Every dollar figure is **Anthropic's estimate**, not a bill. Claude Code use
+  billed through the API is also in the Usage & Cost API data, so never add
+  this audit's figures to that one's.
+- Pro and Team subscribers appear with an API-equivalent estimate, although
+  they pay for a seat. They are left out of the token checks and shown
+  separately by K3.
+- The API's input token count is assumed to exclude cached tokens, as the
+  Messages API reports it. Each audit checks that by pricing the tokens itself
+  and comparing with Anthropic's estimate; a gap over 10% raises a caveat.
+- Cache writes come without their duration, so C1 cannot run.
+- The file holds users' email addresses. `--anonymize` replaces them in the
+  output with `user-001`..., consistently across every section.
+- Claude Code use by people on a Claude Enterprise plan is reported by the
+  Enterprise Analytics API instead (`fetch --source analytics`), under the
+  `claude_code` product.
+
 ### Claude Enterprise
 
 **With an Analytics API key** (best). Only the Primary Owner can create one, in
@@ -293,23 +326,30 @@ Caveats for this source:
 | **E2** | Spend by Claude product (chat, Claude Code, Cowork...) | `observation` |
 | **E3** | Model mix, from per-user data | `observation` |
 | **E4** | Product/model groups where completion tokens are a large share | `observation` |
+| **K1** | How often Claude Code's proposed edits were accepted, and who rejects most | `observation` |
+| **K2** | Claude Code days with unusually costly sessions | `observation` |
+| **K3** | Claude Code use by billing type: API vs Pro/Team subscription | `observation` |
 
 Which checks can run depends on the source. A check the data cannot support is
 skipped, and the report names it and says why.
 
-| check | Admin API | Console CSV | Cookbook CSV | Enterprise Analytics | Spend report |
-|---|---|---|---|---|---|
-| C1 | yes | if the export splits cache writes | no: cache writes summed | yes | no |
-| C2 | yes | yes | yes | yes | no |
-| C3 | yes | if it has a service tier column | yes | no: no service tier | no |
-| C4 | yes | if it has a context window column | no | yes | no |
-| C5 | yes | yes | yes | yes | no (E4 instead) |
-| C6a | yes, 8+ days | yes, 8+ days | yes, 8+ days | yes, 8+ days | no |
-| C6b | with `--bucket-width 1h` | if exported hourly | no: daily only | with `--bucket-width 1h` | no |
-| C7 | yes | if it has a workspace column | yes | no (C7r instead) | no |
-| C7r | no | no | no | yes | no |
-| C8 | yes | yes | yes | yes | no (E3 instead) |
-| E1-E4 | no | no | no | yes, unless `--no-users` | yes, where columns allow |
+| check | Admin API | Console CSV | Cookbook CSV | Enterprise Analytics | Spend report | Claude Code |
+|---|---|---|---|---|---|---|
+| C1 | yes | if the export splits cache writes | no: cache writes summed | yes | no | no: cache writes summed |
+| C2 | yes | if it has a cache read column | yes | yes | no | yes, API-billed use |
+| C3 | yes | if it has a service tier column | yes | no: no service tier | no | no |
+| C4 | yes | if it has a context window column | no | yes | no | no |
+| C5 | yes | if it has a cache read column | yes | yes | no (E4 instead) | yes, API-billed use |
+| C6a | yes, 8+ days | yes, 8+ days | yes, 8+ days | yes, 8+ days | no | yes, 8+ days |
+| C6b | with `--bucket-width 1h` | if exported hourly | no: daily only | with `--bucket-width 1h` | no | no: daily only |
+| C7 | yes | if it has a workspace column | yes | no (C7r instead) | no | no |
+| C7r | no | no | no | yes | no | no |
+| C8 | yes | yes | yes | yes | no (E3 instead) | yes, API-billed use |
+| E1-E4 | no | no | no | yes, unless `--no-users` | yes, where columns allow | E1, E3, E4 |
+| K1-K3 | no | no | no | no | no | yes |
+
+A missing token column is not read as zero: on a CSV without a cache read
+column, C1, C2 and C5 are skipped with a caveat naming the column.
 
 ## Install
 

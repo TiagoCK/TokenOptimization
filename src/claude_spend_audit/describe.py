@@ -26,7 +26,7 @@ from collections import Counter
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
-from .ingest.api_client import is_analytics_envelope, is_envelope
+from .ingest.api_client import is_analytics_envelope, is_claude_code_envelope, is_envelope
 from .ingest.schema import (
     Profile,
     SchemaError,
@@ -250,6 +250,14 @@ def _describe_json(payload: Any) -> list[str]:
             out += _indent(_page_structure(series.get("pages") or []), "    ")
         out += ["", "  dry run:", *_indent(_dry_run_analytics(payload), "    ")]
         return out
+    if is_claude_code_envelope(payload):
+        days = payload.get("days") or []
+        pages = [p for d in days if isinstance(d, Mapping) for p in d.get("pages") or []]
+        out = [f"  saved fetch: Claude Code Analytics API, {len(days)} day(s)", ""]
+        out += _request_lines(payload)
+        out += _indent(_page_structure(pages), "  ")
+        out += ["", "  dry run:", *_indent(_dry_run_claude_code(payload), "    ")]
+        return out
     if is_envelope(payload):
         out = [f"  saved fetch: Usage & Cost Admin API, endpoint {payload.get('endpoint')!r}", ""]
         out += _request_lines(payload)
@@ -349,6 +357,24 @@ def _dry_run_analytics(payload: Mapping[str, Any]) -> list[str]:
         f"loads {len(frame.usage)} usage row(s), {len(frame.cost)} cost row(s), "
         f"{len(report.rows) if report else 0} per-user row(s), "
         f"RBAC coverage {'present' if coverage else 'absent'}",
+        f"caveat codes: {', '.join(codes) or 'none'}",
+    ]
+
+
+def _dry_run_claude_code(payload: Mapping[str, Any]) -> list[str]:
+    from .ingest.api_json import ResponseShapeError
+    from .ingest.claude_code_json import ClaudeCodeFileError, load_claude_code
+
+    try:
+        data = load_claude_code(payload)
+    except (ClaudeCodeFileError, ResponseShapeError, ValueError, KeyError, TypeError) as exc:
+        return ["refused:", *_indent(_redacted(exc))]
+    kinds = sorted({r.customer_type for r in data.activity.records})
+    codes = sorted({g.code.value for g in data.gaps})
+    return [
+        f"loads {len(data.activity.records)} person-day record(s), "
+        f"{len(data.frame.usage)} API-billed usage row(s)",
+        f"customer types: {', '.join(kinds) or 'none'}",
         f"caveat codes: {', '.join(codes) or 'none'}",
     ]
 
