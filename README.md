@@ -363,13 +363,43 @@ git clone https://github.com/TiagoCK/TokenOptimization.git
 cd TokenOptimization
 ```
 
+Install into a virtual environment. Activating it puts the
+`claude-spend-audit` command on your PATH for that terminal, so there is
+nothing to add to PATH by hand:
+
+```bash
+python -m venv .venv
+```
+
+```bash
+source .venv/bin/activate
+```
+
+On Windows, activate with `.venv\Scripts\activate` instead (and use `py` in
+place of `python` if `python` is not found). Then:
+
 ```bash
 python -m pip install -e .
 ```
 
-On Windows, use `py -m pip install -e .` if `python` is not on your PATH.
-That puts a `claude-spend-audit` command on your PATH; `python -m
-claude_spend_audit` works the same way.
+```bash
+claude-spend-audit --help
+```
+
+Activate the environment again in each new terminal before using the command.
+
+If the command is not found -- for example after installing without a virtual
+environment, where pip may put it in a scripts folder that is not on your PATH
+and warn you so -- run the tool through Python instead. It works the same way
+everywhere:
+
+```bash
+python -m claude_spend_audit --help
+```
+
+The command works from any folder, because an editable install keeps reading
+`pricing/` and `schemas/` from this checkout. Don't move or delete the checkout
+after installing.
 
 Install editable, or run from a checkout. The rate card (`pricing/`) and the CSV
 schema profiles (`schemas/`) deliberately live at the repo root rather than
