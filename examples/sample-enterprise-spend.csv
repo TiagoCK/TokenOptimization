@@ -1,0 +1,11 @@
+user_email,account_uuid,product,model,model_family,total_requests,total_prompt_tokens,total_completion_tokens,total_net_spend_usd,total_gross_spend_usd
+priya@example.com,6b1f2c1e-0000-4a3e-9f00-000000000001,Claude Code,claude-opus-5,Claude Opus,5060,117300000,8050000,772.22,908.50
+marco@example.com,6b1f2c1e-0000-4a3e-9f00-000000000002,Claude Code,claude-sonnet-5,Claude Sonnet,5980,365700000,9660000,220.92,259.90
+lena@example.com,6b1f2c1e-0000-4a3e-9f00-000000000003,Claude Code,claude-opus-5,Claude Opus,3220,595700000,6900000,764.89,899.88
+sam@example.com,6b1f2c1e-0000-4a3e-9f00-000000000004,Chat,claude-sonnet-5,Claude Sonnet,2070,149500000,6440000,308.89,363.40
+ana@example.com,6b1f2c1e-0000-4a3e-9f00-000000000005,Chat,claude-haiku-4-5,Claude Haiku,2760,24150000,4140000,33.09,38.93
+tom@example.com,6b1f2c1e-0000-4a3e-9f00-000000000006,Chat,claude-sonnet-5,Claude Sonnet,2530,48760000,5980000,103.22,121.44
+kim@example.com,6b1f2c1e-0000-4a3e-9f00-000000000007,Cowork,claude-haiku-4-5,Claude Haiku,6900,20470000,21850000,101.66,119.60
+raj@example.com,6b1f2c1e-0000-4a3e-9f00-000000000008,Chat,claude-opus-5,Claude Opus,1610,62100000,5520000,289.34,340.40
+eve@example.com,6b1f2c1e-0000-4a3e-9f00-000000000009,Claude Code,claude-sonnet-5,Claude Sonnet,15300,550800000,22440000,437.84,515.10
+,6b1f2c1e-0000-4a3e-9f00-000000000010,Chat,claude-sonnet-5,Claude Sonnet,204,1700000,408000,6.36,7.48

@@ -35,6 +35,20 @@ claude-spend-audit audit examples/sample-usage.csv --cost examples/sample-cost.c
 The organisation in it is invented, and the numbers are chosen so that every
 check has something to say.
 
+For Claude Enterprise, there is an invented month in both Enterprise shapes:
+[`examples/sample-enterprise-report.md`](examples/sample-enterprise-report.md)
+comes from a saved Analytics API fetch, and
+[`examples/sample-enterprise-spend-report.md`](examples/sample-enterprise-spend-report.md)
+from the same month as a spend report download. To run them yourself:
+
+```bash
+claude-spend-audit audit examples/sample-enterprise-analytics.json
+```
+
+```bash
+claude-spend-audit audit examples/sample-enterprise-spend.csv
+```
+
 ## Read this first: nothing here has been tested on real account data
 
 Every input path was built from Anthropic's published documentation and tested
